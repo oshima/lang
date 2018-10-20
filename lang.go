@@ -12,6 +12,7 @@ import (
 // Tokens
 
 const (
+	TK_PLUS = "TK_PLUS"
 	TK_MINUS = "TK_MINUS"
 	TK_SEMICOLON = "TK_SEMICOLON"
 	TK_EOF = "TK_EOF"
@@ -74,6 +75,9 @@ func (l *Lexer) readToken() Token {
 	var token Token
 	c := l.lookChar()
 	switch c {
+	case '+':
+		token = Token{Type: TK_PLUS, Source: "+"}
+		l.next()
 	case '-':
 		if isDigit(l.peekChar()) {
 			token = l.readInteger()
@@ -140,6 +144,14 @@ type ExpressionStatement struct {
 func (stmt *ExpressionStatement) Node() {}
 func (stmt *ExpressionStatement) Statement() {}
 
+type InfixExpression struct {
+	Operator string
+	Left Expression
+	Right Expression
+}
+func (expr *InfixExpression) Node() {}
+func (expr *InfixExpression) Expression() {}
+
 type IntegerLiteral struct {
 	Value int64
 }
@@ -148,6 +160,16 @@ func (expr *IntegerLiteral) Expression() {}
 
 // Parser
 
+const (
+	PR_LOWEST int = iota
+	PR_SUM
+)
+
+var precedences = map[string]int{
+	TK_PLUS: PR_SUM,
+	TK_MINUS: PR_SUM,
+}
+
 type Parser struct {
 	tokens []Token
 	pos int
@@ -155,6 +177,13 @@ type Parser struct {
 
 func (p *Parser) lookToken() Token {
 	return p.tokens[p.pos]
+}
+
+func (p *Parser) lookPrecedence() int {
+	if p, ok := precedences[p.tokens[p.pos].Type]; ok {
+		return p
+	}
+	return PR_LOWEST
 }
 
 func (p *Parser) next() {
@@ -176,25 +205,48 @@ func (p *Parser) parseStatement() Statement {
 }
 
 func (p *Parser) parseExpressionStatement() *ExpressionStatement {
-	expr := p.parseExpression()
+	expr := p.parseExpression(PR_LOWEST)
 	token := p.lookToken()
 	if token.Type != TK_SEMICOLON {
-		error("Expected %q but got %q", ";", token.Source)
+		if token.Type == TK_EOF {
+			error("Expected %q but got <EOF>", ";")
+		} else {
+			error("Expected %q but got %q", ";", token.Source)
+		}
 	}
 	p.next()
 	return &ExpressionStatement{Expression: expr}
 }
 
-func (p *Parser) parseExpression() Expression {
-	var expr Expression
+func (p *Parser) parseExpression(precedence int) Expression {
+	var left Expression
 	token := p.lookToken()
 	switch token.Type {
 	case TK_INT:
-		expr = p.parseIntegerLiteral()
+		left = p.parseIntegerLiteral()
+	case TK_EOF:
+		error("Unexpected <EOF>")
 	default:
 		error("Unexpected %q", token.Source)
 	}
-	return expr
+
+	for precedence < p.lookPrecedence() {
+		switch p.lookToken().Type {
+		case TK_PLUS:
+			left = p.parseInfixExpression(left)
+		case TK_MINUS:
+			left = p.parseInfixExpression(left)
+		}
+	}
+	return left
+}
+
+func (p *Parser) parseInfixExpression(left Expression) *InfixExpression {
+	operator := p.lookToken().Source
+	precedence := p.lookPrecedence()
+	p.next()
+	right := p.parseExpression(precedence)
+	return &InfixExpression{Operator: operator, Left: left, Right: right}
 }
 
 func (p *Parser) parseIntegerLiteral() *IntegerLiteral {
@@ -236,8 +288,23 @@ func (g *Generator) emitStatement(stmt Statement) {
 
 func (g *Generator) emitExpression(expr Expression) {
 	switch v := expr.(type) {
+	case *InfixExpression:
+		g.emitInfixExpression(v)
 	case *IntegerLiteral:
 		g.emitIntegerLiteral(v)
+	}
+}
+
+func (g *Generator) emitInfixExpression(expr *InfixExpression) {
+	g.emitExpression(expr.Right)
+	emit("pushq %%rax")
+	g.emitExpression(expr.Left)
+	emit("popq %%rdx")
+	switch expr.Operator {
+	case "+":
+		emit("addq %%rdx, %%rax")
+	case "-":
+		emit("subq %%rdx, %%rax")
 	}
 }
 
