@@ -16,11 +16,14 @@ func Parse(tokens []*token.Token) *ast.Program {
 const (
 	LOWEST int = iota
 	SUM
+	PRODUCT
 )
 
 var precedences = map[string]int{
-	token.PLUS: SUM,
-	token.MINUS: SUM,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
 }
 
 type parser struct {
@@ -78,14 +81,8 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 	default:
 		util.Error("Unexpected %q", p.tk.Source)
 	}
-
 	for precedence < p.lookPrecedence() {
-		switch p.tk.Type {
-		case token.PLUS:
-			left = p.parseInfixExpr(left)
-		case token.MINUS:
-			left = p.parseInfixExpr(left)
-		}
+		left = p.parseInfixExpr(left)
 	}
 	return left
 }

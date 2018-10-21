@@ -66,6 +66,10 @@ func (s *scanner) readToken() *token.Token {
 		} else {
 			tk = s.readPunct(token.MINUS)
 		}
+	case '*':
+		tk = s.readPunct(token.ASTERISK)
+	case '/':
+		tk = s.readPunct(token.SLASH)
 	case ';':
 		tk = s.readPunct(token.SEMICOLON)
 	case 0:

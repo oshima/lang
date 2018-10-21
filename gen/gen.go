@@ -5,14 +5,18 @@ import (
 	"github.com/oshjma/lang/ast"
 )
 
-func Generate(program *ast.Program) {
+func Generate(node *ast.Program) {
+	emitProgram(node)
+}
+
+func emitProgram(node *ast.Program) {
 	emit(".text")
 	emit(".globl main")
 	emit(".type main, @function")
 	p("main:")
 	emit("pushq %%rbp")
 	emit("movq %%rsp, %%rbp")
-	for _, stmt := range program.Statements {
+	for _, stmt := range node.Statements {
 		emitStmt(stmt)
 	}
 	emit("leave")
@@ -39,12 +43,17 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 	emitExpr(expr.Right)
 	emit("pushq %%rax")
 	emitExpr(expr.Left)
-	emit("popq %%rdx")
+	emit("popq %%rcx")
 	switch expr.Operator {
 	case "+":
-		emit("addq %%rdx, %%rax")
+		emit("addq %%rcx, %%rax")
 	case "-":
-		emit("subq %%rdx, %%rax")
+		emit("subq %%rcx, %%rax")
+	case "*":
+		emit("imulq %%rcx, %%rax")
+	case "/":
+		emit("cqo")
+		emit("idivq %%rcx")
 	}
 }
 
