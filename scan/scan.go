@@ -8,24 +8,14 @@ import (
 func Scan(src string) []*token.Token {
 	s := &scanner{src: src, pos: -1}
 	s.next()
-
-	var tokens []*token.Token
-	var tk *token.Token
-	for {
-		s.skipWs()
-		tk = s.readToken()
-		tokens = append(tokens, tk)
-		if (tk.Type == token.EOF) {
-			break
-		}
-	}
-	return tokens
+	return s.readTokens()
 }
 
 type scanner struct {
-	src string // input source code
-	pos int    // current position
-	ch byte    // current character
+	src string          // input source code
+	pos int             // current position
+	ch byte             // current character
+	lastTk *token.Token // last token scanner read
 }
 
 func (s *scanner) next() {
@@ -44,10 +34,24 @@ func (s *scanner) peekChar() byte {
 	return 0
 }
 
-func (s *scanner) skipWs() {
+func (s *scanner) skipWhitespace() {
 	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
 		s.next()
 	}
+}
+
+func (s *scanner) readTokens() []*token.Token {
+	var tokens []*token.Token
+	var tk *token.Token
+	for {
+		s.skipWhitespace()
+		tk = s.readToken()
+		tokens = append(tokens, tk)
+		if (tk.Type == token.EOF) {
+			break
+		}
+	}
+	return tokens
 }
 
 func (s *scanner) readToken() *token.Token {
@@ -56,7 +60,8 @@ func (s *scanner) readToken() *token.Token {
 	case '+':
 		tk = s.readPunct(token.PLUS)
 	case '-':
-		if isDigit(s.peekChar()) {
+		// TODO: make more readable
+		if (s.lastTk == nil || s.lastTk.Type != token.INT) && isDigit(s.peekChar()) {
 			tk = s.readInt()
 		} else {
 			tk = s.readPunct(token.MINUS)
@@ -72,6 +77,7 @@ func (s *scanner) readToken() *token.Token {
 			util.Error("Unexpected %q", string(s.ch))
 		}
 	}
+	s.lastTk = tk
 	return tk
 }
 
