@@ -10,14 +10,7 @@ import (
 func Parse(tokens []*token.Token) *ast.Program {
 	p := &parser{tokens: tokens, pos: -1}
 	p.next()
-
-	var statements []ast.Stmt
-	var stmt ast.Stmt
-	for p.tk.Type != token.EOF {
-		stmt = p.parseStmt()
-		statements = append(statements, stmt)
-	}
-	return &ast.Program{Statements: statements}
+	return p.parseProgram()
 }
 
 const (
@@ -46,6 +39,16 @@ func (p *parser) lookPrecedence() int {
 		return pr
 	}
 	return LOWEST
+}
+
+func (p *parser) parseProgram() *ast.Program {
+	var statements []ast.Stmt
+	var stmt ast.Stmt
+	for p.tk.Type != token.EOF {
+		stmt = p.parseStmt()
+		statements = append(statements, stmt)
+	}
+	return &ast.Program{Statements: statements}
 }
 
 func (p *parser) parseStmt() ast.Stmt {
