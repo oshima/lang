@@ -61,11 +61,7 @@ func (p *parser) parseStmt() ast.Stmt {
 func (p *parser) parseExprStmt() *ast.ExprStmt {
 	expr := p.parseExpr(LOWEST)
 	if p.tk.Type != token.SEMICOLON {
-		if p.tk.Type == token.EOF {
-			util.Error("Expected %q but got <EOF>", ";")
-		} else {
-			util.Error("Expected %q but got %q", ";", p.tk.Source)
-		}
+		util.Error("Expected ; but got %s", p.tk.Literal)
 	}
 	p.next()
 	return &ast.ExprStmt{Expr: expr}
@@ -78,10 +74,8 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 		left = p.parseGroupedExpr()
 	case token.INT:
 		left = p.parseIntLit()
-	case token.EOF:
-		util.Error("Unexpected <EOF>")
 	default:
-		util.Error("Unexpected %q", p.tk.Source)
+		util.Error("Unexpected %s", p.tk.Literal)
 	}
 	for p.lookPrecedence() > precedence {
 		left = p.parseInfixExpr(left)
@@ -93,14 +87,14 @@ func (p *parser) parseGroupedExpr() ast.Expr {
 	p.next()
 	expr := p.parseExpr(LOWEST)
 	if p.tk.Type != token.RPAREN {
-		util.Error("Expected %q but got %q", ")", p.tk.Source)
+		util.Error("Expected ) but got %s", p.tk.Literal)
 	}
 	p.next()
 	return expr
 }
 
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
-	operator := p.tk.Source
+	operator := p.tk.Literal
 	precedence := p.lookPrecedence()
 	p.next()
 	right := p.parseExpr(precedence)
@@ -108,9 +102,9 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
-	value, err := strconv.ParseInt(p.tk.Source, 0, 64)
+	value, err := strconv.ParseInt(p.tk.Literal, 0, 64)
 	if err != nil {
-		util.Error("Could not parse %q as integer", p.tk.Source)
+		util.Error("Could not parse %s as integer", p.tk.Literal)
 	}
 	p.next()
 	return &ast.IntLit{Value: value}

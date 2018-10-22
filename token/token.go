@@ -14,5 +14,5 @@ const (
 
 type Token struct {
 	Type string
-	Source string
+	Literal string
 }

@@ -84,12 +84,12 @@ func (s *scanner) readToken() *token.Token {
 	case ';':
 		tk = s.readPunct(token.SEMICOLON)
 	case 0:
-		tk = s.readPunct(token.EOF)
+		tk = s.readEOF()
 	default:
 		if isDigit(s.ch) {
 			tk = s.readInt()
 		} else {
-			util.Error("Unexpected %q", string(s.ch))
+			util.Error("Invalid character %c", s.ch)
 		}
 	}
 	s.lastTk = tk
@@ -97,7 +97,13 @@ func (s *scanner) readToken() *token.Token {
 }
 
 func (s *scanner) readPunct(ty string) *token.Token {
-	tk := &token.Token{Type: ty, Source: string(s.ch)}
+	tk := &token.Token{Type: ty, Literal: string(s.ch)}
+	s.next()
+	return tk
+}
+
+func (s *scanner) readEOF() *token.Token {
+	tk := &token.Token{Type: token.EOF, Literal: "<EOF>"}
 	s.next()
 	return tk
 }
@@ -111,7 +117,7 @@ func (s *scanner) readInt() *token.Token {
 	for isDigit(s.ch) {
 		s.next()
 	}
-	return &token.Token{Type: token.INT, Source: s.src[pos:s.pos]}
+	return &token.Token{Type: token.INT, Literal: s.src[pos:s.pos]}
 }
 
 func isDigit(ch byte) bool {
