@@ -32,6 +32,11 @@ func (stmt *ExprStmt) AstNode() {}
 func (stmt *ExprStmt) StmtNode() {}
 
 // Expression nodes
+type PrefixExpr struct {
+	Operator string
+	Right Expr
+}
+
 type InfixExpr struct {
 	Operator string
 	Left Expr
@@ -42,6 +47,8 @@ type IntLit struct {
 	Value int64
 }
 
+func (expr *PrefixExpr) AstNode() {}
+func (expr *PrefixExpr) ExprNode() {}
 func (expr *InfixExpr) AstNode() {}
 func (expr *InfixExpr) ExprNode() {}
 func (expr *IntLit) AstNode() {}

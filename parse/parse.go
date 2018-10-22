@@ -17,6 +17,7 @@ const (
 	LOWEST int = iota
 	SUM
 	PRODUCT
+	PREFIX
 )
 
 var precedences = map[string]int{
@@ -68,19 +69,21 @@ func (p *parser) parseExprStmt() *ast.ExprStmt {
 }
 
 func (p *parser) parseExpr(precedence int) ast.Expr {
-	var left ast.Expr
+	var expr ast.Expr
 	switch p.tk.Type {
 	case token.LPAREN:
-		left = p.parseGroupedExpr()
+		expr = p.parseGroupedExpr()
+	case token.MINUS:
+		expr = p.parsePrefixExpr()
 	case token.INT:
-		left = p.parseIntLit()
+		expr = p.parseIntLit()
 	default:
 		util.Error("Unexpected %s", p.tk.Literal)
 	}
 	for p.lookPrecedence() > precedence {
-		left = p.parseInfixExpr(left)
+		expr = p.parseInfixExpr(expr)
 	}
-	return left
+	return expr
 }
 
 func (p *parser) parseGroupedExpr() ast.Expr {
@@ -91,6 +94,13 @@ func (p *parser) parseGroupedExpr() ast.Expr {
 	}
 	p.next()
 	return expr
+}
+
+func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
+	operator := p.tk.Literal
+	p.next()
+	right := p.parseExpr(PREFIX)
+	return &ast.PrefixExpr{Operator: operator, Right: right}
 }
 
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {

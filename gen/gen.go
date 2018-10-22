@@ -32,10 +32,20 @@ func emitStmt(stmt ast.Stmt) {
 
 func emitExpr(expr ast.Expr) {
 	switch v := expr.(type) {
+	case *ast.PrefixExpr:
+		emitPrefixExpr(v)
 	case *ast.InfixExpr:
 		emitInfixExpr(v)
 	case *ast.IntLit:
 		emitIntLit(v)
+	}
+}
+
+func emitPrefixExpr(expr *ast.PrefixExpr) {
+	emitExpr(expr.Right)
+	switch expr.Operator {
+	case "-":
+		emit("negq %%rax")
 	}
 }
 
