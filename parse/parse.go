@@ -74,6 +74,8 @@ func (p *parser) parseExprStmt() *ast.ExprStmt {
 func (p *parser) parseExpr(precedence int) ast.Expr {
 	var left ast.Expr
 	switch p.tk.Type {
+	case token.LPAREN:
+		left = p.parseGroupedExpr()
 	case token.INT:
 		left = p.parseIntLit()
 	case token.EOF:
@@ -81,10 +83,20 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 	default:
 		util.Error("Unexpected %q", p.tk.Source)
 	}
-	for precedence < p.lookPrecedence() {
+	for p.lookPrecedence() > precedence {
 		left = p.parseInfixExpr(left)
 	}
 	return left
+}
+
+func (p *parser) parseGroupedExpr() ast.Expr {
+	p.next()
+	expr := p.parseExpr(LOWEST)
+	if p.tk.Type != token.RPAREN {
+		util.Error("Expected %q but got %q", ")", p.tk.Source)
+	}
+	p.next()
+	return expr
 }
 
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {

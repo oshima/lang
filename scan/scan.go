@@ -60,9 +60,16 @@ func (s *scanner) readToken() *token.Token {
 	case '+':
 		tk = s.readPunct(token.PLUS)
 	case '-':
-		// TODO: make more readable
-		if (s.lastTk == nil || s.lastTk.Type != token.INT) && isDigit(s.peekChar()) {
-			tk = s.readInt()
+		if isDigit(s.peekChar()) {
+			var last string
+			if s.lastTk != nil {
+				last = s.lastTk.Type
+			}
+			if last == token.INT || last == token.RPAREN {
+				tk = s.readPunct(token.MINUS)
+			} else {
+				tk = s.readInt()
+			}
 		} else {
 			tk = s.readPunct(token.MINUS)
 		}
@@ -70,6 +77,10 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readPunct(token.ASTERISK)
 	case '/':
 		tk = s.readPunct(token.SLASH)
+	case '(':
+		tk = s.readPunct(token.LPAREN)
+	case ')':
+		tk = s.readPunct(token.RPAREN)
 	case ';':
 		tk = s.readPunct(token.SEMICOLON)
 	case 0:

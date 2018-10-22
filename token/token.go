@@ -5,6 +5,8 @@ const (
 	MINUS     = "MINUS"
 	ASTERISK  = "ASTERISK"
 	SLASH     = "SLASH"
+	LPAREN    = "LPAREN"
+	RPAREN    = "RPAREN"
 	SEMICOLON = "SEMICOLON"
 	EOF       = "EOF"
 	INT       = "INT"
