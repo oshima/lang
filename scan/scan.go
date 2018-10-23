@@ -8,6 +8,7 @@ import (
 func Scan(src string) []*token.Token {
 	s := &scanner{src: src, pos: -1}
 	s.next()
+	s.lastTk = &token.Token{Type: "__DUMMY__"}
 	return s.readTokens()
 }
 
@@ -15,7 +16,7 @@ type scanner struct {
 	src string          // input source code
 	pos int             // current position
 	ch byte             // current character
-	lastTk *token.Token // last token scanner read
+	lastTk *token.Token // last token scanner has read
 }
 
 func (s *scanner) next() {
@@ -42,16 +43,13 @@ func (s *scanner) skipWhitespace() {
 
 func (s *scanner) readTokens() []*token.Token {
 	var tokens []*token.Token
-	var tk *token.Token
-	for {
+	s.skipWhitespace()
+	for s.ch != 0 {
+		tokens = append(tokens, s.readToken())
 		s.skipWhitespace()
-		tk = s.readToken()
-		tokens = append(tokens, tk)
-		if (tk.Type == token.EOF) {
-			break
-		}
 	}
-	return tokens
+	eof := &token.Token{Type: token.EOF, Literal: "<EOF>"}
+	return append(tokens, eof)
 }
 
 func (s *scanner) readToken() *token.Token {
@@ -71,8 +69,6 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readPunct(token.RPAREN)
 	case s.ch == ';':
 		tk = s.readPunct(token.SEMICOLON)
-	case s.ch == 0:
-		tk = s.readEOF()
 	case isDigit(s.ch):
 		tk = s.readNumber()
 	case isAlpha(s.ch):
@@ -86,12 +82,6 @@ func (s *scanner) readToken() *token.Token {
 
 func (s *scanner) readPunct(ty string) *token.Token {
 	tk := &token.Token{Type: ty, Literal: string(s.ch)}
-	s.next()
-	return tk
-}
-
-func (s *scanner) readEOF() *token.Token {
-	tk := &token.Token{Type: token.EOF, Literal: "<EOF>"}
 	s.next()
 	return tk
 }
@@ -112,11 +102,8 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 	if !isDigit(s.peekChar()) {
 		return s.readPunct(token.MINUS)
 	}
-	var last string
-	if s.lastTk != nil {
-		last = s.lastTk.Type
-	}
-	if last == token.RPAREN || last == token.NUMBER || last == token.TRUE || last == token.FALSE {
+	ty := s.lastTk.Type
+	if ty == token.RPAREN || ty == token.NUMBER || ty == token.TRUE || ty == token.FALSE {
 		return s.readPunct(token.MINUS)
 	} else {
 		return s.readNumber()

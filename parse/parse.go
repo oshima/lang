@@ -47,10 +47,8 @@ func (p *parser) lookPrecedence() int {
 
 func (p *parser) parseProgram() *ast.Program {
 	var statements []ast.Stmt
-	var stmt ast.Stmt
 	for p.tk.Type != token.EOF {
-		stmt = p.parseStmt()
-		statements = append(statements, stmt)
+		statements = append(statements, p.parseStmt())
 	}
 	return &ast.Program{Statements: statements}
 }
