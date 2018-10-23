@@ -47,9 +47,15 @@ type IntLit struct {
 	Value int64
 }
 
+type BoolLit struct {
+	Value bool
+}
+
 func (expr *PrefixExpr) AstNode() {}
 func (expr *PrefixExpr) ExprNode() {}
 func (expr *InfixExpr) AstNode() {}
 func (expr *InfixExpr) ExprNode() {}
 func (expr *IntLit) AstNode() {}
 func (expr *IntLit) ExprNode() {}
+func (expr *BoolLit) AstNode() {}
+func (expr *BoolLit) ExprNode() {}

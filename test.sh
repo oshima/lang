@@ -50,6 +50,11 @@ try "- 1;" 255 # -1
 try "--1;" 1
 try "- -1;" 1
 try "-(1-2);" 1
+try "- 1-2;" 253 # -3
+
+try "true;" 1
+try "false;" 0
+try "1; false;" 0
 
 echo OK
 rm -f tmp*

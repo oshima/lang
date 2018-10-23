@@ -56,10 +56,10 @@ func (s *scanner) readTokens() []*token.Token {
 
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
-	switch s.ch {
-	case '+':
+	switch {
+	case s.ch == '+':
 		tk = s.readPunct(token.PLUS)
-	case '-':
+	case s.ch == '-':
 		if isDigit(s.peekChar()) {
 			var last string
 			if s.lastTk != nil {
@@ -73,24 +73,24 @@ func (s *scanner) readToken() *token.Token {
 		} else {
 			tk = s.readPunct(token.MINUS)
 		}
-	case '*':
+	case s.ch == '*':
 		tk = s.readPunct(token.ASTERISK)
-	case '/':
+	case s.ch == '/':
 		tk = s.readPunct(token.SLASH)
-	case '(':
+	case s.ch == '(':
 		tk = s.readPunct(token.LPAREN)
-	case ')':
+	case s.ch == ')':
 		tk = s.readPunct(token.RPAREN)
-	case ';':
+	case s.ch == ';':
 		tk = s.readPunct(token.SEMICOLON)
-	case 0:
+	case s.ch == 0:
 		tk = s.readEOF()
+	case isDigit(s.ch):
+		tk = s.readInt()
+	case isAlpha(s.ch):
+		tk = s.readKeyword()
 	default:
-		if isDigit(s.ch) {
-			tk = s.readInt()
-		} else {
-			util.Error("Invalid character %c", s.ch)
-		}
+		util.Error("Invalid character %c", s.ch)
 	}
 	s.lastTk = tk
 	return tk
@@ -120,6 +120,29 @@ func (s *scanner) readInt() *token.Token {
 	return &token.Token{Type: token.INT, Literal: s.src[pos:s.pos]}
 }
 
+func (s *scanner) readKeyword() *token.Token {
+	pos := s.pos
+	s.next()
+	for isAlpha(s.ch) || isDigit(s.ch) {
+		s.next()
+	}
+	literal := s.src[pos:s.pos]
+	var tk *token.Token
+	switch literal {
+	case "true":
+		tk = &token.Token{Type: token.TRUE, Literal: literal}
+	case "false":
+		tk = &token.Token{Type: token.FALSE, Literal: literal}
+	default:
+		util.Error("Unexpected %s", literal)
+	}
+	return tk
+}
+
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+func isAlpha(ch byte) bool {
+	return 'A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || ch == '_'
 }

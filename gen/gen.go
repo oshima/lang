@@ -38,6 +38,8 @@ func emitExpr(expr ast.Expr) {
 		emitInfixExpr(v)
 	case *ast.IntLit:
 		emitIntLit(v)
+	case *ast.BoolLit:
+		emitBoolLit(v)
 	}
 }
 
@@ -69,6 +71,14 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 
 func emitIntLit(expr *ast.IntLit) {
 	emit("movq $%d, %%rax", expr.Value)
+}
+
+func emitBoolLit(expr *ast.BoolLit) {
+	if expr.Value {
+		emit("movq $1, %%rax")
+	} else {
+		emit("movq $0, %%rax")
+	}
 }
 
 func p(format string, a ...interface{}) {

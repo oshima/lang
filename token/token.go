@@ -10,6 +10,8 @@ const (
 	SEMICOLON = "SEMICOLON"
 	EOF       = "EOF"
 	INT       = "INT"
+	TRUE      = "TRUE"
+	FALSE     = "FALSE"
 )
 
 type Token struct {
