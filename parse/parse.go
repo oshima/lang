@@ -75,7 +75,7 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 		expr = p.parseGroupedExpr()
 	case token.MINUS:
 		expr = p.parsePrefixExpr()
-	case token.INT:
+	case token.NUMBER:
 		expr = p.parseIntLit()
 	case token.TRUE:
 		expr = p.parseBoolLit()

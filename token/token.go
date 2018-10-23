@@ -9,7 +9,7 @@ const (
 	RPAREN    = "RPAREN"
 	SEMICOLON = "SEMICOLON"
 	EOF       = "EOF"
-	INT       = "INT"
+	NUMBER    = "NUMBER"
 	TRUE      = "TRUE"
 	FALSE     = "FALSE"
 )

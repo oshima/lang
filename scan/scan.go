@@ -60,19 +60,7 @@ func (s *scanner) readToken() *token.Token {
 	case s.ch == '+':
 		tk = s.readPunct(token.PLUS)
 	case s.ch == '-':
-		if isDigit(s.peekChar()) {
-			var last string
-			if s.lastTk != nil {
-				last = s.lastTk.Type
-			}
-			if last == token.INT || last == token.RPAREN {
-				tk = s.readPunct(token.MINUS)
-			} else {
-				tk = s.readInt()
-			}
-		} else {
-			tk = s.readPunct(token.MINUS)
-		}
+		tk = s.readMinusOrNegativeNumber()
 	case s.ch == '*':
 		tk = s.readPunct(token.ASTERISK)
 	case s.ch == '/':
@@ -86,7 +74,7 @@ func (s *scanner) readToken() *token.Token {
 	case s.ch == 0:
 		tk = s.readEOF()
 	case isDigit(s.ch):
-		tk = s.readInt()
+		tk = s.readNumber()
 	case isAlpha(s.ch):
 		tk = s.readKeyword()
 	default:
@@ -108,7 +96,7 @@ func (s *scanner) readEOF() *token.Token {
 	return tk
 }
 
-func (s *scanner) readInt() *token.Token {
+func (s *scanner) readNumber() *token.Token {
 	pos := s.pos
 	if s.ch == '-' {
 		s.next()
@@ -117,7 +105,22 @@ func (s *scanner) readInt() *token.Token {
 	for isDigit(s.ch) {
 		s.next()
 	}
-	return &token.Token{Type: token.INT, Literal: s.src[pos:s.pos]}
+	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
+}
+
+func (s *scanner) readMinusOrNegativeNumber() *token.Token {
+	if !isDigit(s.peekChar()) {
+		return s.readPunct(token.MINUS)
+	}
+	var last string
+	if s.lastTk != nil {
+		last = s.lastTk.Type
+	}
+	if last == token.RPAREN || last == token.NUMBER || last == token.TRUE || last == token.FALSE {
+		return s.readPunct(token.MINUS)
+	} else {
+		return s.readNumber()
+	}
 }
 
 func (s *scanner) readKeyword() *token.Token {
