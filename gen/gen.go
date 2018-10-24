@@ -46,6 +46,8 @@ func emitExpr(expr ast.Expr) {
 func emitPrefixExpr(expr *ast.PrefixExpr) {
 	emitExpr(expr.Right)
 	switch expr.Operator {
+	case "!":
+		emit("xorq $1, %%rax")
 	case "-":
 		emit("negq %%rax")
 	}
@@ -66,6 +68,10 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 	case "/":
 		emit("cqo")
 		emit("idivq %%rcx")
+	case "&&":
+		emit("andq %%rcx, %%rax")
+	case "||":
+		emit("orq %%rcx, %%rax")
 	}
 }
 

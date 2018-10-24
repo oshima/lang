@@ -55,6 +55,12 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch {
+	case s.ch == '(':
+		tk = s.readPunct(token.LPAREN)
+	case s.ch == ')':
+		tk = s.readPunct(token.RPAREN)
+	case s.ch == '!':
+		tk = s.readPunct(token.BANG)
 	case s.ch == '+':
 		tk = s.readPunct(token.PLUS)
 	case s.ch == '-':
@@ -63,12 +69,12 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readPunct(token.ASTERISK)
 	case s.ch == '/':
 		tk = s.readPunct(token.SLASH)
-	case s.ch == '(':
-		tk = s.readPunct(token.LPAREN)
-	case s.ch == ')':
-		tk = s.readPunct(token.RPAREN)
 	case s.ch == ';':
 		tk = s.readPunct(token.SEMICOLON)
+	case s.ch == '&':
+		tk = s.readAnd()
+	case s.ch == '|':
+		tk = s.readOr()
 	case isDigit(s.ch):
 		tk = s.readNumber()
 	case isAlpha(s.ch):
@@ -81,9 +87,27 @@ func (s *scanner) readToken() *token.Token {
 }
 
 func (s *scanner) readPunct(ty string) *token.Token {
-	tk := &token.Token{Type: ty, Literal: string(s.ch)}
+	literal := string(s.ch)
 	s.next()
-	return tk
+	return &token.Token{Type: ty, Literal: literal}
+}
+
+func (s *scanner) readAnd() *token.Token {
+	s.next()
+	if s.ch != '&' {
+		util.Error("Expected & but got %s", s.ch)
+	}
+	s.next()
+	return &token.Token{Type: token.AND, Literal: "&&"}
+}
+
+func (s *scanner) readOr() *token.Token {
+	s.next()
+	if s.ch != '|' {
+		util.Error("Expected | but got %s", s.ch)
+	}
+	s.next()
+	return &token.Token{Type: token.OR, Literal: "||"}
 }
 
 func (s *scanner) readNumber() *token.Token {

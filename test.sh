@@ -56,5 +56,19 @@ try "true;" 1
 try "false;" 0
 try "1; false;" 0
 
+try '!true;' 0
+try '!false;' 1
+try '!!true;' 1
+try '!(!true);' 1
+
+try "true && true;" 1
+try "true && false;" 0
+try "false && false;" 0
+try "true || true;" 1
+try "true || false;" 1
+try "false || false;" 0
+try 'true || false && false;' 1
+try '(true || false) && false;' 0
+
 echo OK
 rm -f tmp*

@@ -23,8 +23,10 @@ const (
 var precedences = map[string]int{
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
+	token.OR:       SUM,
 	token.ASTERISK: PRODUCT,
 	token.SLASH:    PRODUCT,
+	token.AND:      PRODUCT,
 }
 
 type parser struct {
@@ -71,6 +73,8 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 	switch p.tk.Type {
 	case token.LPAREN:
 		expr = p.parseGroupedExpr()
+	case token.BANG:
+		expr = p.parsePrefixExpr()
 	case token.MINUS:
 		expr = p.parsePrefixExpr()
 	case token.NUMBER:
