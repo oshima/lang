@@ -10,12 +10,13 @@ func Generate(node *ast.Program) {
 }
 
 func emitProgram(node *ast.Program) {
+	emit(".intel_syntax noprefix")
 	emit(".text")
 	emit(".globl main")
 	emit(".type main, @function")
 	p("main:")
-	emit("pushq %%rbp")
-	emit("movq %%rsp, %%rbp")
+	emit("push rbp")
+	emit("mov rbp, rsp")
 	for _, stmt := range node.Statements {
 		emitStmt(stmt)
 	}
@@ -47,51 +48,51 @@ func emitPrefixExpr(expr *ast.PrefixExpr) {
 	emitExpr(expr.Right)
 	switch expr.Operator {
 	case "!":
-		emit("xorq $1, %%rax")
+		emit("xor rax, 1")
 	case "-":
-		emit("negq %%rax")
+		emit("neg rax")
 	}
 }
 
 func emitInfixExpr(expr *ast.InfixExpr) {
 	emitExpr(expr.Right)
-	emit("pushq %%rax")
+	emit("push rax")
 	emitExpr(expr.Left)
-	emit("popq %%rcx")
+	emit("pop rcx")
 	switch expr.Operator {
 	case "+":
-		emit("addq %%rcx, %%rax")
+		emit("add rax, rcx")
 	case "-":
-		emit("subq %%rcx, %%rax")
+		emit("sub rax, rcx")
 	case "*":
-		emit("imulq %%rcx, %%rax")
+		emit("imul rax, rcx")
 	case "/":
 		emit("cqo")
-		emit("idivq %%rcx")
+		emit("idiv rcx")
 	case "&&":
-		emit("andq %%rcx, %%rax")
+		emit("and rax, rcx")
 	case "||":
-		emit("orq %%rcx, %%rax")
+		emit("or rax, rcx")
 	case "==":
-		emit("cmpq %%rcx, %%rax")
-		emit("sete %%al")
-		emit("movzx %%al, %%rax")
+		emit("cmp rax, rcx")
+		emit("sete al")
+		emit("movzx rax, al")
 	case "!=":
-		emit("cmpq %%rcx, %%rax")
-		emit("setne %%al")
-		emit("movzx %%al, %%rax")
+		emit("cmp rax, rcx")
+		emit("setne al")
+		emit("movzx rax, al")
 	}
 }
 
 func emitIntLit(expr *ast.IntLit) {
-	emit("movq $%d, %%rax", expr.Value)
+	emit("mov rax, %d", expr.Value)
 }
 
 func emitBoolLit(expr *ast.BoolLit) {
 	if expr.Value {
-		emit("movq $1, %%rax")
+		emit("mov rax, 1")
 	} else {
-		emit("movq $0, %%rax")
+		emit("mov rax, 0")
 	}
 }
 
