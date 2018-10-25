@@ -15,12 +15,15 @@ func Parse(tokens []*token.Token) *ast.Program {
 
 const (
 	LOWEST int = iota
+	EQUAL
 	SUM
 	PRODUCT
 	PREFIX
 )
 
 var precedences = map[string]int{
+	token.EQ:       EQUAL,
+	token.NE:       EQUAL,
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
 	token.OR:       SUM,

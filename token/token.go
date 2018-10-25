@@ -8,6 +8,8 @@ const (
 	MINUS     = "MINUS"
 	ASTERISK  = "ASTERISK"
 	SLASH     = "SLASH"
+	EQ        = "EQ"
+	NE        = "NE"
 	AND       = "AND"
 	OR        = "OR"
 	SEMICOLON = "SEMICOLON"

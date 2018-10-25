@@ -28,6 +28,13 @@ func (s *scanner) next() {
 	}
 }
 
+func (s *scanner) expect(ch byte) {
+	if s.ch != ch {
+		util.Error("Expected %c but got %c", ch, s.ch)
+	}
+	s.next()
+}
+
 func (s *scanner) peekChar() byte {
 	if s.pos + 1 < len(s.src) {
 		return s.src[s.pos + 1]
@@ -60,7 +67,7 @@ func (s *scanner) readToken() *token.Token {
 	case s.ch == ')':
 		tk = s.readPunct(token.RPAREN)
 	case s.ch == '!':
-		tk = s.readPunct(token.BANG)
+		tk = s.readBangOrNotEqual()
 	case s.ch == '+':
 		tk = s.readPunct(token.PLUS)
 	case s.ch == '-':
@@ -71,6 +78,8 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readPunct(token.SLASH)
 	case s.ch == ';':
 		tk = s.readPunct(token.SEMICOLON)
+	case s.ch == '=':
+		tk = s.readEqual()
 	case s.ch == '&':
 		tk = s.readAnd()
 	case s.ch == '|':
@@ -92,21 +101,21 @@ func (s *scanner) readPunct(ty string) *token.Token {
 	return &token.Token{Type: ty, Literal: literal}
 }
 
+func (s *scanner) readEqual() *token.Token {
+	s.next()
+	s.expect('=')
+	return &token.Token{Type: token.EQ, Literal: "=="}
+}
+
 func (s *scanner) readAnd() *token.Token {
 	s.next()
-	if s.ch != '&' {
-		util.Error("Expected & but got %s", s.ch)
-	}
-	s.next()
+	s.expect('&')
 	return &token.Token{Type: token.AND, Literal: "&&"}
 }
 
 func (s *scanner) readOr() *token.Token {
 	s.next()
-	if s.ch != '|' {
-		util.Error("Expected | but got %s", s.ch)
-	}
-	s.next()
+	s.expect('|')
 	return &token.Token{Type: token.OR, Literal: "||"}
 }
 
@@ -120,18 +129,6 @@ func (s *scanner) readNumber() *token.Token {
 		s.next()
 	}
 	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
-}
-
-func (s *scanner) readMinusOrNegativeNumber() *token.Token {
-	if !isDigit(s.peekChar()) {
-		return s.readPunct(token.MINUS)
-	}
-	ty := s.lastTk.Type
-	if ty == token.RPAREN || ty == token.NUMBER || ty == token.TRUE || ty == token.FALSE {
-		return s.readPunct(token.MINUS)
-	} else {
-		return s.readNumber()
-	}
 }
 
 func (s *scanner) readKeyword() *token.Token {
@@ -151,6 +148,27 @@ func (s *scanner) readKeyword() *token.Token {
 		util.Error("Unexpected %s", literal)
 	}
 	return tk
+}
+
+func (s *scanner) readBangOrNotEqual() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.NE, Literal: "!="}
+	}
+	return &token.Token{Type: token.BANG, Literal: "!"}
+}
+
+func (s *scanner) readMinusOrNegativeNumber() *token.Token {
+	if !isDigit(s.peekChar()) {
+		return s.readPunct(token.MINUS)
+	}
+	ty := s.lastTk.Type
+	if ty == token.RPAREN || ty == token.NUMBER || ty == token.TRUE || ty == token.FALSE {
+		return s.readPunct(token.MINUS)
+	} else {
+		return s.readNumber()
+	}
 }
 
 func isDigit(ch byte) bool {

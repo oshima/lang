@@ -72,6 +72,14 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 		emit("andq %%rcx, %%rax")
 	case "||":
 		emit("orq %%rcx, %%rax")
+	case "==":
+		emit("cmpq %%rcx, %%rax")
+		emit("sete %%al")
+		emit("movzx %%al, %%rax")
+	case "!=":
+		emit("cmpq %%rcx, %%rax")
+		emit("setne %%al")
+		emit("movzx %%al, %%rax")
 	}
 }
 
