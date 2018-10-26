@@ -81,15 +81,11 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 	switch p.tk.Type {
 	case token.LPAREN:
 		expr = p.parseGroupedExpr()
-	case token.BANG:
-		expr = p.parsePrefixExpr()
-	case token.MINUS:
+	case token.BANG, token.MINUS:
 		expr = p.parsePrefixExpr()
 	case token.NUMBER:
 		expr = p.parseIntLit()
-	case token.TRUE:
-		expr = p.parseBoolLit()
-	case token.FALSE:
+	case token.TRUE, token.FALSE:
 		expr = p.parseBoolLit()
 	default:
 		util.Error("Unexpected %s", p.tk.Literal)
@@ -135,7 +131,7 @@ func (p *parser) parseIntLit() *ast.IntLit {
 }
 
 func (p *parser) parseBoolLit() *ast.BoolLit {
-	ty := p.tk.Type
+	value := p.tk.Type == token.TRUE
 	p.next()
-	return &ast.BoolLit{Value: ty == token.TRUE}
+	return &ast.BoolLit{Value: value}
 }

@@ -12,6 +12,20 @@ func Scan(src string) []*token.Token {
 	return s.readTokens()
 }
 
+var punctuations = map[byte]string{
+	'(': token.LPAREN,
+	')': token.RPAREN,
+	'+': token.PLUS,
+	'*': token.ASTERISK,
+	'/': token.SLASH,
+	';': token.SEMICOLON,
+}
+
+var keywords = map[string]string{
+	"true":  token.TRUE,
+	"false": token.FALSE,
+}
+
 type scanner struct {
 	src string          // input source code
 	pos int             // current position
@@ -61,45 +75,39 @@ func (s *scanner) readTokens() []*token.Token {
 
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
-	switch {
-	case s.ch == '(':
-		tk = s.readPunct(token.LPAREN)
-	case s.ch == ')':
-		tk = s.readPunct(token.RPAREN)
-	case s.ch == '!':
+	switch s.ch {
+	case '(', ')', '+', '*', '/', ';':
+		tk = s.readPunct()
+	case '!':
 		tk = s.readBangOrNotEqual()
-	case s.ch == '+':
-		tk = s.readPunct(token.PLUS)
-	case s.ch == '-':
+	case '-':
 		tk = s.readMinusOrNegativeNumber()
-	case s.ch == '*':
-		tk = s.readPunct(token.ASTERISK)
-	case s.ch == '/':
-		tk = s.readPunct(token.SLASH)
-	case s.ch == ';':
-		tk = s.readPunct(token.SEMICOLON)
-	case s.ch == '=':
+	case '=':
 		tk = s.readEqual()
-	case s.ch == '<':
+	case '<':
 		tk = s.readLessOrLessEqual()
-	case s.ch == '>':
+	case '>':
 		tk = s.readGreaterOrGreaterEqual()
-	case s.ch == '&':
+	case '&':
 		tk = s.readAnd()
-	case s.ch == '|':
+	case '|':
 		tk = s.readOr()
-	case isDigit(s.ch):
-		tk = s.readNumber()
-	case isAlpha(s.ch):
-		tk = s.readKeyword()
 	default:
-		util.Error("Invalid character %c", s.ch)
+		switch {
+		case isDigit(s.ch):
+			tk = s.readNumber()
+		case isAlpha(s.ch):
+			tk = s.readKeyword()
+		default:
+			util.Error("Invalid character %c", s.ch)
+		}
 	}
 	s.lastTk = tk
 	return tk
 }
 
-func (s *scanner) readPunct(ty string) *token.Token {
+func (s *scanner) readPunct() *token.Token {
+	ty := punctuations[s.ch]
 	literal := string(s.ch)
 	s.next()
 	return &token.Token{Type: ty, Literal: literal}
@@ -142,16 +150,11 @@ func (s *scanner) readKeyword() *token.Token {
 		s.next()
 	}
 	literal := s.src[pos:s.pos]
-	var tk *token.Token
-	switch literal {
-	case "true":
-		tk = &token.Token{Type: token.TRUE, Literal: literal}
-	case "false":
-		tk = &token.Token{Type: token.FALSE, Literal: literal}
-	default:
+	ty, ok := keywords[literal]
+	if !ok {
 		util.Error("Unexpected %s", literal)
 	}
-	return tk
+	return &token.Token{Type: ty, Literal: literal}
 }
 
 func (s *scanner) readBangOrNotEqual() *token.Token {
@@ -165,14 +168,15 @@ func (s *scanner) readBangOrNotEqual() *token.Token {
 
 func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 	if !isDigit(s.peekChar()) {
-		return s.readPunct(token.MINUS)
+		s.next()
+		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
 	ty := s.lastTk.Type
 	if ty == token.RPAREN || ty == token.NUMBER || ty == token.TRUE || ty == token.FALSE {
-		return s.readPunct(token.MINUS)
-	} else {
-		return s.readNumber()
+		s.next()
+		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
+	return s.readNumber()
 }
 
 func (s *scanner) readLessOrLessEqual() *token.Token {

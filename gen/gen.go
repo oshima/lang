@@ -9,6 +9,15 @@ func Generate(node *ast.Program) {
 	emitProgram(node)
 }
 
+var setcc = map[string]string{
+    "==": "sete",
+	"!=": "setne",
+	"<":  "setl",
+	"<=": "setle",
+	">":  "setg",
+	">=": "setge",
+}
+
 func emitProgram(node *ast.Program) {
 	emit(".intel_syntax noprefix")
 	emit(".text")
@@ -80,20 +89,7 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 
 func emitCmp(operator string) {
 	emit("cmp rax, rcx")
-	switch operator {
-	case "==":
-		emit("sete al")
-	case "!=":
-		emit("setne al")
-	case "<":
-		emit("setl al")
-	case "<=":
-		emit("setle al")
-	case ">":
-		emit("setg al")
-	case ">=":
-		emit("setge al")
-	}
+	emit("%s al", setcc[operator])
 	emit("movzx rax, al")
 }
 
