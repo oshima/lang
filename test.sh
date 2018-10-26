@@ -8,7 +8,7 @@ try() {
   ./tmp
   actual="$?"
   if [ "$actual" != "$expected" ]; then
-    echo "Expected $expected but got $actual"
+    echo "$input => Expected $expected but got $actual"
     rm -f tmp*
     exit 1
   fi
@@ -76,6 +76,15 @@ try "-89 != -3;" 1
 try "10 != 10;" 0
 try "1 == 2 == false;" 1
 try "true == (2 == 0);" 0
+
+try "4 < 5;" 1
+try "4 <= 5;" 1
+try "-5 < -5;" 0
+try "-5 <= -5;" 1
+try "5 > 4;" 1
+try "5 >= 4;" 1
+try "-5 > -5;" 0
+try "-5 >= -5;" 1
 
 echo OK
 rm -f tmp*

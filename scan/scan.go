@@ -80,6 +80,10 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readPunct(token.SEMICOLON)
 	case s.ch == '=':
 		tk = s.readEqual()
+	case s.ch == '<':
+		tk = s.readLessOrLessEqual()
+	case s.ch == '>':
+		tk = s.readGreaterOrGreaterEqual()
 	case s.ch == '&':
 		tk = s.readAnd()
 	case s.ch == '|':
@@ -169,6 +173,24 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 	} else {
 		return s.readNumber()
 	}
+}
+
+func (s *scanner) readLessOrLessEqual() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.LE, Literal: "<="}
+	}
+	return &token.Token{Type: token.LT, Literal: "<"}
+}
+
+func (s *scanner) readGreaterOrGreaterEqual() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.GE, Literal: ">="}
+	}
+	return &token.Token{Type: token.GT, Literal: ">"}
 }
 
 func isDigit(ch byte) bool {

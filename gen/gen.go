@@ -73,15 +73,28 @@ func emitInfixExpr(expr *ast.InfixExpr) {
 		emit("and rax, rcx")
 	case "||":
 		emit("or rax, rcx")
-	case "==":
-		emit("cmp rax, rcx")
-		emit("sete al")
-		emit("movzx rax, al")
-	case "!=":
-		emit("cmp rax, rcx")
-		emit("setne al")
-		emit("movzx rax, al")
+	case "==", "!=", "<", "<=", ">", ">=":
+		emitCmp(expr.Operator)
 	}
+}
+
+func emitCmp(operator string) {
+	emit("cmp rax, rcx")
+	switch operator {
+	case "==":
+		emit("sete al")
+	case "!=":
+		emit("setne al")
+	case "<":
+		emit("setl al")
+	case "<=":
+		emit("setle al")
+	case ">":
+		emit("setg al")
+	case ">=":
+		emit("setge al")
+	}
+	emit("movzx rax, al")
 }
 
 func emitIntLit(expr *ast.IntLit) {
