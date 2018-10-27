@@ -64,7 +64,36 @@ func (p *parser) parseProgram() *ast.Program {
 }
 
 func (p *parser) parseStmt() ast.Stmt {
-	return p.parseExprStmt()
+	switch p.tk.Type {
+	case token.LBRACE:
+		return p.parseBlockStmt()
+	case token.IF:
+		return p.parseIfStmt()
+	default:
+		return p.parseExprStmt()
+	}
+}
+
+func (p *parser) parseBlockStmt() *ast.BlockStmt {
+	p.next()
+	var statements []ast.Stmt
+	for p.tk.Type != token.RBRACE {
+		statements = append(statements, p.parseStmt())
+	}
+	p.next()
+	return &ast.BlockStmt{Statements: statements}
+}
+
+func (p *parser) parseIfStmt() *ast.IfStmt {
+	p.next()
+	cond := p.parseExpr(LOWEST)
+	conseq := p.parseStmt()
+	if p.tk.Type != token.ELSE {
+		return &ast.IfStmt{Cond: cond, Conseq: conseq}
+	}
+	p.next()
+	altern := p.parseStmt()
+	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
 }
 
 func (p *parser) parseExprStmt() *ast.ExprStmt {

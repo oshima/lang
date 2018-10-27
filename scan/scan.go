@@ -15,6 +15,8 @@ func Scan(src string) []*token.Token {
 var punctuations = map[byte]string{
 	'(': token.LPAREN,
 	')': token.RPAREN,
+	'{': token.LBRACE,
+	'}': token.RBRACE,
 	'+': token.PLUS,
 	'*': token.ASTERISK,
 	'/': token.SLASH,
@@ -24,6 +26,8 @@ var punctuations = map[byte]string{
 var keywords = map[string]string{
 	"true":  token.TRUE,
 	"false": token.FALSE,
+	"if":    token.IF,
+	"else":  token.ELSE,
 }
 
 type scanner struct {
@@ -76,7 +80,7 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch s.ch {
-	case '(', ')', '+', '*', '/', ';':
+	case '(', ')', '{', '}', '+', '*', '/', ';':
 		tk = s.readPunct()
 	case '!':
 		tk = s.readBangOrNotEqual()

@@ -28,8 +28,22 @@ type ExprStmt struct {
 	Expr Expr
 }
 
+type BlockStmt struct {
+	Statements []Stmt
+}
+
+type IfStmt struct {
+	Cond Expr
+	Conseq Stmt
+	Altern Stmt
+}
+
 func (stmt *ExprStmt) AstNode() {}
 func (stmt *ExprStmt) StmtNode() {}
+func (stmt *BlockStmt) AstNode() {}
+func (stmt *BlockStmt) StmtNode() {}
+func (stmt *IfStmt) AstNode() {}
+func (stmt *IfStmt) StmtNode() {}
 
 // Expression nodes
 type PrefixExpr struct {

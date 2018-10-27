@@ -9,6 +9,15 @@ func Generate(node *ast.Program) {
 	emitProgram(node)
 }
 
+var uniqueLabel = func() func() string {
+	i := 0
+	return func() string {
+		label := fmt.Sprintf(".L%d", i)
+		i += 1
+		return label
+	}
+}()
+
 var setcc = map[string]string{
     "==": "sete",
 	"!=": "setne",
@@ -35,9 +44,36 @@ func emitProgram(node *ast.Program) {
 
 func emitStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
+	case *ast.BlockStmt:
+		emitBlockStmt(v)
+	case *ast.IfStmt:
+		emitIfStmt(v)
 	case *ast.ExprStmt:
-		emitExpr(v.Expr)
+		emitExprStmt(v)
 	}
+}
+
+func emitBlockStmt(stmt *ast.BlockStmt) {
+	for _, s := range stmt.Statements {
+		emitStmt(s)
+	}
+}
+
+func emitIfStmt(stmt *ast.IfStmt) {
+	altLabel := uniqueLabel()
+	endLabel := uniqueLabel()
+	emitExpr(stmt.Cond)
+	emit("cmp rax, 0")
+	emit("je %s", altLabel)
+	emitStmt(stmt.Conseq)
+	emit("jmp %s", endLabel)
+	p("%s:", altLabel)
+	emitStmt(stmt.Altern)
+	p("%s:", endLabel)
+}
+
+func emitExprStmt(stmt *ast.ExprStmt) {
+	emitExpr(stmt.Expr)
 }
 
 func emitExpr(expr ast.Expr) {
