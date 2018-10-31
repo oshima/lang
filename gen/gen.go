@@ -95,10 +95,12 @@ func (g *generator) emitStmt(e *env, stmt ast.Stmt) {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:
 		g.emitBlockStmt(e, v)
-	case *ast.LetStmt:
-		g.emitLetStmt(e, v)
 	case *ast.IfStmt:
 		g.emitIfStmt(e, v)
+	case *ast.LetStmt:
+		g.emitLetStmt(e, v)
+	case *ast.AssignStmt:
+		g.emitAssignStmt(e, v)
 	case *ast.ExprStmt:
 		g.emitExprStmt(e, v)
 	}
@@ -108,20 +110,6 @@ func (g *generator) emitBlockStmt(e *env, stmt *ast.BlockStmt) {
 	newEnv := &env{store: make(map[string]*gvar), outer: e}
 	for _, _stmt := range stmt.List {
 		g.emitStmt(newEnv, _stmt)
-	}
-}
-
-func (g *generator) emitLetStmt(e *env, stmt *ast.LetStmt) {
-	g.emitExpr(e, stmt.Expr)
-	v := g.gvars[stmt]
-	if err := e.set(stmt.Ident.Name, v); err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
-	}
-	switch v.size {
-	case 8:
-		g.emit("mov QWORD PTR %s[rip], rax", v.label)
-	case 1:
-		g.emit("mov BYTE PTR %s[rip], al", v.label)
 	}
 }
 
@@ -142,6 +130,34 @@ func (g *generator) emitIfStmt(e *env, stmt *ast.IfStmt) {
 		g.emitLabel(altLabel)
 		g.emitStmt(e, stmt.Altern)
 		g.emitLabel(endLabel)
+	}
+}
+
+func (g *generator) emitLetStmt(e *env, stmt *ast.LetStmt) {
+	g.emitExpr(e, stmt.Expr)
+	v := g.gvars[stmt]
+	if err := e.set(stmt.Ident.Name, v); err != nil {
+		util.Error("%s has already been declared", stmt.Ident.Name)
+	}
+	switch v.size {
+	case 8:
+		g.emit("mov QWORD PTR %s[rip], rax", v.label)
+	case 1:
+		g.emit("mov BYTE PTR %s[rip], al", v.label)
+	}
+}
+
+func (g *generator) emitAssignStmt(e *env, stmt *ast.AssignStmt) {
+	g.emitExpr(e, stmt.Expr)
+	v, ok := e.get(stmt.Ident.Name)
+	if !ok {
+		util.Error("%s is not declared", stmt.Ident.Name)
+	}
+	switch v.size {
+	case 8:
+		g.emit("mov QWORD PTR %s[rip], rax", v.label)
+	case 1:
+		g.emit("mov BYTE PTR %s[rip], al", v.label)
 	}
 }
 

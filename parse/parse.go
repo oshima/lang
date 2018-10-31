@@ -31,6 +31,10 @@ func (p *parser) expect(ty string, literal string) {
 	p.next()
 }
 
+func (p *parser) peekToken() *token.Token {
+	return p.tokens[p.pos+1]
+}
+
 func (p *parser) lookPrecedence() int {
 	if pr, ok := precedences[p.tk.Type]; ok {
 		return pr
@@ -50,10 +54,12 @@ func (p *parser) parseStmt() ast.Stmt {
 	switch p.tk.Type {
 	case token.LBRACE:
 		return p.parseBlockStmt()
-	case token.LET:
-		return p.parseLetStmt()
 	case token.IF:
 		return p.parseIfStmt()
+	case token.LET:
+		return p.parseLetStmt()
+	case token.IDENT:
+		return p.parseAssignStmtOrExprStmt()
 	default:
 		return p.parseExprStmt()
 	}
@@ -67,23 +73,6 @@ func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	}
 	p.next()
 	return &ast.BlockStmt{List: list}
-}
-
-func (p *parser) parseLetStmt() *ast.LetStmt {
-	p.next()
-	if p.tk.Type != token.IDENT {
-		util.Error("Expected <identifier> but got %s", p.tk.Literal)
-	}
-	ident := p.parseIdent()
-	if p.tk.Type != token.INT && p.tk.Type != token.BOOL {
-		util.Error("Expected <type> but got %s", p.tk.Literal)
-	}
-	ty := p.tk.Literal
-	p.next()
-	p.expect(token.ASSIGN, "=")
-	expr := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON, ";")
-	return &ast.LetStmt{Ident: ident, Type: ty, Expr: expr}
 }
 
 func (p *parser) parseIfStmt() *ast.IfStmt {
@@ -107,6 +96,38 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 		util.Error("Expected { or if but got %s", p.tk.Literal)
 	}
 	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
+}
+
+func (p *parser) parseLetStmt() *ast.LetStmt {
+	p.next()
+	if p.tk.Type != token.IDENT {
+		util.Error("Expected <identifier> but got %s", p.tk.Literal)
+	}
+	ident := p.parseIdent()
+	if p.tk.Type != token.INT && p.tk.Type != token.BOOL {
+		util.Error("Expected <type> but got %s", p.tk.Literal)
+	}
+	ty := p.tk.Literal
+	p.next()
+	p.expect(token.ASSIGN, "=")
+	expr := p.parseExpr(LOWEST)
+	p.expect(token.SEMICOLON, ";")
+	return &ast.LetStmt{Ident: ident, Type: ty, Expr: expr}
+}
+
+func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
+	if p.peekToken().Type == token.ASSIGN {
+		return p.parseAssignStmt()
+	}
+	return p.parseExprStmt()
+}
+
+func (p *parser) parseAssignStmt() *ast.AssignStmt {
+	ident := p.parseIdent()
+	p.next()
+	expr := p.parseExpr(LOWEST)
+	p.expect(token.SEMICOLON, ";")
+	return &ast.AssignStmt{Ident: ident, Expr: expr}
 }
 
 func (p *parser) parseExprStmt() *ast.ExprStmt {

@@ -55,14 +55,21 @@ type LetStmt struct {
 	Expr  Expr
 }
 
-func (stmt *ExprStmt) astNode()   {}
-func (stmt *ExprStmt) stmtNode()  {}
-func (stmt *BlockStmt) astNode()  {}
-func (stmt *BlockStmt) stmtNode() {}
-func (stmt *IfStmt) astNode()     {}
-func (stmt *IfStmt) stmtNode()    {}
-func (stmt *LetStmt) astNode()    {}
-func (stmt *LetStmt) stmtNode()   {}
+type AssignStmt struct {
+	Ident *Ident
+	Expr  Expr
+}
+
+func (stmt *ExprStmt) astNode()    {}
+func (stmt *ExprStmt) stmtNode()   {}
+func (stmt *BlockStmt) astNode()   {}
+func (stmt *BlockStmt) stmtNode()  {}
+func (stmt *IfStmt) astNode()      {}
+func (stmt *IfStmt) stmtNode()     {}
+func (stmt *LetStmt) astNode()     {}
+func (stmt *LetStmt) stmtNode()    {}
+func (stmt *AssignStmt) astNode()  {}
+func (stmt *AssignStmt) stmtNode() {}
 
 /*
  Expression nodes

@@ -4,7 +4,6 @@ import "github.com/oshjma/lang/token"
 
 const (
 	LOWEST int = iota
-	ASSIGN
 	EQUAL
 	LESSGREATER
 	SUM
@@ -13,7 +12,6 @@ const (
 )
 
 var precedences = map[string]int{
-	token.ASSIGN:   ASSIGN,
 	token.EQ:       EQUAL,
 	token.NE:       EQUAL,
 	token.LT:       LESSGREATER,

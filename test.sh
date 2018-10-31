@@ -98,5 +98,9 @@ try "let x int = 3 + 4; x;" 7
 try "let x int = 10; { let x int = 20; x; }" 20
 try "let x int = 10; { let x int = 20; } x;" 10
 
+try "let x int = 10; x = 20; x;" 20
+try "let x int = 2; x = x * 2; x = x * 2; x;" 8
+try "let x bool = false; { x = x || true; } x;" 1
+
 echo OK
 rm -f tmp*
