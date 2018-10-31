@@ -12,27 +12,6 @@ func Scan(src string) []*token.Token {
 	return s.readTokens()
 }
 
-var punctuations = map[byte]string{
-	'(': token.LPAREN,
-	')': token.RPAREN,
-	'{': token.LBRACE,
-	'}': token.RBRACE,
-	'+': token.PLUS,
-	'*': token.ASTERISK,
-	'/': token.SLASH,
-	';': token.SEMICOLON,
-}
-
-var keywords = map[string]string{
-	"let":   token.LET,
-	"if":    token.IF,
-	"else":  token.ELSE,
-	"int":   token.INT,
-	"bool":  token.BOOL,
-	"true":  token.TRUE,
-	"false": token.FALSE,
-}
-
 type scanner struct {
 	src string          // input source code
 	pos int             // current position
@@ -171,10 +150,11 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 		s.next()
 		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
-	ty := s.lastTk.Type
-	if ty == token.RPAREN || ty == token.NUMBER || ty == token.TRUE || ty == token.FALSE {
-		s.next()
-		return &token.Token{Type: token.MINUS, Literal: "-"}
+	for _, terminator := range exprTerminators {
+		if s.lastTk.Type == terminator {
+			s.next()
+			return &token.Token{Type: token.MINUS, Literal: "-"}
+		}
 	}
 	return s.readNumber()
 }

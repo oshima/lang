@@ -67,8 +67,8 @@ try "false && false;" 0
 try "true || true;" 1
 try "true || false;" 1
 try "false || false;" 0
-try 'true || false && false;' 1
-try '(true || false) && false;' 0
+try "true || false && false;" 1
+try "(true || false) && false;" 0
 
 try "33 == 33;" 1
 try "4 == 29;" 0

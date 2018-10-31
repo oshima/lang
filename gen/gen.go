@@ -12,20 +12,6 @@ func Generate(prog *ast.Program) {
 	g.emitProgram(prog)
 }
 
-var sizes = map[string]int{
-	"int":  8,
-	"bool": 1,
-}
-
-var setcc = map[string]string{
-    "==": "sete",
-	"!=": "setne",
-	"<":  "setl",
-	"<=": "setle",
-	">":  "setg",
-	">=": "setge",
-}
-
 type generator struct {
 	nLabel int
 	gvars map[*ast.LetStmt]*gvar
@@ -82,12 +68,12 @@ func (g *generator) emitProgram(node *ast.Program) {
 	if len(g.gvars) > 0 {
 		g.emit(".bss")
 	}
-	for _, gvar := range g.gvars {
-		if gvar.size > 1 {
-			g.emit(".align %d", gvar.size)
+	for _, v := range g.gvars {
+		if v.size > 1 {
+			g.emit(".align %d", v.size)
 		}
-		g.emitLabel(gvar.label)
-		g.emit(".zero %d", gvar.size)
+		g.emitLabel(v.label)
+		g.emit(".zero %d", v.size)
 	}
 
 	g.emit(".text")
@@ -127,15 +113,15 @@ func (g *generator) emitBlockStmt(e *env, stmt *ast.BlockStmt) {
 
 func (g *generator) emitLetStmt(e *env, stmt *ast.LetStmt) {
 	g.emitExpr(e, stmt.Expr)
-	gvar := g.gvars[stmt]
-	if err := e.set(stmt.Ident.Name, gvar); err != nil {
+	v := g.gvars[stmt]
+	if err := e.set(stmt.Ident.Name, v); err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
-	switch gvar.size {
+	switch v.size {
 	case 8:
-		g.emit("mov QWORD PTR %s[rip], rax", gvar.label)
+		g.emit("mov QWORD PTR %s[rip], rax", v.label)
 	case 1:
-		g.emit("mov BYTE PTR %s[rip], al", gvar.label)
+		g.emit("mov BYTE PTR %s[rip], al", v.label)
 	}
 }
 
@@ -219,15 +205,15 @@ func (g *generator) emitCmp(operator string) {
 }
 
 func (g *generator) emitIdent(e *env, expr *ast.Ident) {
-	gvar, ok := e.get(expr.Name)
+	v, ok := e.get(expr.Name)
 	if !ok {
 		util.Error("%s is not declared", expr.Name)
 	}
-	switch gvar.size {
+	switch v.size {
 	case 8:
-		g.emit("mov rax, QWORD PTR %s[rip]", gvar.label)
+		g.emit("mov rax, QWORD PTR %s[rip]", v.label)
 	case 1:
-		g.emit("movzx rax, BYTE PTR %s[rip]", gvar.label)
+		g.emit("movzx rax, BYTE PTR %s[rip]", v.label)
 	}
 }
 
