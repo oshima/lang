@@ -1,29 +1,40 @@
 package ast
 
-// Interface for all AST nodes
+/*
+ Interfaces
+*/
+
+// for all AST nodes
 type Node interface {
-	AstNode()
+	Node()
 }
 
-// Interface for statement nodes
+// for all statement nodes
 type Stmt interface {
 	Node
-	StmtNode()
+	Stmt()
 }
 
-// Interface for expression nodes
+// for all expression nodes
 type Expr interface {
 	Node
-	ExprNode()
+	Expr()
 }
 
-// Root node
+/*
+ Root node
+*/
+
 type Program struct {
 	Statements []Stmt
 }
-func (node *Program) AstNode() {}
 
-// Statement nodes
+func (node *Program) Node() {}
+
+/*
+ Statement nodes
+*/
+
 type ExprStmt struct {
 	Expr Expr
 }
@@ -34,18 +45,29 @@ type BlockStmt struct {
 
 type IfStmt struct {
 	Cond Expr
-	Conseq Stmt
-	Altern Stmt
+	Conseq *BlockStmt
+	Altern Stmt // *BlockStmt or *IfStmt
 }
 
-func (stmt *ExprStmt) AstNode() {}
-func (stmt *ExprStmt) StmtNode() {}
-func (stmt *BlockStmt) AstNode() {}
-func (stmt *BlockStmt) StmtNode() {}
-func (stmt *IfStmt) AstNode() {}
-func (stmt *IfStmt) StmtNode() {}
+type LetStmt struct {
+	Ident *Ident
+	Type string
+	Expr Expr
+}
 
-// Expression nodes
+func (stmt *ExprStmt) Node() {}
+func (stmt *ExprStmt) Stmt() {}
+func (stmt *BlockStmt) Node() {}
+func (stmt *BlockStmt) Stmt() {}
+func (stmt *IfStmt) Node() {}
+func (stmt *IfStmt) Stmt() {}
+func (stmt *LetStmt) Node() {}
+func (stmt *LetStmt) Stmt() {}
+
+/*
+ Expression nodes
+*/
+
 type PrefixExpr struct {
 	Operator string
 	Right Expr
@@ -57,6 +79,10 @@ type InfixExpr struct {
 	Right Expr
 }
 
+type Ident struct {
+	Name string
+}
+
 type IntLit struct {
 	Value int64
 }
@@ -65,11 +91,13 @@ type BoolLit struct {
 	Value bool
 }
 
-func (expr *PrefixExpr) AstNode() {}
-func (expr *PrefixExpr) ExprNode() {}
-func (expr *InfixExpr) AstNode() {}
-func (expr *InfixExpr) ExprNode() {}
-func (expr *IntLit) AstNode() {}
-func (expr *IntLit) ExprNode() {}
-func (expr *BoolLit) AstNode() {}
-func (expr *BoolLit) ExprNode() {}
+func (expr *PrefixExpr) Node() {}
+func (expr *PrefixExpr) Expr() {}
+func (expr *InfixExpr) Node() {}
+func (expr *InfixExpr) Expr() {}
+func (expr *Ident) Node() {}
+func (expr *Ident) Expr() {}
+func (expr *IntLit) Node() {}
+func (expr *IntLit) Expr() {}
+func (expr *BoolLit) Node() {}
+func (expr *BoolLit) Expr() {}

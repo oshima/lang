@@ -24,10 +24,13 @@ var punctuations = map[byte]string{
 }
 
 var keywords = map[string]string{
-	"true":  token.TRUE,
-	"false": token.FALSE,
+	"let":   token.LET,
 	"if":    token.IF,
 	"else":  token.ELSE,
+	"int":   token.INT,
+	"bool":  token.BOOL,
+	"true":  token.TRUE,
+	"false": token.FALSE,
 }
 
 type scanner struct {
@@ -87,7 +90,7 @@ func (s *scanner) readToken() *token.Token {
 	case '-':
 		tk = s.readMinusOrNegativeNumber()
 	case '=':
-		tk = s.readEqual()
+		tk = s.readAssignOrEqual()
 	case '<':
 		tk = s.readLessOrLessEqual()
 	case '>':
@@ -101,7 +104,7 @@ func (s *scanner) readToken() *token.Token {
 		case isDigit(s.ch):
 			tk = s.readNumber()
 		case isAlpha(s.ch):
-			tk = s.readKeyword()
+			tk = s.readKeywordOrIdentifier()
 		default:
 			util.Error("Invalid character %c", s.ch)
 		}
@@ -115,12 +118,6 @@ func (s *scanner) readPunct() *token.Token {
 	literal := string(s.ch)
 	s.next()
 	return &token.Token{Type: ty, Literal: literal}
-}
-
-func (s *scanner) readEqual() *token.Token {
-	s.next()
-	s.expect('=')
-	return &token.Token{Type: token.EQ, Literal: "=="}
 }
 
 func (s *scanner) readAnd() *token.Token {
@@ -147,18 +144,17 @@ func (s *scanner) readNumber() *token.Token {
 	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
 }
 
-func (s *scanner) readKeyword() *token.Token {
+func (s *scanner) readKeywordOrIdentifier() *token.Token {
 	pos := s.pos
 	s.next()
 	for isAlpha(s.ch) || isDigit(s.ch) {
 		s.next()
 	}
 	literal := s.src[pos:s.pos]
-	ty, ok := keywords[literal]
-	if !ok {
-		util.Error("Unexpected %s", literal)
+	if ty, ok := keywords[literal]; ok {
+		return &token.Token{Type: ty, Literal: literal}
 	}
-	return &token.Token{Type: ty, Literal: literal}
+	return &token.Token{Type: token.IDENT, Literal: literal}
 }
 
 func (s *scanner) readBangOrNotEqual() *token.Token {
@@ -181,6 +177,15 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
 	return s.readNumber()
+}
+
+func (s *scanner) readAssignOrEqual() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.EQ, Literal: "=="}
+	}
+	return &token.Token{Type: token.ASSIGN, Literal: "="}
 }
 
 func (s *scanner) readLessOrLessEqual() *token.Token {

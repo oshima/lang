@@ -86,12 +86,17 @@ try "2 + 3 >= 4;" 1
 try "-(2 + 3) > -5;" 0
 try "-(2 + 3) >= -5;" 1
 
-try "if true 10;" 10
-try "if true 10; else 20;" 10
-try "if false 10; else 20;" 20
-try "if 5 > 2 { 10; 20; }" 20
-try "if true if false 10; else 20; else 30;" 20
-try "if false if false 10; else 20; else 30;" 30
+try "{ 10; 20; }" 20
+try "if true { 10; }" 10
+try "if true { 10; } else { 20; }" 10
+try "if false { 10; } else { 20; }" 20
+try "if true { if false { 10; } else { 20; } } else { 30; }" 20
+try "if false { if false { 10; } else { 20; } } else { 30; }" 30
+try "if false { 10; } else if false { 20; } else { 30; }" 30
+
+try "let x int = 3 + 4; x;" 7
+try "let x int = 10; { let x int = 20; x; }" 20
+try "let x int = 10; { let x int = 20; } x;" 10
 
 echo OK
 rm -f tmp*

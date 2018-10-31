@@ -5,6 +5,7 @@ const (
 	RPAREN    = "RPAREN"
 	LBRACE    = "LBRACE"
 	RBRACE    = "RBRACE"
+	ASSIGN    = "ASSIGN"
 	BANG      = "BANG"
 	PLUS      = "PLUS"
 	MINUS     = "MINUS"
@@ -21,12 +22,17 @@ const (
 	AND       = "AND"
 	OR        = "OR"
 
+	LET       = "LET"
+	IF        = "IF"
+	ELSE      = "ELSE"
+
+	INT       = "INT"
+	BOOL      = "BOOL"
+
+	IDENT     = "IDENT"
 	NUMBER    = "NUMBER"
 	TRUE      = "TRUE"
 	FALSE     = "FALSE"
-
-	IF        = "IF"
-	ELSE      = "ELSE"
 
 	EOF       = "EOF"
 )

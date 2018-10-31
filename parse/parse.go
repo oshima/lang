@@ -15,6 +15,7 @@ func Parse(tokens []*token.Token) *ast.Program {
 
 const (
 	LOWEST int = iota
+	ASSIGN
 	EQUAL
 	LESSGREATER
 	SUM
@@ -23,6 +24,7 @@ const (
 )
 
 var precedences = map[string]int{
+	token.ASSIGN:   ASSIGN,
 	token.EQ:       EQUAL,
 	token.NE:       EQUAL,
 	token.LT:       LESSGREATER,
@@ -48,6 +50,13 @@ func (p *parser) next() {
 	p.tk = p.tokens[p.pos]
 }
 
+func (p *parser) expect(ty string, literal string) {
+	if p.tk.Type != ty {
+		util.Error("Expected %s but got %s", literal, p.tk.Literal)
+	}
+	p.next()
+}
+
 func (p *parser) lookPrecedence() int {
 	if pr, ok := precedences[p.tk.Type]; ok {
 		return pr
@@ -67,6 +76,8 @@ func (p *parser) parseStmt() ast.Stmt {
 	switch p.tk.Type {
 	case token.LBRACE:
 		return p.parseBlockStmt()
+	case token.LET:
+		return p.parseLetStmt()
 	case token.IF:
 		return p.parseIfStmt()
 	default:
@@ -84,24 +95,49 @@ func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	return &ast.BlockStmt{Statements: statements}
 }
 
+func (p *parser) parseLetStmt() *ast.LetStmt {
+	p.next()
+	if p.tk.Type != token.IDENT {
+		util.Error("Expected <identifier> but got %s", p.tk.Literal)
+	}
+	ident := p.parseIdent()
+	if p.tk.Type != token.INT && p.tk.Type != token.BOOL {
+		util.Error("Expected <type> but got %s", p.tk.Literal)
+	}
+	ty := p.tk.Literal
+	p.next()
+	p.expect(token.ASSIGN, "=")
+	expr := p.parseExpr(LOWEST)
+	p.expect(token.SEMICOLON, ";")
+	return &ast.LetStmt{Ident: ident, Type: ty, Expr: expr}
+}
+
 func (p *parser) parseIfStmt() *ast.IfStmt {
 	p.next()
 	cond := p.parseExpr(LOWEST)
-	conseq := p.parseStmt()
+	if p.tk.Type != token.LBRACE {
+		util.Error("Expected { but got %s", p.tk.Literal)
+	}
+	conseq := p.parseBlockStmt()
 	if p.tk.Type != token.ELSE {
 		return &ast.IfStmt{Cond: cond, Conseq: conseq}
 	}
 	p.next()
-	altern := p.parseStmt()
+	var altern ast.Stmt
+	switch p.tk.Type {
+	case token.LBRACE:
+		altern = p.parseBlockStmt()
+	case token.IF:
+		altern = p.parseIfStmt()
+	default:
+		util.Error("Expected { or if but got %s", p.tk.Literal)
+	}
 	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
 }
 
 func (p *parser) parseExprStmt() *ast.ExprStmt {
 	expr := p.parseExpr(LOWEST)
-	if p.tk.Type != token.SEMICOLON {
-		util.Error("Expected ; but got %s", p.tk.Literal)
-	}
-	p.next()
+	p.expect(token.SEMICOLON, ";")
 	return &ast.ExprStmt{Expr: expr}
 }
 
@@ -112,6 +148,8 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 		expr = p.parseGroupedExpr()
 	case token.BANG, token.MINUS:
 		expr = p.parsePrefixExpr()
+	case token.IDENT:
+		expr = p.parseIdent()
 	case token.NUMBER:
 		expr = p.parseIntLit()
 	case token.TRUE, token.FALSE:
@@ -128,10 +166,7 @@ func (p *parser) parseExpr(precedence int) ast.Expr {
 func (p *parser) parseGroupedExpr() ast.Expr {
 	p.next()
 	expr := p.parseExpr(LOWEST)
-	if p.tk.Type != token.RPAREN {
-		util.Error("Expected ) but got %s", p.tk.Literal)
-	}
-	p.next()
+	p.expect(token.RPAREN, ")")
 	return expr
 }
 
@@ -148,6 +183,12 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	p.next()
 	right := p.parseExpr(precedence)
 	return &ast.InfixExpr{Operator: operator, Left: left, Right: right}
+}
+
+func (p *parser) parseIdent() *ast.Ident {
+	name := p.tk.Literal
+	p.next()
+	return &ast.Ident{Name: name}
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
