@@ -25,5 +25,5 @@ func (e *env) get(name string) (*gvar, bool) {
 
 type gvar struct {
 	label string
-	size int
+	size  int
 }

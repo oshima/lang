@@ -44,25 +44,25 @@ type BlockStmt struct {
 }
 
 type IfStmt struct {
-	Cond Expr
+	Cond   Expr
 	Conseq *BlockStmt
 	Altern Stmt // *BlockStmt or *IfStmt
 }
 
 type LetStmt struct {
 	Ident *Ident
-	Type string
-	Expr Expr
+	Type  string
+	Expr  Expr
 }
 
-func (stmt *ExprStmt) Node() {}
-func (stmt *ExprStmt) Stmt() {}
+func (stmt *ExprStmt) Node()  {}
+func (stmt *ExprStmt) Stmt()  {}
 func (stmt *BlockStmt) Node() {}
 func (stmt *BlockStmt) Stmt() {}
-func (stmt *IfStmt) Node() {}
-func (stmt *IfStmt) Stmt() {}
-func (stmt *LetStmt) Node() {}
-func (stmt *LetStmt) Stmt() {}
+func (stmt *IfStmt) Node()    {}
+func (stmt *IfStmt) Stmt()    {}
+func (stmt *LetStmt) Node()   {}
+func (stmt *LetStmt) Stmt()   {}
 
 /*
  Expression nodes
@@ -70,13 +70,13 @@ func (stmt *LetStmt) Stmt() {}
 
 type PrefixExpr struct {
 	Operator string
-	Right Expr
+	Right    Expr
 }
 
 type InfixExpr struct {
 	Operator string
-	Left Expr
-	Right Expr
+	Left     Expr
+	Right    Expr
 }
 
 type Ident struct {
@@ -93,11 +93,11 @@ type BoolLit struct {
 
 func (expr *PrefixExpr) Node() {}
 func (expr *PrefixExpr) Expr() {}
-func (expr *InfixExpr) Node() {}
-func (expr *InfixExpr) Expr() {}
-func (expr *Ident) Node() {}
-func (expr *Ident) Expr() {}
-func (expr *IntLit) Node() {}
-func (expr *IntLit) Expr() {}
-func (expr *BoolLit) Node() {}
-func (expr *BoolLit) Expr() {}
+func (expr *InfixExpr) Node()  {}
+func (expr *InfixExpr) Expr()  {}
+func (expr *Ident) Node()      {}
+func (expr *Ident) Expr()      {}
+func (expr *IntLit) Node()     {}
+func (expr *IntLit) Expr()     {}
+func (expr *BoolLit) Node()    {}
+func (expr *BoolLit) Expr()    {}

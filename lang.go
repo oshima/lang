@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
-	"os"
 	"github.com/k0kubun/pp"
 	"github.com/oshjma/lang/gen"
 	"github.com/oshjma/lang/parse"
 	"github.com/oshjma/lang/scan"
 	"github.com/oshjma/lang/util"
+	"io/ioutil"
+	"os"
 )
 
 func main() {

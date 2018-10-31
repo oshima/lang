@@ -14,7 +14,7 @@ func Generate(prog *ast.Program) {
 
 type generator struct {
 	nLabel int
-	gvars map[*ast.LetStmt]*gvar
+	gvars  map[*ast.LetStmt]*gvar
 }
 
 func (g *generator) nextLabel() string {
@@ -234,5 +234,5 @@ func (g *generator) emitLabel(label string) {
 }
 
 func (g *generator) emit(format string, a ...interface{}) {
-	fmt.Printf("\t" + format + "\n", a...)
+	fmt.Printf("\t"+format+"\n", a...)
 }

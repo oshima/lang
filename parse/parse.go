@@ -1,10 +1,10 @@
 package parse
 
 import (
-	"strconv"
 	"github.com/oshjma/lang/ast"
 	"github.com/oshjma/lang/token"
 	"github.com/oshjma/lang/util"
+	"strconv"
 )
 
 func Parse(tokens []*token.Token) *ast.Program {
@@ -15,8 +15,8 @@ func Parse(tokens []*token.Token) *ast.Program {
 
 type parser struct {
 	tokens []*token.Token // input tokens
-	pos int               // current position
-	tk *token.Token       // current token
+	pos    int            // current position
+	tk     *token.Token   // current token
 }
 
 func (p *parser) next() {

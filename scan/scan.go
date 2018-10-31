@@ -13,9 +13,9 @@ func Scan(src string) []*token.Token {
 }
 
 type scanner struct {
-	src string          // input source code
-	pos int             // current position
-	ch byte             // current character
+	src    string       // input source code
+	pos    int          // current position
+	ch     byte         // current character
 	lastTk *token.Token // last token scanner has read
 }
 
@@ -36,8 +36,8 @@ func (s *scanner) expect(ch byte) {
 }
 
 func (s *scanner) peekChar() byte {
-	if s.pos + 1 < len(s.src) {
-		return s.src[s.pos + 1]
+	if s.pos+1 < len(s.src) {
+		return s.src[s.pos+1]
 	}
 	return 0
 }

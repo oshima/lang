@@ -6,7 +6,7 @@ var sizes = map[string]int{
 }
 
 var setcc = map[string]string{
-    "==": "sete",
+	"==": "sete",
 	"!=": "setne",
 	"<":  "setl",
 	"<=": "setle",

@@ -13,31 +13,31 @@ const (
 	SLASH     = "SLASH"
 	SEMICOLON = "SEMICOLON"
 
-	EQ        = "EQ"
-	NE        = "NE"
-	LT        = "LT"
-	LE        = "LE"
-	GT        = "GT"
-	GE        = "GE"
-	AND       = "AND"
-	OR        = "OR"
+	EQ  = "EQ"
+	NE  = "NE"
+	LT  = "LT"
+	LE  = "LE"
+	GT  = "GT"
+	GE  = "GE"
+	AND = "AND"
+	OR  = "OR"
 
-	LET       = "LET"
-	IF        = "IF"
-	ELSE      = "ELSE"
+	LET  = "LET"
+	IF   = "IF"
+	ELSE = "ELSE"
 
-	INT       = "INT"
-	BOOL      = "BOOL"
+	INT  = "INT"
+	BOOL = "BOOL"
 
-	IDENT     = "IDENT"
-	NUMBER    = "NUMBER"
-	TRUE      = "TRUE"
-	FALSE     = "FALSE"
+	IDENT  = "IDENT"
+	NUMBER = "NUMBER"
+	TRUE   = "TRUE"
+	FALSE  = "FALSE"
 
-	EOF       = "EOF"
+	EOF = "EOF"
 )
 
 type Token struct {
-	Type string
+	Type    string
 	Literal string
 }
