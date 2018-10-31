@@ -6,19 +6,19 @@ package ast
 
 // for all AST nodes
 type Node interface {
-	Node()
+	astNode()
 }
 
 // for all statement nodes
 type Stmt interface {
 	Node
-	Stmt()
+	stmtNode()
 }
 
 // for all expression nodes
 type Expr interface {
 	Node
-	Expr()
+	exprNode()
 }
 
 /*
@@ -26,10 +26,10 @@ type Expr interface {
 */
 
 type Program struct {
-	Statements []Stmt
+	List []Stmt
 }
 
-func (node *Program) Node() {}
+func (node *Program) astNode() {}
 
 /*
  Statement nodes
@@ -40,7 +40,7 @@ type ExprStmt struct {
 }
 
 type BlockStmt struct {
-	Statements []Stmt
+	List []Stmt
 }
 
 type IfStmt struct {
@@ -55,14 +55,14 @@ type LetStmt struct {
 	Expr  Expr
 }
 
-func (stmt *ExprStmt) Node()  {}
-func (stmt *ExprStmt) Stmt()  {}
-func (stmt *BlockStmt) Node() {}
-func (stmt *BlockStmt) Stmt() {}
-func (stmt *IfStmt) Node()    {}
-func (stmt *IfStmt) Stmt()    {}
-func (stmt *LetStmt) Node()   {}
-func (stmt *LetStmt) Stmt()   {}
+func (stmt *ExprStmt) astNode()   {}
+func (stmt *ExprStmt) stmtNode()  {}
+func (stmt *BlockStmt) astNode()  {}
+func (stmt *BlockStmt) stmtNode() {}
+func (stmt *IfStmt) astNode()     {}
+func (stmt *IfStmt) stmtNode()    {}
+func (stmt *LetStmt) astNode()    {}
+func (stmt *LetStmt) stmtNode()   {}
 
 /*
  Expression nodes
@@ -91,13 +91,13 @@ type BoolLit struct {
 	Value bool
 }
 
-func (expr *PrefixExpr) Node() {}
-func (expr *PrefixExpr) Expr() {}
-func (expr *InfixExpr) Node()  {}
-func (expr *InfixExpr) Expr()  {}
-func (expr *Ident) Node()      {}
-func (expr *Ident) Expr()      {}
-func (expr *IntLit) Node()     {}
-func (expr *IntLit) Expr()     {}
-func (expr *BoolLit) Node()    {}
-func (expr *BoolLit) Expr()    {}
+func (expr *PrefixExpr) astNode()  {}
+func (expr *PrefixExpr) exprNode() {}
+func (expr *InfixExpr) astNode()   {}
+func (expr *InfixExpr) exprNode()  {}
+func (expr *Ident) astNode()       {}
+func (expr *Ident) exprNode()      {}
+func (expr *IntLit) astNode()      {}
+func (expr *IntLit) exprNode()     {}
+func (expr *BoolLit) astNode()     {}
+func (expr *BoolLit) exprNode()    {}

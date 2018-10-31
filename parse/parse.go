@@ -39,11 +39,11 @@ func (p *parser) lookPrecedence() int {
 }
 
 func (p *parser) parseProgram() *ast.Program {
-	var statements []ast.Stmt
+	var list []ast.Stmt
 	for p.tk.Type != token.EOF {
-		statements = append(statements, p.parseStmt())
+		list = append(list, p.parseStmt())
 	}
-	return &ast.Program{Statements: statements}
+	return &ast.Program{List: list}
 }
 
 func (p *parser) parseStmt() ast.Stmt {
@@ -61,12 +61,12 @@ func (p *parser) parseStmt() ast.Stmt {
 
 func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	p.next()
-	var statements []ast.Stmt
+	var list []ast.Stmt
 	for p.tk.Type != token.RBRACE {
-		statements = append(statements, p.parseStmt())
+		list = append(list, p.parseStmt())
 	}
 	p.next()
-	return &ast.BlockStmt{Statements: statements}
+	return &ast.BlockStmt{List: list}
 }
 
 func (p *parser) parseLetStmt() *ast.LetStmt {

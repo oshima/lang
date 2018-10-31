@@ -25,7 +25,7 @@ func (g *generator) nextLabel() string {
 
 func (g *generator) findGvarsInProgram(node *ast.Program) {
 	g.gvars = make(map[*ast.LetStmt]*gvar)
-	for _, stmt := range node.Statements {
+	for _, stmt := range node.List {
 		switch v := stmt.(type) {
 		case *ast.LetStmt:
 			label := g.nextLabel() + "_" + v.Ident.Name
@@ -39,7 +39,7 @@ func (g *generator) findGvarsInProgram(node *ast.Program) {
 }
 
 func (g *generator) findGvarsInBlockStmt(stmt *ast.BlockStmt) {
-	for _, _stmt := range stmt.Statements {
+	for _, _stmt := range stmt.List {
 		switch v := _stmt.(type) {
 		case *ast.LetStmt:
 			label := g.nextLabel() + "_" + v.Ident.Name
@@ -83,7 +83,7 @@ func (g *generator) emitProgram(node *ast.Program) {
 	g.emit("mov rbp, rsp")
 
 	e := &env{store: make(map[string]*gvar)}
-	for _, stmt := range node.Statements {
+	for _, stmt := range node.List {
 		g.emitStmt(e, stmt)
 	}
 
@@ -106,8 +106,8 @@ func (g *generator) emitStmt(e *env, stmt ast.Stmt) {
 
 func (g *generator) emitBlockStmt(e *env, stmt *ast.BlockStmt) {
 	newEnv := &env{store: make(map[string]*gvar), outer: e}
-	for _, s := range stmt.Statements {
-		g.emitStmt(newEnv, s)
+	for _, _stmt := range stmt.List {
+		g.emitStmt(newEnv, _stmt)
 	}
 }
 
