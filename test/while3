@@ -1,0 +1,17 @@
+let sum int = 0;
+let i int = 1;
+
+while true {
+  let j int = 1;
+
+  while true {
+    sum = sum + i * j;
+    j = j + 1;
+    if j > 5 { break; }
+  }
+
+  i = i + 1;
+  if i > 5 { break; }
+}
+
+sum;

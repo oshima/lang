@@ -22,9 +22,12 @@ const (
 	AND = "AND"
 	OR  = "OR"
 
-	LET  = "LET"
-	IF   = "IF"
-	ELSE = "ELSE"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	WHILE    = "WHILE"
+	CONTINUE = "CONTINUE"
+	BREAK    = "BREAK"
+	LET      = "LET"
 
 	INT  = "INT"
 	BOOL = "BOOL"

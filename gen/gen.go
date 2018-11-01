@@ -9,7 +9,7 @@ import (
 func Generate(prog *ast.Program) {
 	g := &generator{}
 	g.findGvarsInProgram(prog)
-	g.emitProgram(prog)
+	g.emitProgram(newEnv(nil), prog)
 }
 
 type generator struct {
@@ -34,6 +34,8 @@ func (g *generator) findGvarsInProgram(node *ast.Program) {
 			g.findGvarsInBlockStmt(v)
 		case *ast.IfStmt:
 			g.findGvarsInIfStmt(v)
+		case *ast.WhileStmt:
+			g.findGvarsInWhileStmt(v)
 		}
 	}
 }
@@ -48,6 +50,8 @@ func (g *generator) findGvarsInBlockStmt(stmt *ast.BlockStmt) {
 			g.findGvarsInBlockStmt(v)
 		case *ast.IfStmt:
 			g.findGvarsInIfStmt(v)
+		case *ast.WhileStmt:
+			g.findGvarsInWhileStmt(v)
 		}
 	}
 }
@@ -62,7 +66,11 @@ func (g *generator) findGvarsInIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (g *generator) emitProgram(node *ast.Program) {
+func (g *generator) findGvarsInWhileStmt(stmt *ast.WhileStmt) {
+	g.findGvarsInBlockStmt(stmt.Body)
+}
+
+func (g *generator) emitProgram(e *env, node *ast.Program) {
 	g.emit(".intel_syntax noprefix")
 
 	if len(g.gvars) > 0 {
@@ -82,7 +90,6 @@ func (g *generator) emitProgram(node *ast.Program) {
 	g.emit("push rbp")
 	g.emit("mov rbp, rsp")
 
-	e := &env{store: make(map[string]*gvar)}
 	for _, stmt := range node.List {
 		g.emitStmt(e, stmt)
 	}
@@ -94,9 +101,15 @@ func (g *generator) emitProgram(node *ast.Program) {
 func (g *generator) emitStmt(e *env, stmt ast.Stmt) {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:
-		g.emitBlockStmt(e, v)
+		g.emitBlockStmt(newEnv(e), v)
 	case *ast.IfStmt:
 		g.emitIfStmt(e, v)
+	case *ast.WhileStmt:
+		g.emitWhileStmt(e, v)
+	case *ast.ContinueStmt:
+		g.emitContinueStmt(e, v)
+	case *ast.BreakStmt:
+		g.emitBreakStmt(e, v)
 	case *ast.LetStmt:
 		g.emitLetStmt(e, v)
 	case *ast.AssignStmt:
@@ -107,9 +120,8 @@ func (g *generator) emitStmt(e *env, stmt ast.Stmt) {
 }
 
 func (g *generator) emitBlockStmt(e *env, stmt *ast.BlockStmt) {
-	newEnv := &env{store: make(map[string]*gvar), outer: e}
-	for _, _stmt := range stmt.List {
-		g.emitStmt(newEnv, _stmt)
+	for _, stmt_ := range stmt.List {
+		g.emitStmt(e, stmt_)
 	}
 }
 
@@ -119,13 +131,13 @@ func (g *generator) emitIfStmt(e *env, stmt *ast.IfStmt) {
 	if stmt.Altern == nil {
 		endLabel := g.nextLabel()
 		g.emit("je %s", endLabel)
-		g.emitBlockStmt(e, stmt.Conseq)
+		g.emitBlockStmt(newEnv(e), stmt.Conseq)
 		g.emitLabel(endLabel)
 	} else {
 		altLabel := g.nextLabel()
 		endLabel := g.nextLabel()
 		g.emit("je %s", altLabel)
-		g.emitBlockStmt(e, stmt.Conseq)
+		g.emitBlockStmt(newEnv(e), stmt.Conseq)
 		g.emit("jmp %s", endLabel)
 		g.emitLabel(altLabel)
 		g.emitStmt(e, stmt.Altern)
@@ -133,10 +145,44 @@ func (g *generator) emitIfStmt(e *env, stmt *ast.IfStmt) {
 	}
 }
 
+func (g *generator) emitWhileStmt(e *env, stmt *ast.WhileStmt) {
+	beginLabel := g.nextLabel()
+	endLabel := g.nextLabel()
+
+	g.emitLabel(beginLabel)
+	g.emitExpr(e, stmt.Cond)
+	g.emit("cmp rax, 0")
+	g.emit("je %s", endLabel)
+
+	e_ := newEnv(e)
+	e_.setDest("continue", &dest{label: beginLabel})
+	e_.setDest("break", &dest{label: endLabel})
+	g.emitBlockStmt(e_, stmt.Body)
+
+	g.emit("jmp %s", beginLabel)
+	g.emitLabel(endLabel)
+}
+
+func (g *generator) emitContinueStmt(e *env, stmt *ast.ContinueStmt) {
+	d, ok := e.getDest("continue")
+	if !ok {
+		util.Error("Illegal use of continue")
+	}
+	g.emit("jmp %s", d.label)
+}
+
+func (g *generator) emitBreakStmt(e *env, stmt *ast.BreakStmt) {
+	d, ok := e.getDest("break")
+	if !ok {
+		util.Error("Illegal use of break")
+	}
+	g.emit("jmp %s", d.label)
+}
+
 func (g *generator) emitLetStmt(e *env, stmt *ast.LetStmt) {
 	g.emitExpr(e, stmt.Expr)
 	v := g.gvars[stmt]
-	if err := e.set(stmt.Ident.Name, v); err != nil {
+	if err := e.setGvar(stmt.Ident.Name, v); err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
 	switch v.size {
@@ -149,7 +195,7 @@ func (g *generator) emitLetStmt(e *env, stmt *ast.LetStmt) {
 
 func (g *generator) emitAssignStmt(e *env, stmt *ast.AssignStmt) {
 	g.emitExpr(e, stmt.Expr)
-	v, ok := e.get(stmt.Ident.Name)
+	v, ok := e.getGvar(stmt.Ident.Name)
 	if !ok {
 		util.Error("%s is not declared", stmt.Ident.Name)
 	}
@@ -221,7 +267,7 @@ func (g *generator) emitCmp(operator string) {
 }
 
 func (g *generator) emitIdent(e *env, expr *ast.Ident) {
-	v, ok := e.get(expr.Name)
+	v, ok := e.getGvar(expr.Name)
 	if !ok {
 		util.Error("%s is not declared", expr.Name)
 	}

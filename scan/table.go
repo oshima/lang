@@ -14,13 +14,16 @@ var punctuations = map[byte]string{
 }
 
 var keywords = map[string]string{
-	"let":   token.LET,
-	"if":    token.IF,
-	"else":  token.ELSE,
-	"int":   token.INT,
-	"bool":  token.BOOL,
-	"true":  token.TRUE,
-	"false": token.FALSE,
+	"if":       token.IF,
+	"else":     token.ELSE,
+	"while":    token.WHILE,
+	"continue": token.CONTINUE,
+	"break":    token.BREAK,
+	"let":      token.LET,
+	"int":      token.INT,
+	"bool":     token.BOOL,
+	"true":     token.TRUE,
+	"false":    token.FALSE,
 }
 
 var exprTerminators = []string{

@@ -56,6 +56,12 @@ func (p *parser) parseStmt() ast.Stmt {
 		return p.parseBlockStmt()
 	case token.IF:
 		return p.parseIfStmt()
+	case token.WHILE:
+		return p.parseWhileStmt()
+	case token.CONTINUE:
+		return p.parseContinueStmt()
+	case token.BREAK:
+		return p.parseBreakStmt()
 	case token.LET:
 		return p.parseLetStmt()
 	case token.IDENT:
@@ -96,6 +102,28 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 		util.Error("Expected { or if but got %s", p.tk.Literal)
 	}
 	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
+}
+
+func (p *parser) parseWhileStmt() *ast.WhileStmt {
+	p.next()
+	cond := p.parseExpr(LOWEST)
+	if p.tk.Type != token.LBRACE {
+		util.Error("Expected { but got %s", p.tk.Literal)
+	}
+	body := p.parseBlockStmt()
+	return &ast.WhileStmt{Cond: cond, Body: body}
+}
+
+func (p *parser) parseContinueStmt() *ast.ContinueStmt {
+	p.next()
+	p.expect(token.SEMICOLON, ";")
+	return &ast.ContinueStmt{}
+}
+
+func (p *parser) parseBreakStmt() *ast.BreakStmt {
+	p.next()
+	p.expect(token.SEMICOLON, ";")
+	return &ast.BreakStmt{}
 }
 
 func (p *parser) parseLetStmt() *ast.LetStmt {

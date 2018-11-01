@@ -14,6 +14,20 @@ try() {
   fi
 }
 
+try-file() {
+  file="$1"
+  expected="$2"
+  cat "$file" | lang > tmp.s
+  gcc -o tmp tmp.s
+  ./tmp
+  actual="$?"
+  if [ "$actual" != "$expected" ]; then
+    echo "$file => Expected $expected but got $actual"
+    rm -f tmp*
+    exit 1
+  fi
+}
+
 try "0;" 0
 try "42;" 42
 try "10; 100;" 100
@@ -98,9 +112,14 @@ try "let x int = 3 + 4; x;" 7
 try "let x int = 10; { let x int = 20; x; }" 20
 try "let x int = 10; { let x int = 20; } x;" 10
 
-try "let x int = 10; x = 20; x;" 20
 try "let x int = 2; x = x * 2; x = x * 2; x;" 8
-try "let x bool = false; { x = x || true; } x;" 1
+try "let x bool = false; x = x || true; x;" 1
+try "let x int = 10; { let x int = 20; x = x + 10; x; }" 30
+try "let x int = 10; { let x int = 20; x = x + 10; } x;" 10
+
+try-file ./test/while1 55
+try-file ./test/while2 55
+try-file ./test/while3 225
 
 echo OK
 rm -f tmp*
