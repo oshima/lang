@@ -9,7 +9,6 @@ try() {
   actual="$?"
   if [ "$actual" != "$expected" ]; then
     echo "$input => Expected $expected but got $actual"
-    rm -f tmp*
     exit 1
   fi
 }
@@ -23,7 +22,6 @@ try-file() {
   actual="$?"
   if [ "$actual" != "$expected" ]; then
     echo "$file => Expected $expected but got $actual"
-    rm -f tmp*
     exit 1
   fi
 }
@@ -122,4 +120,3 @@ try-file ./test/while2 55
 try-file ./test/while3 225
 
 echo OK
-rm -f tmp*
