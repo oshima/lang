@@ -26,7 +26,7 @@ type Expr interface {
 */
 
 type Program struct {
-	List []Stmt
+	TopLevel *BlockStmt
 }
 
 func (node *Program) astNode() {}
@@ -34,10 +34,6 @@ func (node *Program) astNode() {}
 /*
  Statement nodes
 */
-
-type ExprStmt struct {
-	Expr Expr
-}
 
 type BlockStmt struct {
 	List []Stmt
@@ -69,8 +65,10 @@ type AssignStmt struct {
 	Expr  Expr
 }
 
-func (stmt *ExprStmt) astNode()      {}
-func (stmt *ExprStmt) stmtNode()     {}
+type ExprStmt struct {
+	Expr Expr
+}
+
 func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
 func (stmt *IfStmt) astNode()        {}
@@ -85,6 +83,8 @@ func (stmt *LetStmt) astNode()       {}
 func (stmt *LetStmt) stmtNode()      {}
 func (stmt *AssignStmt) astNode()    {}
 func (stmt *AssignStmt) stmtNode()   {}
+func (stmt *ExprStmt) astNode()      {}
+func (stmt *ExprStmt) stmtNode()     {}
 
 /*
  Expression nodes

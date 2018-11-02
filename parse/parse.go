@@ -47,7 +47,8 @@ func (p *parser) parseProgram() *ast.Program {
 	for p.tk.Type != token.EOF {
 		list = append(list, p.parseStmt())
 	}
-	return &ast.Program{List: list}
+	topLevel := &ast.BlockStmt{List: list}
+	return &ast.Program{TopLevel: topLevel}
 }
 
 func (p *parser) parseStmt() ast.Stmt {
