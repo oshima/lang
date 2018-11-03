@@ -7,14 +7,14 @@ import (
 )
 
 func Generate(node *ast.Program) {
-	g := &generator{gvars: make(map[*ast.LetStmt]*gvar)}
+	g := &generator{gvars: make(map[*ast.Ident]*gvar)}
 	g.findGvarsInProgram(node)
 	g.emitProgram(node)
 }
 
 type generator struct {
 	nLabel int
-	gvars  map[*ast.LetStmt]*gvar
+	gvars  map[*ast.Ident]*gvar
 }
 
 func (g *generator) nextLabel() string {
@@ -30,15 +30,16 @@ func (g *generator) findGvarsInProgram(node *ast.Program) {
 func (g *generator) findGvarsInBlockStmt(stmt *ast.BlockStmt) {
 	for _, stmt_ := range stmt.List {
 		switch v := stmt_.(type) {
-		case *ast.LetStmt:
-			label := g.nextLabel() + "_" + v.Ident.Name
-			g.gvars[v] = &gvar{label: label, size: sizes[v.Type]}
 		case *ast.BlockStmt:
 			g.findGvarsInBlockStmt(v)
 		case *ast.IfStmt:
 			g.findGvarsInIfStmt(v)
 		case *ast.WhileStmt:
 			g.findGvarsInWhileStmt(v)
+		case *ast.LetStmt:
+			label := g.nextLabel() + "_" + v.Ident.Name
+			size := sizes[v.Type]
+			g.gvars[v.Ident] = &gvar{label: label, size: size}
 		}
 	}
 }
@@ -164,7 +165,7 @@ func (g *generator) emitBreakStmt(stmt *ast.BreakStmt, e *env) {
 
 func (g *generator) emitLetStmt(stmt *ast.LetStmt, e *env) {
 	g.emitExpr(stmt.Expr, e)
-	v := g.gvars[stmt]
+	v := g.gvars[stmt.Ident]
 	if err := e.setGvar(stmt.Ident.Name, v); err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
