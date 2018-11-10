@@ -43,7 +43,7 @@ func (p *parser) lookPrecedence() int {
 }
 
 func (p *parser) parseProgram() *ast.Program {
-	var stmts []ast.Stmt
+	stmts := make([]ast.Stmt, 0, 8)
 	for p.tk.Type != token.EOF {
 		stmts = append(stmts, p.parseStmt())
 	}
@@ -87,7 +87,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	}
 	ident := p.parseIdent()
 	p.expect(token.LPAREN, "(")
-	var params []*ast.VarDecl
+	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
 		if p.tk.Type != token.IDENT {
 			util.Error("Expected <identifier> but got %s", p.tk.Literal)
@@ -135,7 +135,7 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 
 func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	p.next()
-	var stmts []ast.Stmt
+	stmts := make([]ast.Stmt, 0, 8)
 	for p.tk.Type != token.RBRACE {
 		stmts = append(stmts, p.parseStmt())
 	}
@@ -272,7 +272,7 @@ func (p *parser) parseIdent() *ast.Ident {
 func (p *parser) parseFuncCall() *ast.FuncCall {
 	ident := p.parseIdent()
 	p.next()
-	var params []ast.Expr
+	params := make([]ast.Expr, 0, 4)
 	for p.tk.Type != token.RPAREN {
 		params = append(params, p.parseExpr(LOWEST))
 		if p.tk.Type == token.COMMA {

@@ -49,7 +49,7 @@ func (s *scanner) skipWhitespace() {
 }
 
 func (s *scanner) readTokens() []*token.Token {
-	var tokens []*token.Token
+	tokens := make([]*token.Token, 0, 64)
 	s.skipWhitespace()
 	for s.ch != 0 {
 		tokens = append(tokens, s.readToken())
