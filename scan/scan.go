@@ -62,7 +62,7 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch s.ch {
-	case '(', ')', '{', '}', '+', '*', '/', ';':
+	case '(', ')', '{', '}', '+', '*', '/', ',', ';':
 		tk = s.readPunct()
 	case '!':
 		tk = s.readBangOrNotEqual()

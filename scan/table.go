@@ -10,16 +10,19 @@ var punctuations = map[byte]string{
 	'+': token.PLUS,
 	'*': token.ASTERISK,
 	'/': token.SLASH,
+	',': token.COMMA,
 	';': token.SEMICOLON,
 }
 
 var keywords = map[string]string{
+	"func":     token.FUNC,
+	"var":      token.VAR,
 	"if":       token.IF,
 	"else":     token.ELSE,
 	"while":    token.WHILE,
+	"return":   token.RETURN,
 	"continue": token.CONTINUE,
 	"break":    token.BREAK,
-	"let":      token.LET,
 	"int":      token.INT,
 	"bool":     token.BOOL,
 	"true":     token.TRUE,

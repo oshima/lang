@@ -26,7 +26,7 @@ type Expr interface {
 */
 
 type Program struct {
-	TopLevel *BlockStmt
+	Stmts []Stmt
 }
 
 func (node *Program) astNode() {}
@@ -35,8 +35,21 @@ func (node *Program) astNode() {}
  Statement nodes
 */
 
+type VarDecl struct {
+	Ident *Ident
+	Type  string
+	Value Expr
+}
+
+type FuncDecl struct {
+	Ident   *Ident
+	Params  []*VarDecl
+	RetType string
+	Body    *BlockStmt
+}
+
 type BlockStmt struct {
-	List []Stmt
+	Stmts []Stmt
 }
 
 type IfStmt struct {
@@ -50,37 +63,43 @@ type WhileStmt struct {
 	Body *BlockStmt
 }
 
-type ContinueStmt struct{}
+type ReturnStmt struct {
+	Value Expr
+}
 
-type BreakStmt struct{}
+type ContinueStmt struct {
+	dummy byte
+}
 
-type LetStmt struct {
-	Ident *Ident
-	Type  string
-	Expr  Expr
+type BreakStmt struct {
+	dummy byte
 }
 
 type AssignStmt struct {
 	Ident *Ident
-	Expr  Expr
+	Value Expr
 }
 
 type ExprStmt struct {
 	Expr Expr
 }
 
+func (stmt *VarDecl) astNode()       {}
+func (stmt *VarDecl) stmtNode()      {}
+func (stmt *FuncDecl) astNode()      {}
+func (stmt *FuncDecl) stmtNode()     {}
 func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
 func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
 func (stmt *WhileStmt) astNode()     {}
 func (stmt *WhileStmt) stmtNode()    {}
+func (stmt *ReturnStmt) astNode()    {}
+func (stmt *ReturnStmt) stmtNode()   {}
 func (stmt *ContinueStmt) astNode()  {}
 func (stmt *ContinueStmt) stmtNode() {}
 func (stmt *BreakStmt) astNode()     {}
 func (stmt *BreakStmt) stmtNode()    {}
-func (stmt *LetStmt) astNode()       {}
-func (stmt *LetStmt) stmtNode()      {}
 func (stmt *AssignStmt) astNode()    {}
 func (stmt *AssignStmt) stmtNode()   {}
 func (stmt *ExprStmt) astNode()      {}
@@ -105,6 +124,11 @@ type Ident struct {
 	Name string
 }
 
+type FuncCall struct {
+	Ident  *Ident
+	Params []Expr
+}
+
 type IntLit struct {
 	Value int64
 }
@@ -119,6 +143,8 @@ func (expr *InfixExpr) astNode()   {}
 func (expr *InfixExpr) exprNode()  {}
 func (expr *Ident) astNode()       {}
 func (expr *Ident) exprNode()      {}
+func (expr *FuncCall) astNode()    {}
+func (expr *FuncCall) exprNode()   {}
 func (expr *IntLit) astNode()      {}
 func (expr *IntLit) exprNode()     {}
 func (expr *BoolLit) astNode()     {}

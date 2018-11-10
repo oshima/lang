@@ -1,0 +1,15 @@
+var sum int = 0;
+
+var x int = 10;
+
+func add_x(n int) int {
+  return n + x;
+}
+
+sum = sum + add_x(5);
+
+x = 20;
+
+sum = sum + add_x(5);
+
+sum;

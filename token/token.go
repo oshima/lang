@@ -11,6 +11,7 @@ const (
 	MINUS     = "MINUS"
 	ASTERISK  = "ASTERISK"
 	SLASH     = "SLASH"
+	COMMA     = "COMMA"
 	SEMICOLON = "SEMICOLON"
 
 	EQ  = "EQ"
@@ -22,12 +23,14 @@ const (
 	AND = "AND"
 	OR  = "OR"
 
+	FUNC     = "FUNC"
+	VAR      = "VAR"
 	IF       = "IF"
 	ELSE     = "ELSE"
 	WHILE    = "WHILE"
+	RETURN   = "RETURN"
 	CONTINUE = "CONTINUE"
 	BREAK    = "BREAK"
-	LET      = "LET"
 
 	INT  = "INT"
 	BOOL = "BOOL"
