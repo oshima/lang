@@ -28,21 +28,20 @@ func (s *scanner) next() {
 	}
 }
 
-func (s *scanner) expect(ch byte) {
-	if s.ch != ch {
-		util.Error("Expected %c but got %c", ch, s.ch)
-	}
-	s.next()
-}
-
-func (s *scanner) peekChar() byte {
+func (s *scanner) peekCh() byte {
 	if s.pos+1 < len(s.src) {
 		return s.src[s.pos+1]
 	}
 	return 0
 }
 
-func (s *scanner) skipWhitespace() {
+func (s *scanner) expect(ch byte) {
+	if s.ch != ch {
+		util.Error("Expected %c but got %c", ch, s.ch)
+	}
+}
+
+func (s *scanner) skipWs() {
 	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
 		s.next()
 	}
@@ -50,10 +49,10 @@ func (s *scanner) skipWhitespace() {
 
 func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
-	s.skipWhitespace()
+	s.skipWs()
 	for s.ch != 0 {
 		tokens = append(tokens, s.readToken())
-		s.skipWhitespace()
+		s.skipWs()
 	}
 	eof := &token.Token{Type: token.EOF, Literal: "<EOF>"}
 	return append(tokens, eof)
@@ -99,43 +98,6 @@ func (s *scanner) readPunct() *token.Token {
 	return &token.Token{Type: ty, Literal: literal}
 }
 
-func (s *scanner) readAnd() *token.Token {
-	s.next()
-	s.expect('&')
-	return &token.Token{Type: token.AND, Literal: "&&"}
-}
-
-func (s *scanner) readOr() *token.Token {
-	s.next()
-	s.expect('|')
-	return &token.Token{Type: token.OR, Literal: "||"}
-}
-
-func (s *scanner) readNumber() *token.Token {
-	pos := s.pos
-	if s.ch == '-' {
-		s.next()
-	}
-	s.next()
-	for isDigit(s.ch) {
-		s.next()
-	}
-	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
-}
-
-func (s *scanner) readKeywordOrIdentifier() *token.Token {
-	pos := s.pos
-	s.next()
-	for isAlpha(s.ch) || isDigit(s.ch) {
-		s.next()
-	}
-	literal := s.src[pos:s.pos]
-	if ty, ok := keywords[literal]; ok {
-		return &token.Token{Type: ty, Literal: literal}
-	}
-	return &token.Token{Type: token.IDENT, Literal: literal}
-}
-
 func (s *scanner) readBangOrNotEqual() *token.Token {
 	s.next()
 	if s.ch == '=' {
@@ -146,15 +108,13 @@ func (s *scanner) readBangOrNotEqual() *token.Token {
 }
 
 func (s *scanner) readMinusOrNegativeNumber() *token.Token {
-	if !isDigit(s.peekChar()) {
+	if !isDigit(s.peekCh()) {
 		s.next()
 		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
-	for _, terminator := range exprTerminators {
-		if s.lastTk.Type == terminator {
-			s.next()
-			return &token.Token{Type: token.MINUS, Literal: "-"}
-		}
+	if _, ok := exprTerminators[s.lastTk.Type]; ok {
+		s.next()
+		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
 	return s.readNumber()
 }
@@ -184,6 +144,45 @@ func (s *scanner) readGreaterOrGreaterEqual() *token.Token {
 		return &token.Token{Type: token.GE, Literal: ">="}
 	}
 	return &token.Token{Type: token.GT, Literal: ">"}
+}
+
+func (s *scanner) readAnd() *token.Token {
+	s.next()
+	s.expect('&')
+	s.next()
+	return &token.Token{Type: token.AND, Literal: "&&"}
+}
+
+func (s *scanner) readOr() *token.Token {
+	s.next()
+	s.expect('|')
+	s.next()
+	return &token.Token{Type: token.OR, Literal: "||"}
+}
+
+func (s *scanner) readNumber() *token.Token {
+	pos := s.pos
+	if s.ch == '-' {
+		s.next()
+	}
+	s.next()
+	for isDigit(s.ch) {
+		s.next()
+	}
+	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
+}
+
+func (s *scanner) readKeywordOrIdentifier() *token.Token {
+	pos := s.pos
+	s.next()
+	for isAlpha(s.ch) || isDigit(s.ch) {
+		s.next()
+	}
+	literal := s.src[pos:s.pos]
+	if ty, ok := keywords[literal]; ok {
+		return &token.Token{Type: ty, Literal: literal}
+	}
+	return &token.Token{Type: token.IDENT, Literal: literal}
 }
 
 func isDigit(ch byte) bool {

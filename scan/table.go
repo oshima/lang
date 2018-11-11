@@ -29,10 +29,10 @@ var keywords = map[string]string{
 	"false":    token.FALSE,
 }
 
-var exprTerminators = []string{
-	token.RPAREN,
-	token.IDENT,
-	token.NUMBER,
-	token.TRUE,
-	token.FALSE,
+var exprTerminators = map[string]bool{
+	token.RPAREN: true,
+	token.IDENT:  true,
+	token.NUMBER: true,
+	token.TRUE:   true,
+	token.FALSE:  true,
 }

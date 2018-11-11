@@ -19,7 +19,7 @@ func Generate(node *ast.Program) {
 }
 
 type generator struct {
-	// Information needed for emitting assembly code
+	// Information necessary for emitting assembly code
 	fns      map[*ast.FuncDecl]*fn
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
@@ -57,6 +57,10 @@ func (g *generator) nextLabel() string {
 	g.nlabel += 1
 	return label
 }
+
+/*
+ Traverse AST to gather the necessary information for emitting assembly code
+*/
 
 func (g *generator) traverseProgram(node *ast.Program, e *env) {
 	for _, stmt := range node.Stmts {
@@ -264,6 +268,10 @@ func (g *generator) traverseFuncCall(expr *ast.FuncCall, e *env) {
 	}
 	g.relations[expr] = parent
 }
+
+/*
+ Emit assembly code
+*/
 
 func (g *generator) emitProgram(node *ast.Program) {
 	g.emit(".intel_syntax noprefix")
