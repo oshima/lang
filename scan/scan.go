@@ -5,37 +5,37 @@ import (
 	"github.com/oshjma/lang/util"
 )
 
-func Scan(src string) []*token.Token {
-	s := &scanner{src: src, pos: -1}
+func Scan(runes []rune) []*token.Token {
+	s := &scanner{runes: runes, pos: -1}
 	s.next()
 	s.lastTk = &token.Token{Type: "__DUMMY__"}
 	return s.readTokens()
 }
 
 type scanner struct {
-	src    string       // input source code
+	runes  []rune       // input source code
 	pos    int          // current position
-	ch     byte         // current character
+	ch     rune         // current character
 	lastTk *token.Token // last token scanner has read
 }
 
 func (s *scanner) next() {
 	s.pos += 1
-	if s.pos < len(s.src) {
-		s.ch = s.src[s.pos]
+	if s.pos < len(s.runes) {
+		s.ch = s.runes[s.pos]
 	} else {
 		s.ch = 0
 	}
 }
 
-func (s *scanner) peekCh() byte {
-	if s.pos+1 < len(s.src) {
-		return s.src[s.pos+1]
+func (s *scanner) peekCh() rune {
+	if s.pos+1 < len(s.runes) {
+		return s.runes[s.pos+1]
 	}
 	return 0
 }
 
-func (s *scanner) expect(ch byte) {
+func (s *scanner) expect(ch rune) {
 	if s.ch != ch {
 		util.Error("Expected %c but got %c", ch, s.ch)
 	}
@@ -172,7 +172,8 @@ func (s *scanner) readQuoted() *token.Token {
 		s.next()
 	}
 	s.next()
-	return &token.Token{Type: token.QUOTED, Literal: s.src[pos:s.pos]}
+	literal := string(s.runes[pos:s.pos])
+	return &token.Token{Type: token.QUOTED, Literal: literal}
 }
 
 func (s *scanner) readNumber() *token.Token {
@@ -184,7 +185,8 @@ func (s *scanner) readNumber() *token.Token {
 	for isDigit(s.ch) {
 		s.next()
 	}
-	return &token.Token{Type: token.NUMBER, Literal: s.src[pos:s.pos]}
+	literal := string(s.runes[pos:s.pos])
+	return &token.Token{Type: token.NUMBER, Literal: literal}
 }
 
 func (s *scanner) readKeywordOrIdentifier() *token.Token {
@@ -193,17 +195,17 @@ func (s *scanner) readKeywordOrIdentifier() *token.Token {
 	for isAlpha(s.ch) || isDigit(s.ch) {
 		s.next()
 	}
-	literal := s.src[pos:s.pos]
+	literal := string(s.runes[pos:s.pos])
 	if ty, ok := keywords[literal]; ok {
 		return &token.Token{Type: ty, Literal: literal}
 	}
 	return &token.Token{Type: token.IDENT, Literal: literal}
 }
 
-func isDigit(ch byte) bool {
+func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'
 }
 
-func isAlpha(ch byte) bool {
+func isAlpha(ch rune) bool {
 	return 'A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || ch == '_'
 }

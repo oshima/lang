@@ -2,7 +2,7 @@ package scan
 
 import "github.com/oshjma/lang/token"
 
-var punctuations = map[byte]string{
+var punctuations = map[rune]string{
 	'(': token.LPAREN,
 	')': token.RPAREN,
 	'{': token.LBRACE,

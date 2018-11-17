@@ -20,7 +20,9 @@ func main() {
 		util.Error("Failed to read source code from stdin")
 	}
 
-	tokens := scan.Scan(string(bytes))
+	runes := []rune(string(bytes))
+
+	tokens := scan.Scan(runes)
 	if *debug {
 		pp.Fprintln(os.Stderr, tokens)
 	}
