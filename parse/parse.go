@@ -5,6 +5,7 @@ import (
 	"github.com/oshjma/lang/token"
 	"github.com/oshjma/lang/util"
 	"strconv"
+	//"strings"
 )
 
 func Parse(tokens []*token.Token) *ast.Program {
@@ -41,14 +42,10 @@ func (p *parser) expect(ty string, literal string) {
 	}
 }
 
-func (p *parser) expectType() {
-	if p.tk.Type != token.INT && p.tk.Type != token.BOOL {
+func (p *parser) expectTypeName() {
+	if _, ok := typeNames[p.tk.Type]; !ok {
 		util.Error("Expected <type> but got %s", p.tk.Literal)
 	}
-}
-
-func (p *parser) isType() bool {
-	return p.tk.Type == token.INT || p.tk.Type == token.BOOL
 }
 
 func (p *parser) parseProgram() *ast.Program {
@@ -98,7 +95,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	for p.tk.Type != token.RPAREN {
 		p.expect(token.IDENT, "<identifier>")
 		ident := p.parseIdent()
-		p.expectType()
+		p.expectTypeName()
 		ty := p.tk.Literal
 		p.next()
 		params = append(params, &ast.VarDecl{Ident: ident, Type: ty})
@@ -108,7 +105,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	}
 	p.next()
 	var retType string
-	if p.isType() {
+	if _, ok := typeNames[p.tk.Type]; ok {
 		retType = p.tk.Literal
 		p.next()
 	}
@@ -121,7 +118,7 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.next()
 	p.expect(token.IDENT, "<identifier>")
 	ident := p.parseIdent()
-	p.expectType()
+	p.expectTypeName()
 	ty := p.tk.Literal
 	p.next()
 	p.expect(token.ASSIGN, "=")
@@ -231,6 +228,8 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 		expr = p.parseIntLit()
 	case token.TRUE, token.FALSE:
 		expr = p.parseBoolLit()
+	case token.QUOTED:
+		expr = p.parseStringLit()
 	default:
 		util.Error("Unexpected %s", p.tk.Literal)
 	}
@@ -265,12 +264,6 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	return &ast.InfixExpr{Operator: operator, Left: left, Right: right}
 }
 
-func (p *parser) parseIdent() *ast.Ident {
-	name := p.tk.Literal
-	p.next()
-	return &ast.Ident{Name: name}
-}
-
 func (p *parser) parseFuncCall() *ast.FuncCall {
 	ident := p.parseIdent()
 	p.next()
@@ -283,6 +276,12 @@ func (p *parser) parseFuncCall() *ast.FuncCall {
 	}
 	p.next()
 	return &ast.FuncCall{Ident: ident, Params: params}
+}
+
+func (p *parser) parseIdent() *ast.Ident {
+	name := p.tk.Literal
+	p.next()
+	return &ast.Ident{Name: name}
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
@@ -298,4 +297,28 @@ func (p *parser) parseBoolLit() *ast.BoolLit {
 	value := p.tk.Type == token.TRUE
 	p.next()
 	return &ast.BoolLit{Value: value}
+}
+
+func (p *parser) parseStringLit() *ast.StringLit {
+	literal := p.tk.Literal
+	var value string
+	var escaped bool
+	for _, ch := range literal[1 : len(literal)-1] {
+		if ch == '\\' {
+			escaped = true
+			continue
+		}
+		if escaped {
+			if ch_, ok := unescape[ch]; ok {
+				value += string(ch_)
+			} else {
+				util.Error("Unkown escape sequence \\%c", ch)
+			}
+			escaped = false
+		} else {
+			value += string(ch)
+		}
+	}
+	p.next()
+	return &ast.StringLit{Value: value}
 }

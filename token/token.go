@@ -32,13 +32,15 @@ const (
 	CONTINUE = "CONTINUE"
 	BREAK    = "BREAK"
 
-	INT  = "INT"
-	BOOL = "BOOL"
+	INT    = "INT"
+	BOOL   = "BOOL"
+	STRING = "STRING"
 
 	IDENT  = "IDENT"
 	NUMBER = "NUMBER"
 	TRUE   = "TRUE"
 	FALSE  = "FALSE"
+	QUOTED = "QUOTED"
 
 	EOF = "EOF"
 )

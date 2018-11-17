@@ -11,6 +11,7 @@ func Generate(node *ast.Program) {
 		fns:       make(map[*ast.FuncDecl]*fn),
 		gvars:     make(map[*ast.VarDecl]*gvar),
 		lvars:     make(map[*ast.VarDecl]*lvar),
+		strs:      make(map[*ast.StringLit]*str),
 		branches:  make(map[ast.Stmt]*branch),
 		relations: make(map[ast.Node]ast.Node),
 	}
@@ -23,14 +24,18 @@ type generator struct {
 	fns      map[*ast.FuncDecl]*fn
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
+	strs     map[*ast.StringLit]*str
 	branches map[ast.Stmt]*branch
 
 	// Relationship between AST nodes: child -> parent
 	relations map[ast.Node]ast.Node
 
-	nlabel int
-	offset int
+	nGvarLabel   int
+	nStrLabel    int
+	nBranchLabel int
+
 	local  bool
+	offset int
 }
 
 type fn struct {
@@ -48,13 +53,30 @@ type lvar struct {
 	size   int
 }
 
+type str struct {
+	label string
+	value string
+}
+
 type branch struct {
 	labels []string
 }
 
-func (g *generator) nextLabel() string {
-	label := fmt.Sprintf(".L%d", g.nlabel)
-	g.nlabel += 1
+func (g *generator) gvarLabel(name string) string {
+	label := fmt.Sprintf(".GV%d_%s", g.nGvarLabel, name)
+	g.nGvarLabel += 1
+	return label
+}
+
+func (g *generator) strLabel() string {
+	label := fmt.Sprintf(".LC%d", g.nStrLabel)
+	g.nStrLabel += 1
+	return label
+}
+
+func (g *generator) branchLabel() string {
+	label := fmt.Sprintf(".L%d", g.nBranchLabel)
+	g.nBranchLabel += 1
 	return label
 }
 
@@ -117,7 +139,7 @@ func (g *generator) traverseFuncDecl(stmt *ast.FuncDecl, e *env) {
 		align: util.Align(g.offset, 16),
 	}
 
-	endLabel := g.nextLabel()
+	endLabel := g.branchLabel()
 	g.branches[stmt] = &branch{labels: []string{endLabel}}
 }
 
@@ -136,7 +158,7 @@ func (g *generator) traverseVarDecl(stmt *ast.VarDecl, e *env) {
 		g.lvars[stmt] = &lvar{offset: g.offset, size: size}
 	} else {
 		g.gvars[stmt] = &gvar{
-			label: g.nextLabel() + "_" + stmt.Ident.Name,
+			label: g.gvarLabel(stmt.Ident.Name),
 			size:  sizeof[stmt.Type],
 		}
 	}
@@ -153,18 +175,18 @@ func (g *generator) traverseIfStmt(stmt *ast.IfStmt, e *env) {
 	g.traverseBlockStmt(stmt.Conseq, newEnv(e))
 
 	if stmt.Altern == nil {
-		endLabel := g.nextLabel()
+		endLabel := g.branchLabel()
 		g.branches[stmt] = &branch{labels: []string{endLabel}}
 	} else {
-		altLabel := g.nextLabel()
+		altLabel := g.branchLabel()
 		g.traverseStmt(stmt.Altern, e)
-		endLabel := g.nextLabel()
+		endLabel := g.branchLabel()
 		g.branches[stmt] = &branch{labels: []string{altLabel, endLabel}}
 	}
 }
 
 func (g *generator) traverseWhileStmt(stmt *ast.WhileStmt, e *env) {
-	beginLabel := g.nextLabel()
+	beginLabel := g.branchLabel()
 	g.traverseExpr(stmt.Cond, e)
 
 	e_ := newEnv(e)
@@ -172,7 +194,7 @@ func (g *generator) traverseWhileStmt(stmt *ast.WhileStmt, e *env) {
 	e_.set("break", stmt)
 	g.traverseBlockStmt(stmt.Body, e_)
 
-	endLabel := g.nextLabel()
+	endLabel := g.branchLabel()
 	g.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
 }
 
@@ -227,10 +249,12 @@ func (g *generator) traverseExpr(expr ast.Expr, e *env) {
 		g.traversePrefixExpr(v, e)
 	case *ast.InfixExpr:
 		g.traverseInfixExpr(v, e)
-	case *ast.Ident:
-		g.traverseIdent(v, e)
 	case *ast.FuncCall:
 		g.traverseFuncCall(v, e)
+	case *ast.Ident:
+		g.traverseIdent(v, e)
+	case *ast.StringLit:
+		g.traverseStringLit(v)
 	}
 }
 
@@ -241,17 +265,6 @@ func (g *generator) traversePrefixExpr(expr *ast.PrefixExpr, e *env) {
 func (g *generator) traverseInfixExpr(expr *ast.InfixExpr, e *env) {
 	g.traverseExpr(expr.Left, e)
 	g.traverseExpr(expr.Right, e)
-}
-
-func (g *generator) traverseIdent(expr *ast.Ident, e *env) {
-	parent, ok := e.get(expr.Name)
-	if !ok {
-		util.Error("%s is not declared", expr.Name)
-	}
-	if _, ok := parent.(*ast.VarDecl); !ok {
-		util.Error("%s is not a variable", expr.Name)
-	}
-	g.relations[expr] = parent
 }
 
 func (g *generator) traverseFuncCall(expr *ast.FuncCall, e *env) {
@@ -269,12 +282,34 @@ func (g *generator) traverseFuncCall(expr *ast.FuncCall, e *env) {
 	g.relations[expr] = parent
 }
 
+func (g *generator) traverseIdent(expr *ast.Ident, e *env) {
+	parent, ok := e.get(expr.Name)
+	if !ok {
+		util.Error("%s is not declared", expr.Name)
+	}
+	if _, ok := parent.(*ast.VarDecl); !ok {
+		util.Error("%s is not a variable", expr.Name)
+	}
+	g.relations[expr] = parent
+}
+
+func (g *generator) traverseStringLit(expr *ast.StringLit) {
+	g.strs[expr] = &str{label: g.strLabel(), value: expr.Value}
+}
+
 /*
  Emit assembly code
 */
 
 func (g *generator) emitProgram(node *ast.Program) {
 	g.emit(".intel_syntax noprefix")
+	g.emit(".section .rodata")
+
+	for _, s := range g.strs {
+		g.emitLabel(s.label)
+		g.emit(".string %q", s.value)
+	}
+
 	g.emit(".text")
 
 	for _, v := range g.gvars {
@@ -334,10 +369,10 @@ func (g *generator) emitFuncDecl(stmt *ast.FuncDecl) {
 	for i, param := range stmt.Params {
 		v := g.lvars[param]
 		switch v.size {
-		case 8:
-			g.emit("mov qword ptr [rbp-%d], %s", v.offset, paramRegs[8][i])
 		case 1:
 			g.emit("mov byte ptr [rbp-%d], %s", v.offset, paramRegs[1][i])
+		case 8:
+			g.emit("mov qword ptr [rbp-%d], %s", v.offset, paramRegs[8][i])
 		}
 	}
 
@@ -354,18 +389,18 @@ func (g *generator) emitVarDecl(stmt *ast.VarDecl) {
 
 	if v, ok := g.lvars[stmt]; ok {
 		switch v.size {
-		case 8:
-			g.emit("mov qword ptr [rbp-%d], rax", v.offset)
 		case 1:
 			g.emit("mov byte ptr [rbp-%d], al", v.offset)
+		case 8:
+			g.emit("mov qword ptr [rbp-%d], rax", v.offset)
 		}
 	} else {
 		v := g.gvars[stmt]
 		switch v.size {
-		case 8:
-			g.emit("mov qword ptr %s[rip], rax", v.label)
 		case 1:
 			g.emit("mov byte ptr %s[rip], al", v.label)
+		case 8:
+			g.emit("mov qword ptr %s[rip], rax", v.label)
 		}
 	}
 }
@@ -441,18 +476,18 @@ func (g *generator) emitAssignStmt(stmt *ast.AssignStmt) {
 
 	if v, ok := g.lvars[parent]; ok {
 		switch v.size {
-		case 8:
-			g.emit("mov qword ptr [rbp-%d], rax", v.offset)
 		case 1:
 			g.emit("mov byte ptr [rbp-%d], al", v.offset)
+		case 8:
+			g.emit("mov qword ptr [rbp-%d], rax", v.offset)
 		}
 	} else {
 		v := g.gvars[parent]
 		switch v.size {
-		case 8:
-			g.emit("mov qword ptr %s[rip], rax", v.label)
 		case 1:
 			g.emit("mov byte ptr %s[rip], al", v.label)
+		case 8:
+			g.emit("mov qword ptr %s[rip], rax", v.label)
 		}
 	}
 }
@@ -467,14 +502,16 @@ func (g *generator) emitExpr(expr ast.Expr) {
 		g.emitPrefixExpr(v)
 	case *ast.InfixExpr:
 		g.emitInfixExpr(v)
-	case *ast.Ident:
-		g.emitIdent(v)
 	case *ast.FuncCall:
 		g.emitFuncCall(v)
+	case *ast.Ident:
+		g.emitIdent(v)
 	case *ast.IntLit:
 		g.emitIntLit(v)
 	case *ast.BoolLit:
 		g.emitBoolLit(v)
+	case *ast.StringLit:
+		g.emitStringLit(v)
 	}
 }
 
@@ -520,27 +557,6 @@ func (g *generator) emitCmp(operator string) {
 	g.emit("movzx rax, al")
 }
 
-func (g *generator) emitIdent(expr *ast.Ident) {
-	parent := g.relations[expr].(*ast.VarDecl)
-
-	if v, ok := g.lvars[parent]; ok {
-		switch v.size {
-		case 8:
-			g.emit("mov rax, qword ptr [rbp-%d]", v.offset)
-		case 1:
-			g.emit("movzx rax, byte ptr [rbp-%d]", v.offset)
-		}
-	} else {
-		v := g.gvars[parent]
-		switch v.size {
-		case 8:
-			g.emit("mov rax, qword ptr %s[rip]", v.label)
-		case 1:
-			g.emit("movzx rax, byte ptr %s[rip]", v.label)
-		}
-	}
-}
-
 func (g *generator) emitFuncCall(expr *ast.FuncCall) {
 	parent := g.relations[expr].(*ast.FuncDecl)
 	fn := g.fns[parent]
@@ -550,6 +566,27 @@ func (g *generator) emitFuncCall(expr *ast.FuncCall) {
 		g.emit("mov %s, rax", paramRegs[8][i])
 	}
 	g.emit("call %s", fn.label)
+}
+
+func (g *generator) emitIdent(expr *ast.Ident) {
+	parent := g.relations[expr].(*ast.VarDecl)
+
+	if v, ok := g.lvars[parent]; ok {
+		switch v.size {
+		case 1:
+			g.emit("movzx rax, byte ptr [rbp-%d]", v.offset)
+		case 8:
+			g.emit("mov rax, qword ptr [rbp-%d]", v.offset)
+		}
+	} else {
+		v := g.gvars[parent]
+		switch v.size {
+		case 1:
+			g.emit("movzx rax, byte ptr %s[rip]", v.label)
+		case 8:
+			g.emit("mov rax, qword ptr %s[rip]", v.label)
+		}
+	}
 }
 
 func (g *generator) emitIntLit(expr *ast.IntLit) {
@@ -562,6 +599,11 @@ func (g *generator) emitBoolLit(expr *ast.BoolLit) {
 	} else {
 		g.emit("mov rax, 0")
 	}
+}
+
+func (g *generator) emitStringLit(expr *ast.StringLit) {
+	s := g.strs[expr]
+	g.emit("mov rax, offset flat:%s", s.label)
 }
 
 func (g *generator) emitLabel(label string) {

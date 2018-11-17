@@ -25,6 +25,7 @@ var keywords = map[string]string{
 	"break":    token.BREAK,
 	"int":      token.INT,
 	"bool":     token.BOOL,
+	"string":   token.STRING,
 	"true":     token.TRUE,
 	"false":    token.FALSE,
 }
@@ -35,4 +36,5 @@ var exprTerminators = map[string]bool{
 	token.NUMBER: true,
 	token.TRUE:   true,
 	token.FALSE:  true,
+	token.QUOTED: true,
 }

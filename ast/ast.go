@@ -120,13 +120,13 @@ type InfixExpr struct {
 	Right    Expr
 }
 
-type Ident struct {
-	Name string
-}
-
 type FuncCall struct {
 	Ident  *Ident
 	Params []Expr
+}
+
+type Ident struct {
+	Name string
 }
 
 type IntLit struct {
@@ -137,15 +137,21 @@ type BoolLit struct {
 	Value bool
 }
 
+type StringLit struct {
+	Value string
+}
+
 func (expr *PrefixExpr) astNode()  {}
 func (expr *PrefixExpr) exprNode() {}
 func (expr *InfixExpr) astNode()   {}
 func (expr *InfixExpr) exprNode()  {}
-func (expr *Ident) astNode()       {}
-func (expr *Ident) exprNode()      {}
 func (expr *FuncCall) astNode()    {}
 func (expr *FuncCall) exprNode()   {}
+func (expr *Ident) astNode()       {}
+func (expr *Ident) exprNode()      {}
 func (expr *IntLit) astNode()      {}
 func (expr *IntLit) exprNode()     {}
 func (expr *BoolLit) astNode()     {}
 func (expr *BoolLit) exprNode()    {}
+func (expr *StringLit) astNode()   {}
+func (expr *StringLit) exprNode()  {}

@@ -77,6 +77,8 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readAnd()
 	case '|':
 		tk = s.readOr()
+	case '"':
+		tk = s.readQuoted()
 	default:
 		switch {
 		case isDigit(s.ch):
@@ -158,6 +160,19 @@ func (s *scanner) readOr() *token.Token {
 	s.expect('|')
 	s.next()
 	return &token.Token{Type: token.OR, Literal: "||"}
+}
+
+func (s *scanner) readQuoted() *token.Token {
+	pos := s.pos
+	s.next()
+	for s.ch != '"' {
+		if s.ch == '\\' {
+			s.next()
+		}
+		s.next()
+	}
+	s.next()
+	return &token.Token{Type: token.QUOTED, Literal: s.src[pos:s.pos]}
 }
 
 func (s *scanner) readNumber() *token.Token {

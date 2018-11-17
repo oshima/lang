@@ -25,3 +25,21 @@ var precedences = map[string]int{
 	token.SLASH:    PRODUCT,
 	token.AND:      PRODUCT,
 }
+
+var typeNames = map[string]bool{
+	token.INT:    true,
+	token.BOOL:   true,
+	token.STRING: true,
+}
+
+var unescape = map[rune]rune{
+	'a':  '\a',
+	'b':  '\b',
+	'f':  '\f',
+	'n':  '\n',
+	'r':  '\r',
+	't':  '\t',
+	'v':  '\v',
+	'"':  '"',
+	'\\': '\\',
+}
