@@ -38,3 +38,11 @@ var exprTerminators = map[string]bool{
 	token.FALSE:  true,
 	token.QUOTED: true,
 }
+
+func isDigit(ch rune) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+func isAlpha(ch rune) bool {
+	return 'A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || ch == '_'
+}

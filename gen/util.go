@@ -19,3 +19,8 @@ var paramRegs = map[int][6]string{
 	1: [6]string{"dil", "sil", "dl", "cl", "r8b", "r9b"},
 	8: [6]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
 }
+
+// https://en.wikipedia.org/wiki/Data_structure_alignment
+func align(n int, boundary int) int {
+	return (n + boundary - 1) & -boundary
+}

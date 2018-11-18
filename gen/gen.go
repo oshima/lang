@@ -136,7 +136,7 @@ func (g *generator) traverseFuncDecl(stmt *ast.FuncDecl, e *env) {
 	g.local = false
 	g.fns[stmt] = &fn{
 		label: stmt.Ident.Name,
-		align: util.Align(g.offset, 16),
+		align: align(g.offset, 16),
 	}
 
 	endLabel := g.branchLabel()
@@ -154,7 +154,7 @@ func (g *generator) traverseVarDecl(stmt *ast.VarDecl, e *env) {
 
 	if g.local {
 		size := sizeof[stmt.Type]
-		g.offset = util.Align(g.offset+size, size)
+		g.offset = align(g.offset+size, size)
 		g.lvars[stmt] = &lvar{offset: g.offset, size: size}
 	} else {
 		g.gvars[stmt] = &gvar{

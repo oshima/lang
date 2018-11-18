@@ -201,11 +201,3 @@ func (s *scanner) readKeywordOrIdentifier() *token.Token {
 	}
 	return &token.Token{Type: token.IDENT, Literal: literal}
 }
-
-func isDigit(ch rune) bool {
-	return '0' <= ch && ch <= '9'
-}
-
-func isAlpha(ch rune) bool {
-	return 'A' <= ch && ch <= 'Z' || 'a' <= ch && ch <= 'z' || ch == '_'
-}

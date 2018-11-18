@@ -5,7 +5,6 @@ import (
 	"github.com/oshjma/lang/token"
 	"github.com/oshjma/lang/util"
 	"strconv"
-	//"strings"
 )
 
 func Parse(tokens []*token.Token) *ast.Program {
@@ -300,10 +299,9 @@ func (p *parser) parseBoolLit() *ast.BoolLit {
 }
 
 func (p *parser) parseStringLit() *ast.StringLit {
-	literal := p.tk.Literal
 	var value string
 	var escaped bool
-	for _, ch := range literal[1 : len(literal)-1] {
+	for _, ch := range p.tk.Literal {
 		if ch == '\\' {
 			escaped = true
 			continue
@@ -316,7 +314,9 @@ func (p *parser) parseStringLit() *ast.StringLit {
 			}
 			escaped = false
 		} else {
-			value += string(ch)
+			if ch != '"' {
+				value += string(ch)
+			}
 		}
 	}
 	p.next()
