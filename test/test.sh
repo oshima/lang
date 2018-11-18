@@ -4,7 +4,7 @@ try() {
   input="$1"
   expected="$2"
   echo "$input" | lang > tmp.s
-  gcc -o tmp tmp.s
+  gcc -no-pie -o tmp tmp.s
   ./tmp
   actual="$?"
   if [ "$actual" != "$expected" ]; then
@@ -17,9 +17,8 @@ try-file() {
   file="$1"
   expected="$2"
   cat "$file" | lang > tmp.s
-  gcc -o tmp tmp.s
-  ./tmp
-  actual="$?"
+  gcc -no-pie -o tmp tmp.s
+  actual=`./tmp`
   if [ "$actual" != "$expected" ]; then
     echo "$file => Expected $expected but got $actual"
     exit 1
@@ -120,8 +119,8 @@ try-file ./test/while2 55
 try-file ./test/while3 225
 
 try-file ./test/func1 40
-try-file ./test/func2 1
+try-file ./test/func2 true
 try-file ./test/func3 15
-try-file ./test/func-fib 233
+try-file ./test/func-fib 102334155
 
 echo OK

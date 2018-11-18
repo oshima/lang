@@ -30,10 +30,12 @@ type generator struct {
 	// Relationship between AST nodes: child -> parent
 	relations map[ast.Node]ast.Node
 
+	// Counters of labels
 	nGvarLabel   int
 	nStrLabel    int
 	nBranchLabel int
 
+	// Used for finding local variables
 	local  bool
 	offset int
 }
@@ -272,14 +274,16 @@ func (g *generator) traverseFuncCall(expr *ast.FuncCall, e *env) {
 		g.traverseExpr(param, e)
 	}
 
-	parent, ok := e.get(expr.Ident.Name)
-	if !ok {
-		util.Error("%s is not declared", expr.Ident.Name)
+	if parent, ok := e.get(expr.Ident.Name); ok {
+		if _, ok := parent.(*ast.FuncDecl); !ok {
+			util.Error("%s is not a function", expr.Ident.Name)
+		}
+		g.relations[expr] = parent
+	} else {
+		if _, ok := libFns[expr.Ident.Name]; !ok {
+			util.Error("%s is not declared", expr.Ident.Name)
+		}
 	}
-	if _, ok := parent.(*ast.FuncDecl); !ok {
-		util.Error("%s is not a function", expr.Ident.Name)
-	}
-	g.relations[expr] = parent
 }
 
 func (g *generator) traverseIdent(expr *ast.Ident, e *env) {
@@ -449,8 +453,9 @@ func (g *generator) emitWhileStmt(stmt *ast.WhileStmt) {
 }
 
 func (g *generator) emitReturnStmt(stmt *ast.ReturnStmt) {
-	parent := g.relations[stmt].(*ast.FuncDecl)
-	endLabel := g.branches[parent].labels[0]
+	parent := g.relations[stmt]
+	br := g.branches[parent.(*ast.FuncDecl)]
+	endLabel := br.labels[0]
 
 	if stmt.Value != nil {
 		g.emitExpr(stmt.Value)
@@ -459,22 +464,26 @@ func (g *generator) emitReturnStmt(stmt *ast.ReturnStmt) {
 }
 
 func (g *generator) emitContinueStmt(stmt *ast.ContinueStmt) {
-	parent := g.relations[stmt].(*ast.WhileStmt)
-	beginLabel := g.branches[parent].labels[0]
+	parent := g.relations[stmt]
+	br := g.branches[parent.(*ast.WhileStmt)]
+	beginLabel := br.labels[0]
+
 	g.emit("jmp %s", beginLabel)
 }
 
 func (g *generator) emitBreakStmt(stmt *ast.BreakStmt) {
-	parent := g.relations[stmt].(*ast.WhileStmt)
-	endLabel := g.branches[parent].labels[1]
+	parent := g.relations[stmt]
+	br := g.branches[parent.(*ast.WhileStmt)]
+	endLabel := br.labels[1]
+
 	g.emit("jmp %s", endLabel)
 }
 
 func (g *generator) emitAssignStmt(stmt *ast.AssignStmt) {
 	g.emitExpr(stmt.Value)
-	parent := g.relations[stmt].(*ast.VarDecl)
 
-	if v, ok := g.lvars[parent]; ok {
+	parent := g.relations[stmt]
+	if v, ok := g.lvars[parent.(*ast.VarDecl)]; ok {
 		switch v.size {
 		case 1:
 			g.emit("mov byte ptr [rbp-%d], al", v.offset)
@@ -482,7 +491,7 @@ func (g *generator) emitAssignStmt(stmt *ast.AssignStmt) {
 			g.emit("mov qword ptr [rbp-%d], rax", v.offset)
 		}
 	} else {
-		v := g.gvars[parent]
+		v := g.gvars[parent.(*ast.VarDecl)]
 		switch v.size {
 		case 1:
 			g.emit("mov byte ptr %s[rip], al", v.label)
@@ -558,20 +567,22 @@ func (g *generator) emitCmp(operator string) {
 }
 
 func (g *generator) emitFuncCall(expr *ast.FuncCall) {
-	parent := g.relations[expr].(*ast.FuncDecl)
-	fn := g.fns[parent]
-
 	for i, param := range expr.Params {
 		g.emitExpr(param)
 		g.emit("mov %s, rax", paramRegs[8][i])
 	}
-	g.emit("call %s", fn.label)
+
+	if parent, ok := g.relations[expr]; ok {
+		fn := g.fns[parent.(*ast.FuncDecl)]
+		g.emit("call %s", fn.label)
+	} else {
+		g.emit("call %s", expr.Ident.Name) // library function
+	}
 }
 
 func (g *generator) emitIdent(expr *ast.Ident) {
-	parent := g.relations[expr].(*ast.VarDecl)
-
-	if v, ok := g.lvars[parent]; ok {
+	parent := g.relations[expr]
+	if v, ok := g.lvars[parent.(*ast.VarDecl)]; ok {
 		switch v.size {
 		case 1:
 			g.emit("movzx rax, byte ptr [rbp-%d]", v.offset)
@@ -579,7 +590,7 @@ func (g *generator) emitIdent(expr *ast.Ident) {
 			g.emit("mov rax, qword ptr [rbp-%d]", v.offset)
 		}
 	} else {
-		v := g.gvars[parent]
+		v := g.gvars[parent.(*ast.VarDecl)]
 		switch v.size {
 		case 1:
 			g.emit("movzx rax, byte ptr %s[rip]", v.label)

@@ -2,4 +2,12 @@ func lor(a bool, b bool) bool {
   return a || b;
 }
 
-lor(1 == 2, 1 < 2);
+var result string = "";
+
+if lor(1 == 2, 1 < 2) {
+  result = "true";
+} else {
+  result = "false";
+}
+
+puts(result);

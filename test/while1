@@ -6,4 +6,4 @@ while i <= 10 {
   i = i + 1;
 }
 
-sum;
+printf("%d\n", sum);

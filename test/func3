@@ -9,4 +9,6 @@ func sqr(n int) int {
   return n * n;
 }
 
-abs(-6) + sqr(3);
+var n int = abs(-6) + sqr(3);
+
+printf("%d\n", n);

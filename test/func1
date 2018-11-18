@@ -12,4 +12,4 @@ x = 20;
 
 sum = sum + add_x(5);
 
-sum;
+printf("%d\n", sum);

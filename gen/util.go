@@ -20,6 +20,11 @@ var paramRegs = map[int][6]string{
 	8: [6]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
 }
 
+var libFns = map[string]bool{
+	"puts":   true,
+	"printf": true,
+}
+
 // https://en.wikipedia.org/wiki/Data_structure_alignment
 func align(n int, boundary int) int {
 	return (n + boundary - 1) & -boundary

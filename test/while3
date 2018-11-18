@@ -14,4 +14,4 @@ while true {
   if i > 5 { break; }
 }
 
-sum;
+printf("%d\n", sum);
