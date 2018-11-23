@@ -130,18 +130,18 @@ func (g *generator) traverseFuncDecl(stmt *ast.FuncDecl, e *env) {
 
 	e_ := newEnv(e)
 	e_.set("return", stmt)
+
 	for _, param := range stmt.Params {
 		g.traverseVarDecl(param, e_)
 	}
 	g.traverseBlockStmt(stmt.Body, e_)
+	endLabel := g.branchLabel()
 
 	g.local = false
 	g.fns[stmt] = &fn{
 		label: stmt.Ident.Name,
 		align: align(g.offset, 16),
 	}
-
-	endLabel := g.branchLabel()
 	g.branches[stmt] = &branch{labels: []string{endLabel}}
 }
 
@@ -194,8 +194,8 @@ func (g *generator) traverseWhileStmt(stmt *ast.WhileStmt, e *env) {
 	e_ := newEnv(e)
 	e_.set("continue", stmt)
 	e_.set("break", stmt)
-	g.traverseBlockStmt(stmt.Body, e_)
 
+	g.traverseBlockStmt(stmt.Body, e_)
 	endLabel := g.branchLabel()
 	g.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
 }
@@ -480,9 +480,10 @@ func (g *generator) emitBreakStmt(stmt *ast.BreakStmt) {
 }
 
 func (g *generator) emitAssignStmt(stmt *ast.AssignStmt) {
+	parent := g.relations[stmt]
+
 	g.emitExpr(stmt.Value)
 
-	parent := g.relations[stmt]
 	if v, ok := g.lvars[parent.(*ast.VarDecl)]; ok {
 		switch v.size {
 		case 1:
@@ -582,6 +583,7 @@ func (g *generator) emitFuncCall(expr *ast.FuncCall) {
 
 func (g *generator) emitIdent(expr *ast.Ident) {
 	parent := g.relations[expr]
+
 	if v, ok := g.lvars[parent.(*ast.VarDecl)]; ok {
 		switch v.size {
 		case 1:

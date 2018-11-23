@@ -8,7 +8,6 @@ import (
 func Scan(runes []rune) []*token.Token {
 	s := &scanner{runes: runes, pos: -1}
 	s.next()
-	s.lastTk = &token.Token{Type: "__DUMMY__"}
 	return s.readTokens()
 }
 
@@ -113,6 +112,9 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 	if !isDigit(s.peekCh()) {
 		s.next()
 		return &token.Token{Type: token.MINUS, Literal: "-"}
+	}
+	if s.lastTk == nil {
+		return s.readNumber()
 	}
 	if _, ok := exprTerminators[s.lastTk.Type]; ok {
 		s.next()
