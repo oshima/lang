@@ -568,9 +568,13 @@ func (g *generator) emitCmp(operator string) {
 }
 
 func (g *generator) emitFuncCall(expr *ast.FuncCall) {
-	for i, param := range expr.Params {
+	for _, param := range expr.Params {
 		g.emitExpr(param)
-		g.emit("mov %s, rax", paramRegs[8][i])
+		g.emit("push rax")
+	}
+	for i, _ := range expr.Params {
+		j := len(expr.Params) - i - 1
+		g.emit("pop %s", paramRegs[8][j])
 	}
 
 	if parent, ok := g.relations[expr]; ok {

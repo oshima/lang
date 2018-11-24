@@ -121,6 +121,7 @@ try-file ./test/while3 225
 try-file ./test/func1 40
 try-file ./test/func2 true
 try-file ./test/func3 15
+try-file ./test/func4 91
 try-file ./test/func-fib 102334155
 
 echo OK

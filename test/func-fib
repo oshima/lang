@@ -5,6 +5,4 @@ func fib(n int) int {
   return fib(n - 1) + fib(n - 2);
 }
 
-var n int = fib(40);
-
-printf("%d\n", n);
+printf("%d\n", fib(40));
