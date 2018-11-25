@@ -368,7 +368,9 @@ func (g *generator) emitFuncDecl(stmt *ast.FuncDecl) {
 	g.emitLabel(fn.label)
 	g.emit("push rbp")
 	g.emit("mov rbp, rsp")
-	g.emit("sub rsp, %d", fn.align)
+	if fn.align > 0 {
+		g.emit("sub rsp, %d", fn.align)
+	}
 
 	for i, param := range stmt.Params {
 		v := g.lvars[param]
@@ -383,7 +385,9 @@ func (g *generator) emitFuncDecl(stmt *ast.FuncDecl) {
 	g.emitBlockStmt(stmt.Body)
 
 	g.emitLabel(endLabel)
-	g.emit("add rsp, %d", fn.align)
+	if fn.align > 0 {
+		g.emit("add rsp, %d", fn.align)
+	}
 	g.emit("leave")
 	g.emit("ret")
 }
