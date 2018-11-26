@@ -16,6 +16,7 @@ func Generate(node *ast.Program) {
 		relations: make(map[ast.Node]ast.Node),
 	}
 	g.traverseProgram(node, newEnv(nil))
+	g.typecheckProgram(node)
 	g.emitProgram(node)
 }
 
@@ -299,6 +300,207 @@ func (g *generator) traverseIdent(expr *ast.Ident, e *env) {
 
 func (g *generator) traverseStringLit(expr *ast.StringLit) {
 	g.strs[expr] = &str{label: g.strLabel(), value: expr.Value}
+}
+
+/*
+ Type check
+*/
+
+func (g *generator) typecheckProgram(node *ast.Program) {
+	for _, stmt := range node.Stmts {
+		g.typecheckStmt(stmt)
+	}
+}
+
+func (g *generator) typecheckStmt(stmt ast.Stmt) {
+	switch v := stmt.(type) {
+	case *ast.FuncDecl:
+		g.typecheckFuncDecl(v)
+	case *ast.VarDecl:
+		g.typecheckVarDecl(v)
+	case *ast.BlockStmt:
+		g.typecheckBlockStmt(v)
+	case *ast.IfStmt:
+		g.typecheckIfStmt(v)
+	case *ast.WhileStmt:
+		g.typecheckWhileStmt(v)
+	case *ast.ReturnStmt:
+		g.typecheckReturnStmt(v)
+	case *ast.AssignStmt:
+		g.typecheckAssignStmt(v)
+	case *ast.ExprStmt:
+		g.typecheckExprStmt(v)
+	}
+}
+
+func (g *generator) typecheckFuncDecl(stmt *ast.FuncDecl) {
+	g.typecheckBlockStmt(stmt.Body)
+}
+
+func (g *generator) typecheckVarDecl(stmt *ast.VarDecl) {
+	if ty := g.typecheckExpr(stmt.Value); ty != stmt.Type {
+		f := "Expected %s value for %s, but got %s"
+		util.Error(f, stmt.Type, stmt.Ident.Name, ty)
+	}
+}
+
+func (g *generator) typecheckBlockStmt(stmt *ast.BlockStmt) {
+	for _, stmt_ := range stmt.Stmts {
+		g.typecheckStmt(stmt_)
+	}
+}
+
+func (g *generator) typecheckIfStmt(stmt *ast.IfStmt) {
+	if ty := g.typecheckExpr(stmt.Cond); ty != "bool" {
+		util.Error("Expected bool value for if condition, but got %s", ty)
+	}
+
+	g.typecheckBlockStmt(stmt.Conseq)
+
+	if stmt.Altern != nil {
+		g.typecheckStmt(stmt.Altern)
+	}
+}
+
+func (g *generator) typecheckWhileStmt(stmt *ast.WhileStmt) {
+	if ty := g.typecheckExpr(stmt.Cond); ty != "bool" {
+		util.Error("Expected bool value for while condition, but got %s value", ty)
+	}
+
+	g.typecheckBlockStmt(stmt.Body)
+}
+
+func (g *generator) typecheckReturnStmt(stmt *ast.ReturnStmt) {
+	parent := g.relations[stmt].(*ast.FuncDecl)
+
+	if stmt.Value == nil {
+		if parent.RetType != "void" {
+			f := "Expected %s value for return of %s, but nothing returned"
+			util.Error(f, parent.RetType, parent.Ident.Name)
+		}
+		return
+	}
+
+	if ty := g.typecheckExpr(stmt.Value); ty != parent.RetType {
+		f := "Expected %s value for return of %s, but got %s"
+		util.Error(f, parent.RetType, parent.Ident.Name, ty)
+	}
+}
+
+func (g *generator) typecheckAssignStmt(stmt *ast.AssignStmt) {
+	parent := g.relations[stmt].(*ast.VarDecl)
+
+	if ty := g.typecheckExpr(stmt.Value); ty != parent.Type {
+		f := "Expected %s value for %s, but got %s"
+		util.Error(f, parent.Type, stmt.Ident.Name, ty)
+	}
+}
+
+func (g *generator) typecheckExprStmt(stmt *ast.ExprStmt) {
+	g.typecheckExpr(stmt.Expr)
+}
+
+func (g *generator) typecheckExpr(expr ast.Expr) string {
+	var ty string
+
+	switch v := expr.(type) {
+	case *ast.PrefixExpr:
+		ty = g.typecheckPrefixExpr(v)
+	case *ast.InfixExpr:
+		ty = g.typecheckInfixExpr(v)
+	case *ast.FuncCall:
+		ty = g.typecheckFuncCall(v)
+	case *ast.Ident:
+		ty = g.typecheckIdent(v)
+	case *ast.IntLit:
+		ty = "int"
+	case *ast.BoolLit:
+		ty = "bool"
+	case *ast.StringLit:
+		ty = "string"
+	}
+	return ty
+}
+
+func (g *generator) typecheckPrefixExpr(expr *ast.PrefixExpr) string {
+	var ty string
+	tyr := g.typecheckExpr(expr.Right)
+
+	switch expr.Operator {
+	case "!":
+		if tyr != "bool" {
+			util.Error("Expected bool value for operand of !, but got %s", tyr)
+		}
+		ty = "bool"
+	case "-":
+		if tyr != "int" {
+			util.Error("Expected int value for operand of -, but got %s", tyr)
+		}
+		ty = "int"
+	}
+	return ty
+}
+
+func (g *generator) typecheckInfixExpr(expr *ast.InfixExpr) string {
+	var ty string
+	tyl := g.typecheckExpr(expr.Left)
+	tyr := g.typecheckExpr(expr.Right)
+
+	switch op := expr.Operator; op {
+	case "+", "-", "*", "/":
+		if tyl != "int" || tyr != "int" {
+			util.Error("Expected int values for operand of %s, but got %s, %s", op, tyl, tyr)
+		}
+		ty = "int"
+	case "==", "!=":
+		if tyl != "int" && tyl != "bool" {
+			util.Error("Expected int or bool value for left operand of %s, but got %s", op, tyl)
+		}
+		if tyl == "int" && tyr != "int" {
+			util.Error("Expected int value for right operand of %s, but got %s", op, tyr)
+		}
+		if tyl == "bool" && tyr != "bool" {
+			util.Error("Expected bool value for right operand of %s, but got %s", op, tyr)
+		}
+		ty = "bool"
+	case "<", "<=", ">", ">=":
+		if tyl != "int" || tyr != "int" {
+			util.Error("Expected int values for operand of %s, but got %s, %s", op, tyl, tyr)
+		}
+		ty = "bool"
+	case "&&", "||":
+		if tyl != "bool" || tyr != "bool" {
+			util.Error("Expected bool values for operand of %s, but got %s, %s", op, tyl, tyr)
+		}
+		ty = "bool"
+	}
+	return ty
+}
+
+func (g *generator) typecheckFuncCall(expr *ast.FuncCall) string {
+	if _, ok := g.relations[expr]; !ok {
+		// FIXME: currently, library functions are only `puts` and `printf`, so this works
+		return "void"
+	}
+
+	parent := g.relations[expr].(*ast.FuncDecl)
+
+	if len(expr.Params) != len(parent.Params) {
+		f := "Wrong number of parameters for %s: expected %d, given %d"
+		util.Error(f, expr.Ident.Name, len(parent.Params), len(expr.Params))
+	}
+	for i, param := range expr.Params {
+		if ty := g.typecheckExpr(param); ty != parent.Params[i].Type {
+			f := "Expected %s value for %s (#%d parameter of %s), but got %s"
+			util.Error(f, parent.Params[i].Type, parent.Params[i].Ident.Name, i+1, expr.Ident.Name, ty)
+		}
+	}
+	return parent.RetType
+}
+
+func (g *generator) typecheckIdent(expr *ast.Ident) string {
+	parent := g.relations[expr].(*ast.VarDecl)
+	return parent.Type
 }
 
 /*

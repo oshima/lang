@@ -103,7 +103,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		}
 	}
 	p.next()
-	var retType string
+	retType := "void"
 	if _, ok := typeNames[p.tk.Type]; ok {
 		retType = p.tk.Literal
 		p.next()
