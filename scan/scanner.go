@@ -5,12 +5,6 @@ import (
 	"github.com/oshjma/lang/util"
 )
 
-func Scan(runes []rune) []*token.Token {
-	s := &scanner{runes: runes, pos: -1}
-	s.next()
-	return s.readTokens()
-}
-
 type scanner struct {
 	runes  []rune       // input source code
 	pos    int          // current position

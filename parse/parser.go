@@ -7,12 +7,6 @@ import (
 	"strconv"
 )
 
-func Parse(tokens []*token.Token) *ast.Program {
-	p := &parser{tokens: tokens, pos: -1}
-	p.next()
-	return p.parseProgram()
-}
-
 type parser struct {
 	tokens []*token.Token // input tokens
 	pos    int            // current position
