@@ -23,6 +23,7 @@ var precedences = map[string]int{
 	token.OR:       SUM,
 	token.ASTERISK: PRODUCT,
 	token.SLASH:    PRODUCT,
+	token.PERCENT:  PRODUCT,
 	token.AND:      PRODUCT,
 }
 

@@ -270,6 +270,10 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 	case "/":
 		e.emit("cqo")
 		e.emit("idiv rcx")
+	case "%":
+		e.emit("cqo")
+		e.emit("idiv rcx")
+		e.emit("mov rax, rdx")
 	case "&&":
 		e.emit("and rax, rcx")
 	case "||":

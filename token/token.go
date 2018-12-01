@@ -11,6 +11,7 @@ const (
 	MINUS     = "MINUS"
 	ASTERISK  = "ASTERISK"
 	SLASH     = "SLASH"
+	PERCENT   = "PERCENT"
 	COMMA     = "COMMA"
 	SEMICOLON = "SEMICOLON"
 

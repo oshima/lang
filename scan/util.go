@@ -9,6 +9,7 @@ var punctuations = map[rune]string{
 	'}': token.RBRACE,
 	'+': token.PLUS,
 	'*': token.ASTERISK,
+	'%': token.PERCENT,
 	'/': token.SLASH,
 	',': token.COMMA,
 	';': token.SEMICOLON,

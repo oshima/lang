@@ -154,9 +154,9 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) string {
 	tyr := t.typecheckExpr(expr.Right)
 
 	switch op := expr.Operator; op {
-	case "+", "-", "*", "/":
+	case "+", "-", "*", "/", "%":
 		if tyl != "int" || tyr != "int" {
-			util.Error("Expected int values for operand of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected int values for operands of %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "int"
 	case "==", "!=":
@@ -172,12 +172,12 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) string {
 		ty = "bool"
 	case "<", "<=", ">", ">=":
 		if tyl != "int" || tyr != "int" {
-			util.Error("Expected int values for operand of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected int values for operands of %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "bool"
 	case "&&", "||":
 		if tyl != "bool" || tyr != "bool" {
-			util.Error("Expected bool values for operand of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected bool values for operands of %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "bool"
 	}
