@@ -21,8 +21,10 @@ type emitter struct {
 
 func (e *emitter) emitProgram(node *ast.Program) {
 	e.emit(".intel_syntax noprefix")
-	e.emit(".section .rodata")
 
+	if len(e.strs) > 0 {
+		e.emit(".section .rodata")
+	}
 	for _, s := range e.strs {
 		e.emitLabel(s.label)
 		e.emit(".string %q", s.value)
