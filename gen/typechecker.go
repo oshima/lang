@@ -82,14 +82,14 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 
 	if stmt.Value == nil {
 		if parent.RetType != "void" {
-			f := "Expected %s value for return of %s, but nothing returned"
+			f := "Expected %s return value for %s, but nothing returned"
 			util.Error(f, parent.RetType, parent.Ident.Name)
 		}
 		return
 	}
 
 	if ty := t.typecheckExpr(stmt.Value); ty != parent.RetType {
-		f := "Expected %s value for return of %s, but got %s"
+		f := "Expected %s return value for %s, but got %s"
 		util.Error(f, parent.RetType, parent.Ident.Name, ty)
 	}
 }
@@ -136,12 +136,12 @@ func (t *typechecker) typecheckPrefixExpr(expr *ast.PrefixExpr) string {
 	switch expr.Operator {
 	case "!":
 		if tyr != "bool" {
-			util.Error("Expected bool value for operand of !, but got %s", tyr)
+			util.Error("Expected bool operand for !, but got %s", tyr)
 		}
 		ty = "bool"
 	case "-":
 		if tyr != "int" {
-			util.Error("Expected int value for operand of -, but got %s", tyr)
+			util.Error("Expected int operand for -, but got %s", tyr)
 		}
 		ty = "int"
 	}
@@ -156,28 +156,25 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) string {
 	switch op := expr.Operator; op {
 	case "+", "-", "*", "/", "%":
 		if tyl != "int" || tyr != "int" {
-			util.Error("Expected int values for operands of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected int operands for %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "int"
 	case "==", "!=":
-		if tyl != "int" && tyl != "bool" {
-			util.Error("Expected int or bool value for left operand of %s, but got %s", op, tyl)
+		if tyl == "void" || tyr == "void" {
+			util.Error("Unexpected void operand for %s", op)
 		}
-		if tyl == "int" && tyr != "int" {
-			util.Error("Expected int value for right operand of %s, but got %s", op, tyr)
-		}
-		if tyl == "bool" && tyr != "bool" {
-			util.Error("Expected bool value for right operand of %s, but got %s", op, tyr)
+		if tyl != tyr {
+			util.Error("Expected same type operands for %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "bool"
 	case "<", "<=", ">", ">=":
 		if tyl != "int" || tyr != "int" {
-			util.Error("Expected int values for operands of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected int operands for %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "bool"
 	case "&&", "||":
 		if tyl != "bool" || tyr != "bool" {
-			util.Error("Expected bool values for operands of %s, but got %s, %s", op, tyl, tyr)
+			util.Error("Expected bool operands for %s, but got %s, %s", op, tyl, tyr)
 		}
 		ty = "bool"
 	}
@@ -193,7 +190,7 @@ func (t *typechecker) typecheckFuncCall(expr *ast.FuncCall) string {
 	parent := t.relations[expr].(*ast.FuncDecl)
 
 	if len(expr.Params) != len(parent.Params) {
-		f := "Wrong number of parameters for %s: expected %d, given %d"
+		f := "Wrong number of parameters for %s (expected %d, given %d)"
 		util.Error(f, expr.Ident.Name, len(parent.Params), len(expr.Params))
 	}
 	for i, param := range expr.Params {
