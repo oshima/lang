@@ -45,7 +45,13 @@ func (t *typechecker) typecheckFuncDecl(stmt *ast.FuncDecl) {
 }
 
 func (t *typechecker) typecheckVarDecl(stmt *ast.VarDecl) {
-	if ty := t.typecheckExpr(stmt.Value); ty != stmt.Type {
+	ty := t.typecheckExpr(stmt.Value)
+
+	if stmt.Type == "" {
+		stmt.Type = ty
+		return
+	}
+	if ty != stmt.Type {
 		f := "Expected %s value for %s, but got %s"
 		util.Error(f, stmt.Type, stmt.Ident.Name, ty)
 	}

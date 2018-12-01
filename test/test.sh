@@ -111,10 +111,10 @@ try "var x int = 3 + 4; x;" 7
 try "var x int = 10; { var x int = 20; x; }" 20
 try "var x int = 10; { var x int = 20; } x;" 10
 
-try "var x int = 2; x = x * 2; x = x * 2; x;" 8
-try "var x bool = false; x = x || true; x;" 1
-try "var x int = 10; { var x int = 20; x = x + 10; x; }" 30
-try "var x int = 10; { var x int = 20; x = x + 10; } x;" 10
+try "var x = 2; x = x * 2; x = x * 2; x;" 8
+try "var x = false; x = x || true; x;" 1
+try "var x = 10; { var x = 20; x = x + 10; x; }" 30
+try "var x = 10; { var x = 20; x = x + 10; } x;" 10
 
 try-file ./test/while1 55
 try-file ./test/while2 55

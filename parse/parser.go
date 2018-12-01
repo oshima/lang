@@ -111,9 +111,11 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.next()
 	p.expect(token.IDENT, "<identifier>")
 	ident := p.parseIdent()
-	p.expectTypeName()
-	ty := p.tk.Literal
-	p.next()
+	var ty string
+	if _, ok := typeNames[p.tk.Type]; ok {
+		ty = p.tk.Literal
+		p.next()
+	}
 	p.expect(token.ASSIGN, "=")
 	p.next()
 	value := p.parseExpr(LOWEST)
