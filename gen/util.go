@@ -27,18 +27,22 @@ var paramRegs = map[int][6]string{
 	8: [6]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
 }
 
+func returnableStmt(stmt ast.Stmt) bool {
+	switch v := stmt.(type) {
+	case *ast.BlockStmt:
+		return returnableBlockStmt(v)
+	case *ast.IfStmt:
+		return returnableIfStmt(v)
+	case *ast.ReturnStmt:
+		return true
+	default:
+		return false
+	}
+}
+
 func returnableBlockStmt(stmt *ast.BlockStmt) bool {
 	for _, stmt_ := range stmt.Stmts {
-		switch v := stmt_.(type) {
-		case *ast.BlockStmt:
-			if returnableBlockStmt(v) {
-				return true
-			}
-		case *ast.IfStmt:
-			if returnableIfStmt(v) {
-				return true
-			}
-		case *ast.ReturnStmt:
+		if returnableStmt(stmt_) {
 			return true
 		}
 	}
@@ -49,18 +53,7 @@ func returnableIfStmt(stmt *ast.IfStmt) bool {
 	if stmt.Altern == nil {
 		return false
 	}
-	if !returnableBlockStmt(stmt.Conseq) {
-		return false
-	}
-	switch v := stmt.Altern.(type) {
-	case *ast.BlockStmt:
-		return returnableBlockStmt(v)
-	case *ast.IfStmt:
-		return returnableIfStmt(v)
-	default:
-		// unreachable here
-		return false
-	}
+	return returnableBlockStmt(stmt.Conseq) && returnableStmt(stmt.Altern)
 }
 
 // https://en.wikipedia.org/wiki/Data_structure_alignment
