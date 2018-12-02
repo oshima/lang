@@ -30,12 +30,16 @@ var paramRegs = map[int][6]string{
 func returnableBlockStmt(stmt *ast.BlockStmt) bool {
 	for _, stmt_ := range stmt.Stmts {
 		switch v := stmt_.(type) {
-		case *ast.ReturnStmt:
-			return true
+		case *ast.BlockStmt:
+			if returnableBlockStmt(v) {
+				return true
+			}
 		case *ast.IfStmt:
 			if returnableIfStmt(v) {
 				return true
 			}
+		case *ast.ReturnStmt:
+			return true
 		}
 	}
 	return false
