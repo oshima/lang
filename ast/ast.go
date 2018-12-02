@@ -42,10 +42,10 @@ type VarDecl struct {
 }
 
 type FuncDecl struct {
-	Ident   *Ident
-	Params  []*VarDecl
-	RetType string
-	Body    *BlockStmt
+	Ident      *Ident
+	Params     []*VarDecl
+	ReturnType string
+	Body       *BlockStmt
 }
 
 type BlockStmt struct {

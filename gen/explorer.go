@@ -119,15 +119,12 @@ func (x *explorer) exploreVarDecl(stmt *ast.VarDecl) {
 		x.exploreExpr(stmt.Value)
 	}
 
+	size := sizeof[stmt.Type]
 	if x.local {
-		size := sizeof[stmt.Type]
 		x.offset = align(x.offset+size, size)
 		x.lvars[stmt] = &lvar{offset: x.offset, size: size}
 	} else {
-		x.gvars[stmt] = &gvar{
-			label: x.gvarLabel(stmt.Ident.Name),
-			size:  sizeof[stmt.Type],
-		}
+		x.gvars[stmt] = &gvar{label: x.gvarLabel(stmt.Ident.Name), size: size}
 	}
 }
 

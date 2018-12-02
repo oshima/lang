@@ -84,7 +84,7 @@ func (r *resolver) resolveFuncDecl(stmt *ast.FuncDecl, e *env) {
 	if err := e.set(stmt.Ident.Name, stmt); err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
-	if stmt.RetType != "void" && !returnableBlockStmt(stmt.Body) {
+	if stmt.ReturnType != "void" && !returnableBlockStmt(stmt.Body) {
 		util.Error("Missing return at end of %s", stmt.Ident.Name)
 	}
 

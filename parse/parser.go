@@ -97,14 +97,14 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		}
 	}
 	p.next()
-	retType := "void"
+	returnType := "void"
 	if _, ok := typeNames[p.tk.Type]; ok {
-		retType = p.tk.Literal
+		returnType = p.tk.Literal
 		p.next()
 	}
 	p.expect(token.LBRACE, "{")
 	body := p.parseBlockStmt()
-	return &ast.FuncDecl{Ident: ident, Params: params, RetType: retType, Body: body}
+	return &ast.FuncDecl{Ident: ident, Params: params, ReturnType: returnType, Body: body}
 }
 
 func (p *parser) parseVarDecl() *ast.VarDecl {

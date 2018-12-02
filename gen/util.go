@@ -53,7 +53,8 @@ func returnableIfStmt(stmt *ast.IfStmt) bool {
 		return returnableBlockStmt(v)
 	case *ast.IfStmt:
 		return returnableIfStmt(v)
-	default: // unreachable
+	default:
+		// unreachable here
 		return false
 	}
 }
