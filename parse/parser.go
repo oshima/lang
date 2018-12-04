@@ -306,7 +306,7 @@ func (p *parser) parseStringLit() *ast.StringLit {
 			if ch_, ok := unescape[ch]; ok {
 				value += string(ch_)
 			} else {
-				util.Error("Unkown escape sequence \\%c", ch)
+				util.Error("Unknown escape sequence \\%c", ch)
 			}
 			escaped = false
 		} else {
