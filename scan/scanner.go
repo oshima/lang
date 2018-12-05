@@ -165,6 +165,9 @@ func (s *scanner) readQuoted() *token.Token {
 		if s.ch == '\\' {
 			s.next()
 		}
+		if s.ch == 0 {
+			util.Error("Unexpected <EOF>")
+		}
 		s.next()
 	}
 	s.next()

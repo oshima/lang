@@ -298,19 +298,17 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	var value string
 	var escaped bool
 	for _, ch := range p.tk.Literal {
-		if ch == '\\' {
-			escaped = true
-			continue
-		}
 		if escaped {
 			if ch_, ok := unescape[ch]; ok {
 				value += string(ch_)
+				escaped = false
 			} else {
 				util.Error("Unknown escape sequence \\%c", ch)
 			}
-			escaped = false
 		} else {
-			if ch != '"' {
+			if ch == '\\' {
+				escaped = true
+			} else if ch != '"' {
 				value += string(ch)
 			}
 		}
