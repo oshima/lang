@@ -47,8 +47,7 @@ func (s *scanner) readTokens() []*token.Token {
 		tokens = append(tokens, s.readToken())
 		s.skipWs()
 	}
-	eof := &token.Token{Type: token.EOF, Literal: "<EOF>"}
-	return append(tokens, eof)
+	return append(tokens, &token.Token{Type: token.EOF})
 }
 
 func (s *scanner) readToken() *token.Token {
@@ -166,7 +165,7 @@ func (s *scanner) readQuoted() *token.Token {
 			s.next()
 		}
 		if s.ch == 0 {
-			util.Error("Unexpected <EOF>")
+			util.Error("Unexpected EOF")
 		}
 		s.next()
 	}

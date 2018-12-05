@@ -248,7 +248,7 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 func (e *emitter) emitPrefixExpr(expr *ast.PrefixExpr) {
 	e.emitExpr(expr.Right)
 
-	switch expr.Operator {
+	switch expr.Op {
 	case "!":
 		e.emit("xor rax, 1")
 	case "-":
@@ -262,7 +262,7 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 	e.emitExpr(expr.Left)
 	e.emit("pop rcx")
 
-	switch expr.Operator {
+	switch expr.Op {
 	case "+":
 		e.emit("add rax, rcx")
 	case "-":
@@ -281,13 +281,13 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 	case "||":
 		e.emit("or rax, rcx")
 	case "==", "!=", "<", "<=", ">", ">=":
-		e.emitCmp(expr.Operator)
+		e.emitCmp(expr.Op)
 	}
 }
 
-func (e *emitter) emitCmp(operator string) {
+func (e *emitter) emitCmp(op string) {
 	e.emit("cmp rax, rcx")
-	e.emit("%s al", setcc[operator])
+	e.emit("%s al", setcc[op])
 	e.emit("movzx rax, al")
 }
 

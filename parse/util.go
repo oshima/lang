@@ -27,7 +27,7 @@ var precedences = map[string]int{
 	token.AND:      PRODUCT,
 }
 
-var typeNames = map[string]bool{
+var types = map[string]bool{
 	token.INT:    true,
 	token.BOOL:   true,
 	token.STRING: true,

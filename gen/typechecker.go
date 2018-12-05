@@ -138,7 +138,7 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) string {
 func (t *typechecker) typecheckPrefixExpr(expr *ast.PrefixExpr) string {
 	rty := t.typecheckExpr(expr.Right)
 
-	switch expr.Operator {
+	switch expr.Op {
 	case "!":
 		if rty != "bool" {
 			util.Error("Expected bool operand for !, but got %s", rty)
@@ -159,7 +159,7 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) string {
 	lty := t.typecheckExpr(expr.Left)
 	rty := t.typecheckExpr(expr.Right)
 
-	switch op := expr.Operator; op {
+	switch op := expr.Op; op {
 	case "+", "-", "*", "/", "%":
 		if lty != "int" || rty != "int" {
 			util.Error("Expected int operands for %s, but got %s, %s", op, lty, rty)

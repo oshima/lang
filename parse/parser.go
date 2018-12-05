@@ -35,9 +35,9 @@ func (p *parser) expect(ty string, literal string) {
 	}
 }
 
-func (p *parser) expectTypeName() {
-	if _, ok := typeNames[p.tk.Type]; !ok {
-		util.Error("Expected <type> but got %s", p.tk.Literal)
+func (p *parser) expectType() {
+	if _, ok := types[p.tk.Type]; !ok {
+		util.Error("Expected type but got %s", p.tk.Literal)
 	}
 }
 
@@ -80,15 +80,15 @@ func (p *parser) parseStmt() ast.Stmt {
 
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.next()
-	p.expect(token.IDENT, "<identifier>")
+	p.expect(token.IDENT, "identifier")
 	ident := p.parseIdent()
 	p.expect(token.LPAREN, "(")
 	p.next()
 	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
-		p.expect(token.IDENT, "<identifier>")
+		p.expect(token.IDENT, "identifier")
 		ident := p.parseIdent()
-		p.expectTypeName()
+		p.expectType()
 		ty := p.tk.Literal
 		p.next()
 		params = append(params, &ast.VarDecl{Ident: ident, Type: ty})
@@ -98,7 +98,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	}
 	p.next()
 	returnType := "void"
-	if _, ok := typeNames[p.tk.Type]; ok {
+	if _, ok := types[p.tk.Type]; ok {
 		returnType = p.tk.Literal
 		p.next()
 	}
@@ -109,10 +109,10 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.next()
-	p.expect(token.IDENT, "<identifier>")
+	p.expect(token.IDENT, "identifier")
 	ident := p.parseIdent()
 	var ty string
-	if _, ok := typeNames[p.tk.Type]; ok {
+	if _, ok := types[p.tk.Type]; ok {
 		ty = p.tk.Literal
 		p.next()
 	}
@@ -245,18 +245,18 @@ func (p *parser) parseGroupedExpr() ast.Expr {
 }
 
 func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
-	operator := p.tk.Literal
+	op := p.tk.Literal
 	p.next()
 	right := p.parseExpr(PREFIX)
-	return &ast.PrefixExpr{Operator: operator, Right: right}
+	return &ast.PrefixExpr{Op: op, Right: right}
 }
 
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
-	operator := p.tk.Literal
+	op := p.tk.Literal
 	prec := p.lookPrec()
 	p.next()
 	right := p.parseExpr(prec)
-	return &ast.InfixExpr{Operator: operator, Left: left, Right: right}
+	return &ast.InfixExpr{Op: op, Left: left, Right: right}
 }
 
 func (p *parser) parseFuncCall() *ast.FuncCall {

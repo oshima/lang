@@ -110,14 +110,14 @@ func (stmt *ExprStmt) stmtNode()     {}
 */
 
 type PrefixExpr struct {
-	Operator string
-	Right    Expr
+	Op    string
+	Right Expr
 }
 
 type InfixExpr struct {
-	Operator string
-	Left     Expr
-	Right    Expr
+	Op    string
+	Left  Expr
+	Right Expr
 }
 
 type FuncCall struct {
