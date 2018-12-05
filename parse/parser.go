@@ -59,8 +59,8 @@ func (p *parser) parseStmt() ast.Stmt {
 		return p.parseBlockStmt()
 	case token.IF:
 		return p.parseIfStmt()
-	case token.WHILE:
-		return p.parseWhileStmt()
+	case token.FOR:
+		return p.parseForStmt()
 	case token.RETURN:
 		return p.parseReturnStmt()
 	case token.CONTINUE:
@@ -155,12 +155,12 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
 }
 
-func (p *parser) parseWhileStmt() *ast.WhileStmt {
+func (p *parser) parseForStmt() *ast.ForStmt {
 	p.next()
 	cond := p.parseExpr(LOWEST)
 	p.expect(token.LBRACE, "{")
 	body := p.parseBlockStmt()
-	return &ast.WhileStmt{Cond: cond, Body: body}
+	return &ast.ForStmt{Cond: cond, Body: body}
 }
 
 func (p *parser) parseReturnStmt() *ast.ReturnStmt {

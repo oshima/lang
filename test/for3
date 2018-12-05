@@ -1,10 +1,10 @@
-var sum int = 0;
-var i int = 1;
+var sum = 0;
+var i = 1;
 
-while true {
-  var j int = 1;
+for true {
+  var j = 1;
 
-  while true {
+  for true {
     sum = sum + i * j;
     j = j + 1;
     if j > 5 { break; }

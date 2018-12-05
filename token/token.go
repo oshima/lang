@@ -28,7 +28,7 @@ const (
 	VAR      = "VAR"
 	IF       = "IF"
 	ELSE     = "ELSE"
-	WHILE    = "WHILE"
+	FOR      = "FOR"
 	RETURN   = "RETURN"
 	CONTINUE = "CONTINUE"
 	BREAK    = "BREAK"

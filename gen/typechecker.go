@@ -29,8 +29,8 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 		t.typecheckBlockStmt(v)
 	case *ast.IfStmt:
 		t.typecheckIfStmt(v)
-	case *ast.WhileStmt:
-		t.typecheckWhileStmt(v)
+	case *ast.ForStmt:
+		t.typecheckForStmt(v)
 	case *ast.ReturnStmt:
 		t.typecheckReturnStmt(v)
 	case *ast.AssignStmt:
@@ -76,7 +76,7 @@ func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (t *typechecker) typecheckWhileStmt(stmt *ast.WhileStmt) {
+func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 	if ty := t.typecheckExpr(stmt.Cond); ty != "bool" {
 		util.Error("Expected bool value for while condition, but got %s", ty)
 	}

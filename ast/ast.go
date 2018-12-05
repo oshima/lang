@@ -58,7 +58,7 @@ type IfStmt struct {
 	Altern Stmt // *BlockStmt or *IfStmt
 }
 
-type WhileStmt struct {
+type ForStmt struct {
 	Cond Expr
 	Body *BlockStmt
 }
@@ -92,8 +92,8 @@ func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
 func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
-func (stmt *WhileStmt) astNode()     {}
-func (stmt *WhileStmt) stmtNode()    {}
+func (stmt *ForStmt) astNode()       {}
+func (stmt *ForStmt) stmtNode()      {}
 func (stmt *ReturnStmt) astNode()    {}
 func (stmt *ReturnStmt) stmtNode()   {}
 func (stmt *ContinueStmt) astNode()  {}

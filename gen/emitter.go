@@ -61,8 +61,8 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 		e.emitBlockStmt(v)
 	case *ast.IfStmt:
 		e.emitIfStmt(v)
-	case *ast.WhileStmt:
-		e.emitWhileStmt(v)
+	case *ast.ForStmt:
+		e.emitForStmt(v)
 	case *ast.ReturnStmt:
 		e.emitReturnStmt(v)
 	case *ast.ContinueStmt:
@@ -158,7 +158,7 @@ func (e *emitter) emitIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (e *emitter) emitWhileStmt(stmt *ast.WhileStmt) {
+func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	br := e.branches[stmt]
 	beginLabel := br.labels[0]
 	endLabel := br.labels[1]
@@ -185,7 +185,7 @@ func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
 
 func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 	parent := e.relations[stmt]
-	br := e.branches[parent.(*ast.WhileStmt)]
+	br := e.branches[parent.(*ast.ForStmt)]
 	beginLabel := br.labels[0]
 
 	e.emit("jmp %s", beginLabel)
@@ -193,7 +193,7 @@ func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 
 func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 	parent := e.relations[stmt]
-	br := e.branches[parent.(*ast.WhileStmt)]
+	br := e.branches[parent.(*ast.ForStmt)]
 	endLabel := br.labels[1]
 
 	e.emit("jmp %s", endLabel)

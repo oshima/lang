@@ -116,9 +116,9 @@ try "var x = false; x = x || true; x;" 1
 try "var x = 10; { var x = 20; x = x + 10; x; }" 30
 try "var x = 10; { var x = 20; x = x + 10; } x;" 10
 
-try-file ./test/while1 55
-try-file ./test/while2 55
-try-file ./test/while3 225
+try-file ./test/for1 55
+try-file ./test/for2 55
+try-file ./test/for3 225
 
 try-file ./test/func1 40
 try-file ./test/func2 true

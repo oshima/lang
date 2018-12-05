@@ -20,7 +20,7 @@ var keywords = map[string]string{
 	"var":      token.VAR,
 	"if":       token.IF,
 	"else":     token.ELSE,
-	"while":    token.WHILE,
+	"for":      token.FOR,
 	"return":   token.RETURN,
 	"continue": token.CONTINUE,
 	"break":    token.BREAK,
