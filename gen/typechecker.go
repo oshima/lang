@@ -48,13 +48,15 @@ func (t *typechecker) typecheckVarDecl(stmt *ast.VarDecl) {
 	ty := t.typecheckExpr(stmt.Value)
 
 	if stmt.Type == "" {
+		if ty == "void" {
+			util.Error("Unexpected void value for %s", stmt.Ident.Name)
+		}
 		stmt.Type = ty // type inference (overwrite on AST node)
-		return
-	}
-
-	if ty != stmt.Type {
-		f := "Expected %s value for %s, but got %s"
-		util.Error(f, stmt.Type, stmt.Ident.Name, ty)
+	} else {
+		if ty != stmt.Type {
+			f := "Expected %s value for %s, but got %s"
+			util.Error(f, stmt.Type, stmt.Ident.Name, ty)
+		}
 	}
 }
 
