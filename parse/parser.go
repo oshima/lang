@@ -92,8 +92,12 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		ty := p.tk.Literal
 		p.next()
 		params = append(params, &ast.VarDecl{Ident: ident, Type: ty})
-		if p.tk.Type == token.COMMA {
+		switch p.tk.Type {
+		case token.COMMA:
 			p.next()
+		case token.RPAREN:
+		default:
+			util.Error("Expected , or ) but got %s", p.tk.Literal)
 		}
 	}
 	p.next()
@@ -265,8 +269,12 @@ func (p *parser) parseFuncCall() *ast.FuncCall {
 	params := make([]ast.Expr, 0, 4)
 	for p.tk.Type != token.RPAREN {
 		params = append(params, p.parseExpr(LOWEST))
-		if p.tk.Type == token.COMMA {
+		switch p.tk.Type {
+		case token.COMMA:
 			p.next()
+		case token.RPAREN:
+		default:
+			util.Error("Expected , or ) but got %s", p.tk.Literal)
 		}
 	}
 	p.next()
