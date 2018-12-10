@@ -1,4 +1,4 @@
-package gen
+package sema
 
 import (
 	"errors"
@@ -39,15 +39,15 @@ func (e *env) get(key string) (ast.Node, bool) {
 }
 
 /*
- Resolver - resolve relationship between AST nodes
+ Resolver - resolve references between AST nodes
 */
 
 type resolver struct {
-	relations map[ast.Node]ast.Node // child node -> parent node
+	refs map[ast.Node]ast.Node
 }
 
-func (r *resolver) resolveProgram(node *ast.Program, e *env) {
-	for _, stmt := range node.Stmts {
+func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
+	for _, stmt := range prog.Stmts {
 		r.resolveStmt(stmt, e)
 	}
 }
@@ -81,11 +81,11 @@ func (r *resolver) resolveFuncDecl(stmt *ast.FuncDecl, e *env) {
 	if _, ok := e.get("return"); ok {
 		util.Error("Function declarations cannot be nested")
 	}
-	if err := e.set(stmt.Ident.Name, stmt); err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
+	if err := e.set(stmt.Ident, stmt); err != nil {
+		util.Error("%s has already been declared", stmt.Ident)
 	}
 	if stmt.ReturnType != "void" && !returnableBlockStmt(stmt.Body) {
-		util.Error("Missing return at end of %s", stmt.Ident.Name)
+		util.Error("Missing return at end of %s", stmt.Ident)
 	}
 
 	e_ := newEnv(e)
@@ -102,8 +102,8 @@ func (r *resolver) resolveVarDecl(stmt *ast.VarDecl, e *env) {
 		r.resolveExpr(stmt.Value, e)
 	}
 
-	if err := e.set(stmt.Ident.Name, stmt); err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
+	if err := e.set(stmt.Ident, stmt); err != nil {
+		util.Error("%s has already been declared", stmt.Ident)
 	}
 }
 
@@ -116,6 +116,7 @@ func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
 func (r *resolver) resolveIfStmt(stmt *ast.IfStmt, e *env) {
 	r.resolveExpr(stmt.Cond, e)
 	r.resolveBlockStmt(stmt.Conseq, newEnv(e))
+
 	if stmt.Altern != nil {
 		r.resolveStmt(stmt.Altern, e)
 	}
@@ -136,40 +137,40 @@ func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
 		r.resolveExpr(stmt.Value, e)
 	}
 
-	parent, ok := e.get("return")
+	ref, ok := e.get("return")
 	if !ok {
 		util.Error("Illegal use of return")
 	}
-	r.relations[stmt] = parent
+	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveContinueStmt(stmt *ast.ContinueStmt, e *env) {
-	parent, ok := e.get("continue")
+	ref, ok := e.get("continue")
 	if !ok {
 		util.Error("Illegal use of continue")
 	}
-	r.relations[stmt] = parent
+	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveBreakStmt(stmt *ast.BreakStmt, e *env) {
-	parent, ok := e.get("break")
+	ref, ok := e.get("break")
 	if !ok {
 		util.Error("Illegal use of break")
 	}
-	r.relations[stmt] = parent
+	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveAssignStmt(stmt *ast.AssignStmt, e *env) {
 	r.resolveExpr(stmt.Value, e)
 
-	parent, ok := e.get(stmt.Ident.Name)
+	ref, ok := e.get(stmt.Ident)
 	if !ok {
-		util.Error("%s is not declared", stmt.Ident.Name)
+		util.Error("%s is not declared", stmt.Ident)
 	}
-	if _, ok := parent.(*ast.VarDecl); !ok {
+	if _, ok := ref.(*ast.VarDecl); !ok {
 		util.Error("%s is not a variable")
 	}
-	r.relations[stmt] = parent
+	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {
@@ -184,8 +185,8 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveInfixExpr(v, e)
 	case *ast.FuncCall:
 		r.resolveFuncCall(v, e)
-	case *ast.Ident:
-		r.resolveIdent(v, e)
+	case *ast.VarRef:
+		r.resolveVarRef(v, e)
 	}
 }
 
@@ -203,25 +204,26 @@ func (r *resolver) resolveFuncCall(expr *ast.FuncCall, e *env) {
 		r.resolveExpr(param, e)
 	}
 
-	if parent, ok := e.get(expr.Ident.Name); ok {
-		if _, ok := parent.(*ast.FuncDecl); !ok {
-			util.Error("%s is not a function", expr.Ident.Name)
+	ref, ok := e.get(expr.Ident)
+	if !ok {
+		if _, ok := libFns[expr.Ident]; !ok {
+			util.Error("%s is not declared", expr.Ident)
 		}
-		r.relations[expr] = parent
-	} else {
-		if _, ok := libFns[expr.Ident.Name]; !ok {
-			util.Error("%s is not declared", expr.Ident.Name)
-		}
+		return
 	}
+	if _, ok := ref.(*ast.FuncDecl); !ok {
+		util.Error("%s is not a function", expr.Ident)
+	}
+	r.refs[expr] = ref
 }
 
-func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
-	parent, ok := e.get(expr.Name)
+func (r *resolver) resolveVarRef(expr *ast.VarRef, e *env) {
+	ref, ok := e.get(expr.Ident)
 	if !ok {
-		util.Error("%s is not declared", expr.Name)
+		util.Error("%s is not declared", expr.Ident)
 	}
-	if _, ok := parent.(*ast.VarDecl); !ok {
-		util.Error("%s is not a variable", expr.Name)
+	if _, ok := ref.(*ast.VarDecl); !ok {
+		util.Error("%s is not a variable", expr.Ident)
 	}
-	r.relations[expr] = parent
+	r.refs[expr] = ref
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/oshjma/lang/gen"
 	"github.com/oshjma/lang/parse"
 	"github.com/oshjma/lang/scan"
+	"github.com/oshjma/lang/sema"
 	"github.com/oshjma/lang/util"
 	"io/ioutil"
 	"os"
@@ -27,12 +28,12 @@ func main() {
 		pp.Fprintln(os.Stderr, tokens)
 	}
 
-	program := parse.Parse(tokens)
+	prog := parse.Parse(tokens)
 	if *debug {
-		pp.Fprintln(os.Stderr, program)
+		pp.Fprintln(os.Stderr, prog)
 	}
 
-	if !*debug {
-		gen.Generate(program)
-	}
+	meta := sema.Analyze(prog)
+
+	gen.Generate(prog, meta)
 }

@@ -9,13 +9,13 @@ type Node interface {
 	astNode()
 }
 
-// for all statement nodes
+// for statement nodes
 type Stmt interface {
 	Node
 	stmtNode()
 }
 
-// for all expression nodes
+// for expression nodes
 type Expr interface {
 	Node
 	exprNode()
@@ -29,23 +29,23 @@ type Program struct {
 	Stmts []Stmt
 }
 
-func (node *Program) astNode() {}
+func (prog *Program) astNode() {}
 
 /*
  Statement nodes
 */
 
-type VarDecl struct {
-	Ident *Ident
-	Type  string
-	Value Expr
-}
-
 type FuncDecl struct {
-	Ident      *Ident
+	Ident      string
 	Params     []*VarDecl
 	ReturnType string
 	Body       *BlockStmt
+}
+
+type VarDecl struct {
+	Ident string
+	Type  string
+	Value Expr
 }
 
 type BlockStmt struct {
@@ -76,7 +76,7 @@ type BreakStmt struct {
 }
 
 type AssignStmt struct {
-	Ident *Ident
+	Ident string
 	Value Expr
 }
 
@@ -121,12 +121,12 @@ type InfixExpr struct {
 }
 
 type FuncCall struct {
-	Ident  *Ident
+	Ident  string
 	Params []Expr
 }
 
-type Ident struct {
-	Name string
+type VarRef struct {
+	Ident string
 }
 
 type IntLit struct {
@@ -147,8 +147,8 @@ func (expr *InfixExpr) astNode()   {}
 func (expr *InfixExpr) exprNode()  {}
 func (expr *FuncCall) astNode()    {}
 func (expr *FuncCall) exprNode()   {}
-func (expr *Ident) astNode()       {}
-func (expr *Ident) exprNode()      {}
+func (expr *VarRef) astNode()      {}
+func (expr *VarRef) exprNode()     {}
 func (expr *IntLit) astNode()      {}
 func (expr *IntLit) exprNode()     {}
 func (expr *BoolLit) astNode()     {}

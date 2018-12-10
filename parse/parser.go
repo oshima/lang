@@ -81,13 +81,15 @@ func (p *parser) parseStmt() ast.Stmt {
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.next()
 	p.expect(token.IDENT, "identifier")
-	ident := p.parseIdent()
+	ident := p.tk.Literal
+	p.next()
 	p.expect(token.LPAREN, "(")
 	p.next()
 	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
 		p.expect(token.IDENT, "identifier")
-		ident := p.parseIdent()
+		ident := p.tk.Literal
+		p.next()
 		p.expectType()
 		ty := p.tk.Literal
 		p.next()
@@ -114,7 +116,8 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.next()
 	p.expect(token.IDENT, "identifier")
-	ident := p.parseIdent()
+	ident := p.tk.Literal
+	p.next()
 	var ty string
 	if _, ok := types[p.tk.Type]; ok {
 		ty = p.tk.Literal
@@ -194,7 +197,8 @@ func (p *parser) parseBreakStmt() *ast.BreakStmt {
 }
 
 func (p *parser) parseAssignStmt() *ast.AssignStmt {
-	ident := p.parseIdent()
+	ident := p.tk.Literal
+	p.next()
 	p.next()
 	value := p.parseExpr(LOWEST)
 	p.expect(token.SEMICOLON, ";")
@@ -221,7 +225,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 		if p.peekTk().Type == token.LPAREN {
 			expr = p.parseFuncCall()
 		} else {
-			expr = p.parseIdent()
+			expr = p.parseVarRef()
 		}
 	case token.NUMBER:
 		expr = p.parseIntLit()
@@ -264,7 +268,8 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 }
 
 func (p *parser) parseFuncCall() *ast.FuncCall {
-	ident := p.parseIdent()
+	ident := p.tk.Literal
+	p.next()
 	p.next()
 	params := make([]ast.Expr, 0, 4)
 	for p.tk.Type != token.RPAREN {
@@ -281,10 +286,10 @@ func (p *parser) parseFuncCall() *ast.FuncCall {
 	return &ast.FuncCall{Ident: ident, Params: params}
 }
 
-func (p *parser) parseIdent() *ast.Ident {
-	name := p.tk.Literal
+func (p *parser) parseVarRef() *ast.VarRef {
+	ident := p.tk.Literal
 	p.next()
-	return &ast.Ident{Name: name}
+	return &ast.VarRef{Ident: ident}
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
