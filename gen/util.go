@@ -1,9 +1,11 @@
 package gen
 
-var sizeof = map[string]int{
-	"int":    8,
-	"bool":   1,
-	"string": 8,
+import "github.com/oshjma/lang/types"
+
+var sizeof = map[types.Type]int{
+	types.INT:    8,
+	types.BOOL:   1,
+	types.STRING: 8,
 }
 
 var setcc = map[string]string{

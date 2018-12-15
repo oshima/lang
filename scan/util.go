@@ -2,7 +2,7 @@ package scan
 
 import "github.com/oshjma/lang/token"
 
-var punctuations = map[rune]string{
+var punctuations = map[rune]token.Type{
 	'(': token.LPAREN,
 	')': token.RPAREN,
 	'{': token.LBRACE,
@@ -15,7 +15,7 @@ var punctuations = map[rune]string{
 	';': token.SEMICOLON,
 }
 
-var keywords = map[string]string{
+var keywords = map[string]token.Type{
 	"func":     token.FUNC,
 	"var":      token.VAR,
 	"if":       token.IF,
@@ -31,7 +31,7 @@ var keywords = map[string]string{
 	"false":    token.FALSE,
 }
 
-var exprTerminators = map[string]bool{
+var exprTerminators = map[token.Type]bool{
 	token.RPAREN: true,
 	token.IDENT:  true,
 	token.NUMBER: true,

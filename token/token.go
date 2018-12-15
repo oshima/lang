@@ -1,52 +1,54 @@
 package token
 
+type Type string
+
 const (
-	LPAREN    = "LPAREN"
-	RPAREN    = "RPAREN"
-	LBRACE    = "LBRACE"
-	RBRACE    = "RBRACE"
-	ASSIGN    = "ASSIGN"
-	BANG      = "BANG"
-	PLUS      = "PLUS"
-	MINUS     = "MINUS"
-	ASTERISK  = "ASTERISK"
-	SLASH     = "SLASH"
-	PERCENT   = "PERCENT"
-	COMMA     = "COMMA"
-	SEMICOLON = "SEMICOLON"
+	LPAREN    Type = "LPAREN"
+	RPAREN    Type = "RPAREN"
+	LBRACE    Type = "LBRACE"
+	RBRACE    Type = "RBRACE"
+	ASSIGN    Type = "ASSIGN"
+	BANG      Type = "BANG"
+	PLUS      Type = "PLUS"
+	MINUS     Type = "MINUS"
+	ASTERISK  Type = "ASTERISK"
+	SLASH     Type = "SLASH"
+	PERCENT   Type = "PERCENT"
+	COMMA     Type = "COMMA"
+	SEMICOLON Type = "SEMICOLON"
 
-	EQ  = "EQ"
-	NE  = "NE"
-	LT  = "LT"
-	LE  = "LE"
-	GT  = "GT"
-	GE  = "GE"
-	AND = "AND"
-	OR  = "OR"
+	EQ  Type = "EQ"
+	NE  Type = "NE"
+	LT  Type = "LT"
+	LE  Type = "LE"
+	GT  Type = "GT"
+	GE  Type = "GE"
+	AND Type = "AND"
+	OR  Type = "OR"
 
-	FUNC     = "FUNC"
-	VAR      = "VAR"
-	IF       = "IF"
-	ELSE     = "ELSE"
-	FOR      = "FOR"
-	RETURN   = "RETURN"
-	CONTINUE = "CONTINUE"
-	BREAK    = "BREAK"
+	FUNC     Type = "FUNC"
+	VAR      Type = "VAR"
+	IF       Type = "IF"
+	ELSE     Type = "ELSE"
+	FOR      Type = "FOR"
+	RETURN   Type = "RETURN"
+	CONTINUE Type = "CONTINUE"
+	BREAK    Type = "BREAK"
 
-	INT    = "INT"
-	BOOL   = "BOOL"
-	STRING = "STRING"
+	INT    Type = "INT"
+	BOOL   Type = "BOOL"
+	STRING Type = "STRING"
 
-	IDENT  = "IDENT"
-	NUMBER = "NUMBER"
-	TRUE   = "TRUE"
-	FALSE  = "FALSE"
-	QUOTED = "QUOTED"
+	IDENT  Type = "IDENT"
+	NUMBER Type = "NUMBER"
+	TRUE   Type = "TRUE"
+	FALSE  Type = "FALSE"
+	QUOTED Type = "QUOTED"
 
-	EOF = "EOF"
+	EOF Type = "EOF"
 )
 
 type Token struct {
-	Type    string
+	Type    Type
 	Literal string
 }

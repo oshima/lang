@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/oshjma/lang/types"
+
 /*
  Interfaces
 */
@@ -38,14 +40,14 @@ func (prog *Program) astNode() {}
 type FuncDecl struct {
 	Ident      string
 	Params     []*VarDecl
-	ReturnType string
+	ReturnType types.Type
 	Body       *BlockStmt
 }
 
 type VarDecl struct {
-	Ident string
-	Type  string
-	Value Expr
+	Ident   string
+	VarType types.Type
+	Value   Expr
 }
 
 type BlockStmt struct {

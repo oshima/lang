@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"github.com/oshjma/lang/ast"
+	"github.com/oshjma/lang/types"
 )
 
 /*
@@ -11,7 +12,7 @@ import (
 
 type emitter struct {
 	refs  map[ast.Node]ast.Node
-	types map[ast.Expr]string // currently not used
+	types map[ast.Expr]types.Type // currently not used
 
 	fns      map[*ast.FuncDecl]*fn
 	gvars    map[*ast.VarDecl]*gvar

@@ -3,6 +3,7 @@ package parse
 import (
 	"github.com/oshjma/lang/ast"
 	"github.com/oshjma/lang/token"
+	"github.com/oshjma/lang/types"
 	"github.com/oshjma/lang/util"
 	"strconv"
 )
@@ -29,16 +30,18 @@ func (p *parser) lookPrec() int {
 	return LOWEST
 }
 
-func (p *parser) expect(ty string, literal string) {
+func (p *parser) expect(ty token.Type, literal string) {
 	if p.tk.Type != ty {
 		util.Error("Expected %s but got %s", literal, p.tk.Literal)
 	}
 }
 
-func (p *parser) expectType() {
-	if _, ok := types[p.tk.Type]; !ok {
+func (p *parser) expectTypeName() types.Type {
+	ty, ok := typeNames[p.tk.Type]
+	if !ok {
 		util.Error("Expected type but got %s", p.tk.Literal)
 	}
+	return ty
 }
 
 func (p *parser) parseProgram() *ast.Program {
@@ -90,10 +93,9 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		p.expect(token.IDENT, "identifier")
 		ident := p.tk.Literal
 		p.next()
-		p.expectType()
-		ty := p.tk.Literal
+		ty := p.expectTypeName()
 		p.next()
-		params = append(params, &ast.VarDecl{Ident: ident, Type: ty})
+		params = append(params, &ast.VarDecl{Ident: ident, VarType: ty})
 		switch p.tk.Type {
 		case token.COMMA:
 			p.next()
@@ -103,9 +105,9 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		}
 	}
 	p.next()
-	returnType := "void"
-	if _, ok := types[p.tk.Type]; ok {
-		returnType = p.tk.Literal
+	returnType := types.VOID
+	if ty, ok := typeNames[p.tk.Type]; ok {
+		returnType = ty
 		p.next()
 	}
 	p.expect(token.LBRACE, "{")
@@ -118,9 +120,9 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.expect(token.IDENT, "identifier")
 	ident := p.tk.Literal
 	p.next()
-	var ty string
-	if _, ok := types[p.tk.Type]; ok {
-		ty = p.tk.Literal
+	varType := types.UNKNOWN
+	if ty, ok := typeNames[p.tk.Type]; ok {
+		varType = ty
 		p.next()
 	}
 	p.expect(token.ASSIGN, "=")
@@ -128,7 +130,7 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 	value := p.parseExpr(LOWEST)
 	p.expect(token.SEMICOLON, ";")
 	p.next()
-	return &ast.VarDecl{Ident: ident, Type: ty, Value: value}
+	return &ast.VarDecl{Ident: ident, VarType: varType, Value: value}
 }
 
 func (p *parser) parseBlockStmt() *ast.BlockStmt {

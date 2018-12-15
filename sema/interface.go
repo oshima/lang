@@ -1,6 +1,7 @@
 package sema
 
 import "github.com/oshjma/lang/ast"
+import "github.com/oshjma/lang/types"
 
 func Analyze(prog *ast.Program) *ast.Metadata {
 	r := &resolver{
@@ -10,7 +11,7 @@ func Analyze(prog *ast.Program) *ast.Metadata {
 
 	t := &typechecker{
 		refs:  r.refs,
-		types: make(map[ast.Expr]string),
+		types: make(map[ast.Expr]types.Type),
 	}
 	t.typecheckProgram(prog)
 
