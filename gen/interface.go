@@ -8,6 +8,8 @@ func Generate(prog *ast.Program, meta *ast.Metadata) {
 		gvars:    make(map[*ast.VarDecl]*gvar),
 		lvars:    make(map[*ast.VarDecl]*lvar),
 		strs:     make(map[*ast.StringLit]*str),
+		garrs:    make(map[*ast.ArrayLit]*garr),
+		larrs:    make(map[*ast.ArrayLit]*larr),
 		branches: make(map[ast.Stmt]*branch),
 	}
 	x.exploreProgram(prog)
@@ -19,6 +21,8 @@ func Generate(prog *ast.Program, meta *ast.Metadata) {
 		gvars:    x.gvars,
 		lvars:    x.lvars,
 		strs:     x.strs,
+		garrs:    x.garrs,
+		larrs:    x.larrs,
 		branches: x.branches,
 	}
 	e.emitProgram(prog)

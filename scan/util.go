@@ -5,6 +5,8 @@ import "github.com/oshjma/lang/token"
 var punctuations = map[rune]token.Type{
 	'(': token.LPAREN,
 	')': token.RPAREN,
+	'[': token.LBRACK,
+	']': token.RBRACK,
 	'{': token.LBRACE,
 	'}': token.RBRACE,
 	'+': token.PLUS,
@@ -33,6 +35,7 @@ var keywords = map[string]token.Type{
 
 var exprTerminators = map[token.Type]bool{
 	token.RPAREN: true,
+	token.RBRACK: true,
 	token.IDENT:  true,
 	token.NUMBER: true,
 	token.TRUE:   true,

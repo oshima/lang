@@ -117,9 +117,14 @@ type PrefixExpr struct {
 }
 
 type InfixExpr struct {
-	Op    string
 	Left  Expr
+	Op    string
 	Right Expr
+}
+
+type IndexExpr struct {
+	Left  Expr
+	Index Expr
 }
 
 type FuncCall struct {
@@ -132,7 +137,7 @@ type VarRef struct {
 }
 
 type IntLit struct {
-	Value int64
+	Value int
 }
 
 type BoolLit struct {
@@ -143,10 +148,18 @@ type StringLit struct {
 	Value string
 }
 
+type ArrayLit struct {
+	Len      int
+	ElemType types.Type
+	Elems    []Expr
+}
+
 func (expr *PrefixExpr) astNode()  {}
 func (expr *PrefixExpr) exprNode() {}
 func (expr *InfixExpr) astNode()   {}
 func (expr *InfixExpr) exprNode()  {}
+func (expr *IndexExpr) astNode()   {}
+func (expr *IndexExpr) exprNode()  {}
 func (expr *FuncCall) astNode()    {}
 func (expr *FuncCall) exprNode()   {}
 func (expr *VarRef) astNode()      {}
@@ -157,3 +170,5 @@ func (expr *BoolLit) astNode()     {}
 func (expr *BoolLit) exprNode()    {}
 func (expr *StringLit) astNode()   {}
 func (expr *StringLit) exprNode()  {}
+func (expr *ArrayLit) astNode()    {}
+func (expr *ArrayLit) exprNode()   {}

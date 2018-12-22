@@ -2,12 +2,6 @@ package gen
 
 import "github.com/oshjma/lang/types"
 
-var sizeof = map[types.Type]int{
-	types.INT:    8,
-	types.BOOL:   1,
-	types.STRING: 8,
-}
-
 var setcc = map[string]string{
 	"==": "sete",
 	"!=": "setne",
@@ -20,6 +14,21 @@ var setcc = map[string]string{
 var paramRegs = map[int][6]string{
 	1: [6]string{"dil", "sil", "dl", "cl", "r8b", "r9b"},
 	8: [6]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
+}
+
+func sizeOf(ty types.Type) int {
+	switch ty.(type) {
+	case *types.Int:
+		return 8
+	case *types.Bool:
+		return 1
+	case *types.String:
+		return 8
+	case *types.Array:
+		return 8
+	default:
+		return 0 // unreachable here
+	}
 }
 
 // https://en.wikipedia.org/wiki/Data_structure_alignment

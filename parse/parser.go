@@ -30,18 +30,48 @@ func (p *parser) lookPrec() int {
 	return LOWEST
 }
 
-func (p *parser) expect(ty token.Type, literal string) {
+func (p *parser) expect(ty token.Type) {
 	if p.tk.Type != ty {
-		util.Error("Expected %s but got %s", literal, p.tk.Literal)
+		util.Error("Expected %s but got %s", ty, p.tk.Literal)
 	}
 }
 
-func (p *parser) expectTypeName() types.Type {
-	ty, ok := typeNames[p.tk.Type]
-	if !ok {
+func (p *parser) parseType() types.Type {
+	switch p.tk.Type {
+	case token.INT:
+		p.next()
+		return &types.Int{}
+	case token.BOOL:
+		p.next()
+		return &types.Bool{}
+	case token.STRING:
+		p.next()
+		return &types.String{}
+	case token.LBRACK:
+		return p.parseArray()
+	default:
+		return nil
+	}
+}
+
+func (p *parser) parseArray() *types.Array {
+	p.next()
+	p.expect(token.NUMBER)
+	len, err := strconv.Atoi(p.tk.Literal)
+	if err != nil {
+		util.Error("Could not parse %s as integer", p.tk.Literal)
+	}
+	if len < 0 {
+		util.Error("Array's length must be non-negative")
+	}
+	p.next()
+	p.expect(token.RBRACK)
+	p.next()
+	elemType := p.parseType()
+	if elemType == nil {
 		util.Error("Expected type but got %s", p.tk.Literal)
 	}
-	return ty
+	return &types.Array{Len: len, ElemType: elemType}
 }
 
 func (p *parser) parseProgram() *ast.Program {
@@ -83,52 +113,46 @@ func (p *parser) parseStmt() ast.Stmt {
 
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.next()
-	p.expect(token.IDENT, "identifier")
+	p.expect(token.IDENT)
 	ident := p.tk.Literal
 	p.next()
-	p.expect(token.LPAREN, "(")
+	p.expect(token.LPAREN)
 	p.next()
 	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
-		p.expect(token.IDENT, "identifier")
+		p.expect(token.IDENT)
 		ident := p.tk.Literal
 		p.next()
-		ty := p.expectTypeName()
-		p.next()
-		params = append(params, &ast.VarDecl{Ident: ident, VarType: ty})
+		varType := p.parseType()
+		if varType == nil {
+			util.Error("Expected type but got %s", p.tk.Type)
+		}
+		params = append(params, &ast.VarDecl{Ident: ident, VarType: varType})
 		switch p.tk.Type {
 		case token.COMMA:
 			p.next()
 		case token.RPAREN:
 		default:
-			util.Error("Expected , or ) but got %s", p.tk.Literal)
+			util.Error("Expected , or ) but got %s", p.tk.Type)
 		}
 	}
 	p.next()
-	returnType := types.VOID
-	if ty, ok := typeNames[p.tk.Type]; ok {
-		returnType = ty
-		p.next()
-	}
-	p.expect(token.LBRACE, "{")
+	returnType := p.parseType()
+	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.FuncDecl{Ident: ident, Params: params, ReturnType: returnType, Body: body}
 }
 
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.next()
-	p.expect(token.IDENT, "identifier")
+	p.expect(token.IDENT)
 	ident := p.tk.Literal
 	p.next()
-	varType := types.UNKNOWN
-	if ty, ok := typeNames[p.tk.Type]; ok {
-		varType = ty
-		p.next()
-	}
-	p.expect(token.ASSIGN, "=")
+	varType := p.parseType()
+	p.expect(token.ASSIGN)
 	p.next()
 	value := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.VarDecl{Ident: ident, VarType: varType, Value: value}
 }
@@ -146,7 +170,7 @@ func (p *parser) parseBlockStmt() *ast.BlockStmt {
 func (p *parser) parseIfStmt() *ast.IfStmt {
 	p.next()
 	cond := p.parseExpr(LOWEST)
-	p.expect(token.LBRACE, "{")
+	p.expect(token.LBRACE)
 	conseq := p.parseBlockStmt()
 	if p.tk.Type != token.ELSE {
 		return &ast.IfStmt{Cond: cond, Conseq: conseq}
@@ -159,7 +183,7 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 	case token.IF:
 		altern = p.parseIfStmt()
 	default:
-		util.Error("Expected { or if but got %s", p.tk.Literal)
+		util.Error("Expected { or if but got %s", p.tk.Type)
 	}
 	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
 }
@@ -167,7 +191,7 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 func (p *parser) parseForStmt() *ast.ForStmt {
 	p.next()
 	cond := p.parseExpr(LOWEST)
-	p.expect(token.LBRACE, "{")
+	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.ForStmt{Cond: cond, Body: body}
 }
@@ -179,21 +203,21 @@ func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 		return &ast.ReturnStmt{}
 	}
 	value := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.ReturnStmt{Value: value}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
 	p.next()
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.ContinueStmt{}
 }
 
 func (p *parser) parseBreakStmt() *ast.BreakStmt {
 	p.next()
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.BreakStmt{}
 }
@@ -203,14 +227,14 @@ func (p *parser) parseAssignStmt() *ast.AssignStmt {
 	p.next()
 	p.next()
 	value := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.AssignStmt{Ident: ident, Value: value}
 }
 
 func (p *parser) parseExprStmt() *ast.ExprStmt {
 	expr := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON, ";")
+	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.ExprStmt{Expr: expr}
 }
@@ -235,12 +259,18 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 		expr = p.parseBoolLit()
 	case token.QUOTED:
 		expr = p.parseStringLit()
+	case token.LBRACK:
+		expr = p.parseArrayLit()
 	default:
-		util.Error("Unexpected %s", p.tk.Literal)
+		util.Error("Unexpected %s", p.tk.Type)
 	}
 
 	for p.lookPrec() > prec {
-		expr = p.parseInfixExpr(expr)
+		if p.tk.Type == token.LBRACK {
+			expr = p.parseIndexExpr(expr)
+		} else {
+			expr = p.parseInfixExpr(expr)
+		}
 	}
 
 	return expr
@@ -249,7 +279,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 func (p *parser) parseGroupedExpr() ast.Expr {
 	p.next()
 	expr := p.parseExpr(LOWEST)
-	p.expect(token.RPAREN, ")")
+	p.expect(token.RPAREN)
 	p.next()
 	return expr
 }
@@ -266,7 +296,15 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	prec := p.lookPrec()
 	p.next()
 	right := p.parseExpr(prec)
-	return &ast.InfixExpr{Op: op, Left: left, Right: right}
+	return &ast.InfixExpr{Left: left, Op: op, Right: right}
+}
+
+func (p *parser) parseIndexExpr(left ast.Expr) *ast.IndexExpr {
+	p.next()
+	index := p.parseExpr(LOWEST)
+	p.expect(token.RBRACK)
+	p.next()
+	return &ast.IndexExpr{Left: left, Index: index}
 }
 
 func (p *parser) parseFuncCall() *ast.FuncCall {
@@ -281,7 +319,7 @@ func (p *parser) parseFuncCall() *ast.FuncCall {
 			p.next()
 		case token.RPAREN:
 		default:
-			util.Error("Expected , or ) but got %s", p.tk.Literal)
+			util.Error("Expected , or ) but got %s", p.tk.Type)
 		}
 	}
 	p.next()
@@ -295,7 +333,7 @@ func (p *parser) parseVarRef() *ast.VarRef {
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
-	value, err := strconv.ParseInt(p.tk.Literal, 0, 64)
+	value, err := strconv.Atoi(p.tk.Literal)
 	if err != nil {
 		util.Error("Could not parse %s as integer", p.tk.Literal)
 	}
@@ -330,4 +368,38 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	}
 	p.next()
 	return &ast.StringLit{Value: value}
+}
+
+func (p *parser) parseArrayLit() *ast.ArrayLit {
+	p.next()
+	p.expect(token.NUMBER)
+	len, err := strconv.Atoi(p.tk.Literal)
+	if err != nil {
+		util.Error("Could not parse %s as integer", p.tk.Literal)
+	}
+	if len < 0 {
+		util.Error("Array's length must be non-negative")
+	}
+	p.next()
+	p.expect(token.RBRACK)
+	p.next()
+	elemType := p.parseType()
+	if elemType == nil {
+		util.Error("Expected type but got %s", p.tk.Type)
+	}
+	p.expect(token.LBRACE)
+	p.next()
+	elems := make([]ast.Expr, 0, 8)
+	for p.tk.Type != token.RBRACE {
+		elems = append(elems, p.parseExpr(LOWEST))
+		switch p.tk.Type {
+		case token.COMMA:
+			p.next()
+		case token.RBRACE:
+		default:
+			util.Error("Expected , or } but got %s", p.tk.Type)
+		}
+	}
+	p.next()
+	return &ast.ArrayLit{Len: len, ElemType: elemType, Elems: elems}
 }

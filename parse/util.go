@@ -1,9 +1,6 @@
 package parse
 
-import (
-	"github.com/oshjma/lang/token"
-	"github.com/oshjma/lang/types"
-)
+import "github.com/oshjma/lang/token"
 
 const (
 	LOWEST int = iota
@@ -12,6 +9,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	SUFFIX
 )
 
 var precedences = map[token.Type]int{
@@ -28,12 +26,7 @@ var precedences = map[token.Type]int{
 	token.SLASH:    PRODUCT,
 	token.PERCENT:  PRODUCT,
 	token.AND:      PRODUCT,
-}
-
-var typeNames = map[token.Type]types.Type{
-	token.INT:    types.INT,
-	token.BOOL:   types.BOOL,
-	token.STRING: types.STRING,
+	token.LBRACK:   SUFFIX,
 }
 
 var unescape = map[rune]rune{

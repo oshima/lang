@@ -18,6 +18,8 @@ type emitter struct {
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
 	strs     map[*ast.StringLit]*str
+	garrs    map[*ast.ArrayLit]*garr
+	larrs    map[*ast.ArrayLit]*larr
 	branches map[ast.Stmt]*branch
 }
 
@@ -36,6 +38,10 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 
 	for _, gvar := range e.gvars {
 		e.emit(".comm %s,%d,%d", gvar.label, gvar.size, gvar.size)
+	}
+
+	for _, garr := range e.garrs {
+		e.emit(".comm %s,%d,%d", garr.label, garr.len*garr.elemSize, garr.elemSize)
 	}
 
 	for stmt, _ := range e.fns {
@@ -234,6 +240,8 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitPrefixExpr(v)
 	case *ast.InfixExpr:
 		e.emitInfixExpr(v)
+	case *ast.IndexExpr:
+		e.emitIndexExpr(v)
 	case *ast.FuncCall:
 		e.emitFuncCall(v)
 	case *ast.VarRef:
@@ -244,6 +252,8 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitBoolLit(v)
 	case *ast.StringLit:
 		e.emitStringLit(v)
+	case *ast.ArrayLit:
+		e.emitArrayLit(v)
 	}
 }
 
@@ -286,6 +296,20 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("cmp rax, rcx")
 		e.emit("%s al", setcc[expr.Op])
 		e.emit("movzx rax, al")
+	}
+}
+
+func (e *emitter) emitIndexExpr(expr *ast.IndexExpr) {
+	e.emitExpr(expr.Index)
+	e.emit("push rax")
+	e.emitExpr(expr.Left)
+	e.emit("pop rcx")
+
+	switch sizeOf(e.types[expr]) {
+	case 1:
+		e.emit("movzx rax, byte ptr [rax+rcx]")
+	case 8:
+		e.emit("mov rax, qword ptr [rax+rcx*8]")
 	}
 }
 
@@ -343,6 +367,35 @@ func (e *emitter) emitBoolLit(expr *ast.BoolLit) {
 func (e *emitter) emitStringLit(expr *ast.StringLit) {
 	str := e.strs[expr]
 	e.emit("mov rax, offset flat:%s", str.label)
+}
+
+func (e *emitter) emitArrayLit(expr *ast.ArrayLit) {
+	if larr, ok := e.larrs[expr]; ok {
+		for i, elem := range expr.Elems {
+			e.emitExpr(elem)
+			elemOffset := larr.offset - i*larr.elemSize
+			switch larr.elemSize {
+			case 1:
+				e.emit("mov byte ptr [rbp-%d], al", elemOffset)
+			case 8:
+				e.emit("mov qword ptr [rbp-%d], rax", elemOffset)
+			}
+		}
+		e.emit("lea rax, [rbp-%d]", larr.offset)
+	} else {
+		garr := e.garrs[expr]
+		for i, elem := range expr.Elems {
+			e.emitExpr(elem)
+			elemOffset := i * garr.elemSize
+			switch garr.elemSize {
+			case 1:
+				e.emit("mov byte ptr %s[rip+%d], al", garr.label, elemOffset)
+			case 8:
+				e.emit("mov qword ptr %s[rip+%d], rax", garr.label, elemOffset)
+			}
+		}
+		e.emit("mov rax, offset flat:%s", garr.label)
+	}
 }
 
 func (e *emitter) emitLabel(label string) {

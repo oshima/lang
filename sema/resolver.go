@@ -84,7 +84,7 @@ func (r *resolver) resolveFuncDecl(stmt *ast.FuncDecl, e *env) {
 	if err := e.set(stmt.Ident, stmt); err != nil {
 		util.Error("%s has already been declared", stmt.Ident)
 	}
-	if stmt.ReturnType != "void" && !returnableBlockStmt(stmt.Body) {
+	if stmt.ReturnType != nil && !returnableBlockStmt(stmt.Body) {
 		util.Error("Missing return at end of %s", stmt.Ident)
 	}
 
@@ -183,10 +183,14 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolvePrefixExpr(v, e)
 	case *ast.InfixExpr:
 		r.resolveInfixExpr(v, e)
+	case *ast.IndexExpr:
+		r.resolveIndexExpr(v, e)
 	case *ast.FuncCall:
 		r.resolveFuncCall(v, e)
 	case *ast.VarRef:
 		r.resolveVarRef(v, e)
+	case *ast.ArrayLit:
+		r.resolveArrayLit(v, e)
 	}
 }
 
@@ -197,6 +201,11 @@ func (r *resolver) resolvePrefixExpr(expr *ast.PrefixExpr, e *env) {
 func (r *resolver) resolveInfixExpr(expr *ast.InfixExpr, e *env) {
 	r.resolveExpr(expr.Left, e)
 	r.resolveExpr(expr.Right, e)
+}
+
+func (r *resolver) resolveIndexExpr(expr *ast.IndexExpr, e *env) {
+	r.resolveExpr(expr.Left, e)
+	r.resolveExpr(expr.Index, e)
 }
 
 func (r *resolver) resolveFuncCall(expr *ast.FuncCall, e *env) {
@@ -226,4 +235,10 @@ func (r *resolver) resolveVarRef(expr *ast.VarRef, e *env) {
 		util.Error("%s is not a variable", expr.Ident)
 	}
 	r.refs[expr] = ref
+}
+
+func (r *resolver) resolveArrayLit(expr *ast.ArrayLit, e *env) {
+	for _, elem := range expr.Elems {
+		r.resolveExpr(elem, e)
+	}
 }

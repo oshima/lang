@@ -15,11 +15,14 @@ type explorer struct {
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
 	strs     map[*ast.StringLit]*str
+	garrs    map[*ast.ArrayLit]*garr
+	larrs    map[*ast.ArrayLit]*larr
 	branches map[ast.Stmt]*branch
 
 	// Counters of labels
 	nGvarLabel   int
 	nStrLabel    int
+	nGarrLabel   int
 	nBranchLabel int
 
 	// Used for finding local variables
@@ -47,6 +50,18 @@ type str struct {
 	value string
 }
 
+type garr struct {
+	label    string
+	len      int
+	elemSize int
+}
+
+type larr struct {
+	offset   int
+	len      int
+	elemSize int
+}
+
 type branch struct {
 	labels []string
 }
@@ -60,6 +75,12 @@ func (x *explorer) gvarLabel(name string) string {
 func (x *explorer) strLabel() string {
 	label := fmt.Sprintf(".LC%d", x.nStrLabel)
 	x.nStrLabel += 1
+	return label
+}
+
+func (x *explorer) garrLabel() string {
+	label := fmt.Sprintf(".AR%d", x.nGarrLabel)
+	x.nGarrLabel += 1
 	return label
 }
 
@@ -116,7 +137,7 @@ func (x *explorer) exploreVarDecl(stmt *ast.VarDecl) {
 		x.exploreExpr(stmt.Value)
 	}
 
-	size := sizeof[stmt.VarType]
+	size := sizeOf(stmt.VarType)
 	if x.local {
 		x.offset = align(x.offset+size, size)
 		x.lvars[stmt] = &lvar{offset: x.offset, size: size}
@@ -174,10 +195,14 @@ func (x *explorer) exploreExpr(expr ast.Expr) {
 		x.explorePrefixExpr(v)
 	case *ast.InfixExpr:
 		x.exploreInfixExpr(v)
+	case *ast.IndexExpr:
+		x.exploreIndexExpr(v)
 	case *ast.FuncCall:
 		x.exploreFuncCall(v)
 	case *ast.StringLit:
 		x.exploreStringLit(v)
+	case *ast.ArrayLit:
+		x.exploreArrayLit(v)
 	}
 }
 
@@ -190,6 +215,11 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 	x.exploreExpr(expr.Right)
 }
 
+func (x *explorer) exploreIndexExpr(expr *ast.IndexExpr) {
+	x.exploreExpr(expr.Left)
+	x.exploreExpr(expr.Index)
+}
+
 func (x *explorer) exploreFuncCall(expr *ast.FuncCall) {
 	for _, param := range expr.Params {
 		x.exploreExpr(param)
@@ -198,4 +228,19 @@ func (x *explorer) exploreFuncCall(expr *ast.FuncCall) {
 
 func (x *explorer) exploreStringLit(expr *ast.StringLit) {
 	x.strs[expr] = &str{label: x.strLabel(), value: expr.Value}
+}
+
+func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
+	for _, elem := range expr.Elems {
+		x.exploreExpr(elem)
+	}
+
+	len := expr.Len
+	elemSize := sizeOf(expr.ElemType)
+	if x.local {
+		x.offset = align(x.offset+len*elemSize, elemSize)
+		x.larrs[expr] = &larr{offset: x.offset, len: len, elemSize: elemSize}
+	} else {
+		x.garrs[expr] = &garr{label: x.garrLabel(), len: len, elemSize: elemSize}
+	}
 }

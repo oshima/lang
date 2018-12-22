@@ -5,6 +5,8 @@ type Type string
 const (
 	LPAREN    Type = "LPAREN"
 	RPAREN    Type = "RPAREN"
+	LBRACK    Type = "LBRACK"
+	RBRACK    Type = "RBRACK"
 	LBRACE    Type = "LBRACE"
 	RBRACE    Type = "RBRACE"
 	ASSIGN    Type = "ASSIGN"
@@ -47,6 +49,59 @@ const (
 
 	EOF Type = "EOF"
 )
+
+// for error messages
+var strings = map[Type]string{
+	LPAREN:    "(",
+	RPAREN:    ")",
+	LBRACK:    "[",
+	RBRACK:    "]",
+	LBRACE:    "{",
+	RBRACE:    "}",
+	ASSIGN:    "=",
+	BANG:      "!",
+	PLUS:      "+",
+	MINUS:     "-",
+	ASTERISK:  "*",
+	SLASH:     "/",
+	PERCENT:   "%",
+	COMMA:     ",",
+	SEMICOLON: ";",
+
+	EQ:  "==",
+	NE:  "!=",
+	LT:  "<",
+	LE:  "<=",
+	GT:  ">",
+	GE:  ">=",
+	AND: "&&",
+	OR:  "||",
+
+	FUNC:     "func",
+	VAR:      "var",
+	IF:       "if",
+	ELSE:     "else",
+	FOR:      "for",
+	RETURN:   "return",
+	CONTINUE: "continue",
+	BREAK:    "break",
+
+	INT:    "int",
+	BOOL:   "bool",
+	STRING: "string",
+
+	IDENT:  "identifier",
+	NUMBER: "number",
+	TRUE:   "true",
+	FALSE:  "false",
+	QUOTED: "quoted characters",
+
+	EOF: "EOF",
+}
+
+func (t Type) String() string {
+	return strings[t]
+}
 
 type Token struct {
 	Type    Type
