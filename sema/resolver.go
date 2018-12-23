@@ -22,18 +22,18 @@ func newEnv(outer *env) *env {
 	}
 }
 
-func (e *env) set(key string, node ast.Node) error {
-	if _, ok := e.store[key]; ok {
+func (e *env) set(name string, node ast.Node) error {
+	if _, ok := e.store[name]; ok {
 		return errors.New("Duplicate entries")
 	}
-	e.store[key] = node
+	e.store[name] = node
 	return nil
 }
 
-func (e *env) get(key string) (ast.Node, bool) {
-	node, ok := e.store[key]
+func (e *env) get(name string) (ast.Node, bool) {
+	node, ok := e.store[name]
 	if !ok && e.outer != nil {
-		node, ok = e.outer.get(key)
+		node, ok = e.outer.get(name)
 	}
 	return node, ok
 }
@@ -81,11 +81,11 @@ func (r *resolver) resolveFuncDecl(stmt *ast.FuncDecl, e *env) {
 	if _, ok := e.get("return"); ok {
 		util.Error("Function declarations cannot be nested")
 	}
-	if err := e.set(stmt.Ident, stmt); err != nil {
-		util.Error("%s has already been declared", stmt.Ident)
+	if err := e.set(stmt.Ident.Name, stmt); err != nil {
+		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
 	if stmt.ReturnType != nil && !returnableBlockStmt(stmt.Body) {
-		util.Error("Missing return at end of %s", stmt.Ident)
+		util.Error("Missing return at end of %s", stmt.Ident.Name)
 	}
 
 	e_ := newEnv(e)
@@ -102,8 +102,8 @@ func (r *resolver) resolveVarDecl(stmt *ast.VarDecl, e *env) {
 		r.resolveExpr(stmt.Value, e)
 	}
 
-	if err := e.set(stmt.Ident, stmt); err != nil {
-		util.Error("%s has already been declared", stmt.Ident)
+	if err := e.set(stmt.Ident.Name, stmt); err != nil {
+		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
 }
 
@@ -161,16 +161,8 @@ func (r *resolver) resolveBreakStmt(stmt *ast.BreakStmt, e *env) {
 }
 
 func (r *resolver) resolveAssignStmt(stmt *ast.AssignStmt, e *env) {
+	r.resolveExpr(stmt.Target, e)
 	r.resolveExpr(stmt.Value, e)
-
-	ref, ok := e.get(stmt.Ident)
-	if !ok {
-		util.Error("%s is not declared", stmt.Ident)
-	}
-	if _, ok := ref.(*ast.VarDecl); !ok {
-		util.Error("%s is not a variable")
-	}
-	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {
@@ -187,8 +179,8 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveIndexExpr(v, e)
 	case *ast.FuncCall:
 		r.resolveFuncCall(v, e)
-	case *ast.VarRef:
-		r.resolveVarRef(v, e)
+	case *ast.Ident:
+		r.resolveIdent(v, e)
 	case *ast.ArrayLit:
 		r.resolveArrayLit(v, e)
 	}
@@ -213,26 +205,26 @@ func (r *resolver) resolveFuncCall(expr *ast.FuncCall, e *env) {
 		r.resolveExpr(param, e)
 	}
 
-	ref, ok := e.get(expr.Ident)
+	ref, ok := e.get(expr.Ident.Name)
 	if !ok {
-		if _, ok := libFns[expr.Ident]; !ok {
-			util.Error("%s is not declared", expr.Ident)
+		if _, ok := libFns[expr.Ident.Name]; !ok {
+			util.Error("%s is not declared", expr.Ident.Name)
 		}
 		return
 	}
 	if _, ok := ref.(*ast.FuncDecl); !ok {
-		util.Error("%s is not a function", expr.Ident)
+		util.Error("%s is not a function", expr.Ident.Name)
 	}
 	r.refs[expr] = ref
 }
 
-func (r *resolver) resolveVarRef(expr *ast.VarRef, e *env) {
-	ref, ok := e.get(expr.Ident)
+func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
+	ref, ok := e.get(expr.Name)
 	if !ok {
-		util.Error("%s is not declared", expr.Ident)
+		util.Error("%s is not declared", expr.Name)
 	}
 	if _, ok := ref.(*ast.VarDecl); !ok {
-		util.Error("%s is not a variable", expr.Ident)
+		util.Error("%s is not a variable", expr.Name)
 	}
 	r.refs[expr] = ref
 }

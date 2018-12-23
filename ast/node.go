@@ -38,14 +38,14 @@ func (prog *Program) astNode() {}
 */
 
 type FuncDecl struct {
-	Ident      string
+	Ident      *Ident
 	Params     []*VarDecl
 	ReturnType types.Type
 	Body       *BlockStmt
 }
 
 type VarDecl struct {
-	Ident   string
+	Ident   *Ident
 	VarType types.Type
 	Value   Expr
 }
@@ -78,8 +78,8 @@ type BreakStmt struct {
 }
 
 type AssignStmt struct {
-	Ident string
-	Value Expr
+	Target Expr // *Ident or *IndexExpr
+	Value  Expr
 }
 
 type ExprStmt struct {
@@ -128,12 +128,12 @@ type IndexExpr struct {
 }
 
 type FuncCall struct {
-	Ident  string
+	Ident  *Ident
 	Params []Expr
 }
 
-type VarRef struct {
-	Ident string
+type Ident struct {
+	Name string
 }
 
 type IntLit struct {
@@ -162,8 +162,8 @@ func (expr *IndexExpr) astNode()   {}
 func (expr *IndexExpr) exprNode()  {}
 func (expr *FuncCall) astNode()    {}
 func (expr *FuncCall) exprNode()   {}
-func (expr *VarRef) astNode()      {}
-func (expr *VarRef) exprNode()     {}
+func (expr *Ident) astNode()       {}
+func (expr *Ident) exprNode()      {}
 func (expr *IntLit) astNode()      {}
 func (expr *IntLit) exprNode()     {}
 func (expr *BoolLit) astNode()     {}

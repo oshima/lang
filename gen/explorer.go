@@ -128,7 +128,7 @@ func (x *explorer) exploreFuncDecl(stmt *ast.FuncDecl) {
 	endLabel := x.branchLabel()
 
 	x.local = false
-	x.fns[stmt] = &fn{label: stmt.Ident, align: align(x.offset, 16)}
+	x.fns[stmt] = &fn{label: stmt.Ident.Name, align: align(x.offset, 16)}
 	x.branches[stmt] = &branch{labels: []string{endLabel}}
 }
 
@@ -142,7 +142,7 @@ func (x *explorer) exploreVarDecl(stmt *ast.VarDecl) {
 		x.offset = align(x.offset+size, size)
 		x.lvars[stmt] = &lvar{offset: x.offset, size: size}
 	} else {
-		x.gvars[stmt] = &gvar{label: x.gvarLabel(stmt.Ident), size: size}
+		x.gvars[stmt] = &gvar{label: x.gvarLabel(stmt.Ident.Name), size: size}
 	}
 }
 
@@ -182,6 +182,7 @@ func (x *explorer) exploreReturnStmt(stmt *ast.ReturnStmt) {
 }
 
 func (x *explorer) exploreAssignStmt(stmt *ast.AssignStmt) {
+	x.exploreExpr(stmt.Target)
 	x.exploreExpr(stmt.Value)
 }
 

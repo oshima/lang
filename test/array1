@@ -9,10 +9,18 @@ func sum(arr [3]int) int {
 }
 
 var garr = [3]int{1, 2, 3};
-printf("%d,", sum(garr));
 
-func local() {
-  var larr = [3]int{4, 5, 6};
-  printf("%d\n", sum(larr));
+func globalTest() bool {
+  return sum(garr) == 6;
 }
-local();
+
+func localTest() bool {
+  var larr = [3]int{4, 5, 6};
+  return sum(larr) == 15;
+}
+
+if globalTest() && localTest() {
+  puts("ok");
+} else {
+  puts("bad");
+}

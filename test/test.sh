@@ -126,7 +126,7 @@ try-file ./test/func3 15
 try-file ./test/func4 91
 try-file ./test/func-fib 102334155
 
-try-file ./test/array1 6,15
-try-file ./test/array2 6
+try-file ./test/array1 ok
+try-file ./test/array2 ok
 
 echo OK

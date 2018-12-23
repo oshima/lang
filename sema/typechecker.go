@@ -52,13 +52,13 @@ func (t *typechecker) typecheckVarDecl(stmt *ast.VarDecl) {
 
 	if stmt.VarType == nil {
 		if ty == nil {
-			util.Error("Unexpected void value for %s", stmt.Ident)
+			util.Error("Unexpected void value for %s", stmt.Ident.Name)
 		}
 		stmt.VarType = ty // type inference (write on AST node)
 	} else {
 		if !types.Same(ty, stmt.VarType) {
 			f := "Expected %s value for %s, but got %s"
-			util.Error(f, stmt.VarType, stmt.Ident, ty)
+			util.Error(f, stmt.VarType, stmt.Ident.Name, ty)
 		}
 	}
 }
@@ -101,7 +101,7 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 	if stmt.Value == nil {
 		if ref.ReturnType != nil {
 			f := "Expected %s return in %s, but got void"
-			util.Error(f, ref.ReturnType, ref.Ident)
+			util.Error(f, ref.ReturnType, ref.Ident.Name)
 		}
 		return
 	}
@@ -111,19 +111,19 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 
 	if !types.Same(ty, ref.ReturnType) {
 		f := "Expected %s return in %s, but got %s"
-		util.Error(f, ref.ReturnType, ref.Ident, ty)
+		util.Error(f, ref.ReturnType, ref.Ident.Name, ty)
 	}
 }
 
 func (t *typechecker) typecheckAssignStmt(stmt *ast.AssignStmt) {
-	ref := t.refs[stmt].(*ast.VarDecl)
-
+	t.typecheckExpr(stmt.Target)
 	t.typecheckExpr(stmt.Value)
-	ty := t.types[stmt.Value]
+	tty := t.types[stmt.Target]
+	vty := t.types[stmt.Value]
 
-	if !types.Same(ty, ref.VarType) {
-		f := "Expected %s value for %s, but got %s"
-		util.Error(f, ref.VarType, stmt.Ident, ty)
+	if !types.Same(tty, vty) {
+		f := "Expected %s value in assignment, but got %s"
+		util.Error(f, tty, vty)
 	}
 }
 
@@ -141,8 +141,8 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 		t.typecheckIndexExpr(v)
 	case *ast.FuncCall:
 		t.typecheckFuncCall(v)
-	case *ast.VarRef:
-		t.typecheckVarRef(v)
+	case *ast.Ident:
+		t.typecheckIdent(v)
 	case *ast.IntLit:
 		t.types[v] = &types.Int{}
 	case *ast.BoolLit:
@@ -238,7 +238,7 @@ func (t *typechecker) typecheckFuncCall(expr *ast.FuncCall) {
 		for _, param := range expr.Params {
 			t.typecheckExpr(param)
 		}
-		switch expr.Ident {
+		switch expr.Ident.Name {
 		case "puts", "printf":
 			t.types[expr] = nil
 		}
@@ -249,7 +249,7 @@ func (t *typechecker) typecheckFuncCall(expr *ast.FuncCall) {
 
 	if len(expr.Params) != len(ref.Params) {
 		f := "Wrong number of parameters for %s (expected %d, given %d)"
-		util.Error(f, expr.Ident, len(ref.Params), len(expr.Params))
+		util.Error(f, expr.Ident.Name, len(ref.Params), len(expr.Params))
 	}
 	for i, param := range expr.Params {
 		t.typecheckExpr(param)
@@ -257,13 +257,13 @@ func (t *typechecker) typecheckFuncCall(expr *ast.FuncCall) {
 
 		if !types.Same(ty, ref.Params[i].VarType) {
 			f := "Expected %s value for %s (#%d parameter of %s), but got %s"
-			util.Error(f, ref.Params[i].VarType, ref.Params[i].Ident, i+1, expr.Ident, ty)
+			util.Error(f, ref.Params[i].VarType, ref.Params[i].Ident.Name, i+1, expr.Ident.Name, ty)
 		}
 	}
 	t.types[expr] = ref.ReturnType
 }
 
-func (t *typechecker) typecheckVarRef(expr *ast.VarRef) {
+func (t *typechecker) typecheckIdent(expr *ast.Ident) {
 	ref := t.refs[expr].(*ast.VarDecl)
 	t.types[expr] = ref.VarType
 }

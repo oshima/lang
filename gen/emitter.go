@@ -12,7 +12,7 @@ import (
 
 type emitter struct {
 	refs  map[ast.Node]ast.Node
-	types map[ast.Expr]types.Type // currently not used
+	types map[ast.Expr]types.Type
 
 	fns      map[*ast.FuncDecl]*fn
 	gvars    map[*ast.VarDecl]*gvar
@@ -208,24 +208,42 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 }
 
 func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
-	ref := e.refs[stmt].(*ast.VarDecl)
+	switch v := stmt.Target.(type) {
+	case *ast.Ident:
+		ref := e.refs[v].(*ast.VarDecl)
 
-	e.emitExpr(stmt.Value)
+		e.emitExpr(stmt.Value)
 
-	if lvar, ok := e.lvars[ref]; ok {
-		switch lvar.size {
-		case 1:
-			e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
-		case 8:
-			e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
+		if lvar, ok := e.lvars[ref]; ok {
+			switch lvar.size {
+			case 1:
+				e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
+			case 8:
+				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
+			}
+		} else {
+			gvar := e.gvars[ref]
+			switch gvar.size {
+			case 1:
+				e.emit("mov byte ptr %s[rip], al", gvar.label)
+			case 8:
+				e.emit("mov qword ptr %s[rip], rax", gvar.label)
+			}
 		}
-	} else {
-		gvar := e.gvars[ref]
-		switch gvar.size {
+	case *ast.IndexExpr:
+		e.emitExpr(v.Index)
+		e.emit("push rax")
+		e.emitExpr(v.Left)
+		e.emit("push rax")
+		e.emitExpr(stmt.Value)
+		e.emit("pop rcx")
+		e.emit("pop rdx")
+
+		switch sizeOf(e.types[v]) {
 		case 1:
-			e.emit("mov byte ptr %s[rip], al", gvar.label)
+			e.emit("mov byte ptr [rcx+rdx], al")
 		case 8:
-			e.emit("mov qword ptr %s[rip], rax", gvar.label)
+			e.emit("mov qword ptr [rcx+rdx*8], rax")
 		}
 	}
 }
@@ -244,8 +262,8 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitIndexExpr(v)
 	case *ast.FuncCall:
 		e.emitFuncCall(v)
-	case *ast.VarRef:
-		e.emitVarRef(v)
+	case *ast.Ident:
+		e.emitIdent(v)
 	case *ast.IntLit:
 		e.emitIntLit(v)
 	case *ast.BoolLit:
@@ -327,11 +345,11 @@ func (e *emitter) emitFuncCall(expr *ast.FuncCall) {
 		fn := e.fns[ref.(*ast.FuncDecl)]
 		e.emit("call %s", fn.label)
 	} else {
-		e.emit("call %s", expr.Ident) // library function
+		e.emit("call %s", expr.Ident.Name) // library function
 	}
 }
 
-func (e *emitter) emitVarRef(expr *ast.VarRef) {
+func (e *emitter) emitIdent(expr *ast.Ident) {
 	ref := e.refs[expr].(*ast.VarDecl)
 
 	if lvar, ok := e.lvars[ref]; ok {
