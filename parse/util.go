@@ -4,6 +4,8 @@ import "github.com/oshjma/lang/token"
 
 const (
 	LOWEST int = iota
+	OR
+	AND
 	EQUAL
 	LESSGREATER
 	SUM
@@ -13,6 +15,8 @@ const (
 )
 
 var precedences = map[token.Type]int{
+	token.OR:       OR,
+	token.AND:      AND,
 	token.EQ:       EQUAL,
 	token.NE:       EQUAL,
 	token.LT:       LESSGREATER,
@@ -21,11 +25,9 @@ var precedences = map[token.Type]int{
 	token.GE:       LESSGREATER,
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
-	token.OR:       SUM,
 	token.ASTERISK: PRODUCT,
 	token.SLASH:    PRODUCT,
 	token.PERCENT:  PRODUCT,
-	token.AND:      PRODUCT,
 	token.LBRACK:   SUFFIX,
 }
 
