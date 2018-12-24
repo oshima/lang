@@ -11,28 +11,24 @@ import (
 
 type explorer struct {
 	// Information necessary for emitting asm code
-	fns      map[*ast.FuncDecl]*fn
-	gvars    map[*ast.VarDecl]*gvar
-	lvars    map[*ast.VarDecl]*lvar
+	gvars    map[*ast.LetStmt]*gvar
+	lvars    map[*ast.LetStmt]*lvar
 	strs     map[*ast.StringLit]*str
 	garrs    map[*ast.ArrayLit]*garr
 	larrs    map[*ast.ArrayLit]*larr
-	branches map[ast.Stmt]*branch
+	fns      map[*ast.FuncLit]*fn
+	branches map[ast.Node]*branch
 
 	// Counters of labels
 	nGvarLabel   int
 	nStrLabel    int
 	nGarrLabel   int
+	nFnLabel     int
 	nBranchLabel int
 
-	// Used for finding local variables
+	// Used for finding local objects
 	local  bool
 	offset int
-}
-
-type fn struct {
-	label string
-	align int
 }
 
 type gvar struct {
@@ -62,25 +58,36 @@ type larr struct {
 	elemSize int
 }
 
+type fn struct {
+	label string
+	align int
+}
+
 type branch struct {
 	labels []string
 }
 
 func (x *explorer) gvarLabel(name string) string {
-	label := fmt.Sprintf(".GV%d_%s", x.nGvarLabel, name)
+	label := fmt.Sprintf("gvar%d_%s", x.nGvarLabel, name)
 	x.nGvarLabel += 1
 	return label
 }
 
 func (x *explorer) strLabel() string {
-	label := fmt.Sprintf(".LC%d", x.nStrLabel)
+	label := fmt.Sprintf("str%d", x.nStrLabel)
 	x.nStrLabel += 1
 	return label
 }
 
 func (x *explorer) garrLabel() string {
-	label := fmt.Sprintf(".AR%d", x.nGarrLabel)
+	label := fmt.Sprintf("garr%d", x.nGarrLabel)
 	x.nGarrLabel += 1
+	return label
+}
+
+func (x *explorer) fnLabel() string {
+	label := fmt.Sprintf("fn%d", x.nFnLabel)
+	x.nFnLabel += 1
 	return label
 }
 
@@ -98,10 +105,8 @@ func (x *explorer) exploreProgram(node *ast.Program) {
 
 func (x *explorer) exploreStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
-	case *ast.FuncDecl:
-		x.exploreFuncDecl(v)
-	case *ast.VarDecl:
-		x.exploreVarDecl(v)
+	case *ast.LetStmt:
+		x.exploreLetStmt(v)
 	case *ast.BlockStmt:
 		x.exploreBlockStmt(v)
 	case *ast.IfStmt:
@@ -117,22 +122,7 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 	}
 }
 
-func (x *explorer) exploreFuncDecl(stmt *ast.FuncDecl) {
-	x.local = true
-	x.offset = 0
-
-	for _, param := range stmt.Params {
-		x.exploreVarDecl(param)
-	}
-	x.exploreBlockStmt(stmt.Body)
-	endLabel := x.branchLabel()
-
-	x.local = false
-	x.fns[stmt] = &fn{label: stmt.Ident.Name, align: align(x.offset, 16)}
-	x.branches[stmt] = &branch{labels: []string{endLabel}}
-}
-
-func (x *explorer) exploreVarDecl(stmt *ast.VarDecl) {
+func (x *explorer) exploreLetStmt(stmt *ast.LetStmt) {
 	if stmt.Value != nil {
 		x.exploreExpr(stmt.Value)
 	}
@@ -198,12 +188,16 @@ func (x *explorer) exploreExpr(expr ast.Expr) {
 		x.exploreInfixExpr(v)
 	case *ast.IndexExpr:
 		x.exploreIndexExpr(v)
-	case *ast.FuncCall:
-		x.exploreFuncCall(v)
+	case *ast.CallExpr:
+		x.exploreCallExpr(v)
+	case *ast.LibcallExpr:
+		x.exploreLibcallExpr(v)
 	case *ast.StringLit:
 		x.exploreStringLit(v)
 	case *ast.ArrayLit:
 		x.exploreArrayLit(v)
+	case *ast.FuncLit:
+		x.exploreFuncLit(v)
 	}
 }
 
@@ -221,7 +215,14 @@ func (x *explorer) exploreIndexExpr(expr *ast.IndexExpr) {
 	x.exploreExpr(expr.Index)
 }
 
-func (x *explorer) exploreFuncCall(expr *ast.FuncCall) {
+func (x *explorer) exploreCallExpr(expr *ast.CallExpr) {
+	x.exploreExpr(expr.Left)
+	for _, param := range expr.Params {
+		x.exploreExpr(param)
+	}
+}
+
+func (x *explorer) exploreLibcallExpr(expr *ast.LibcallExpr) {
 	for _, param := range expr.Params {
 		x.exploreExpr(param)
 	}
@@ -244,4 +245,19 @@ func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
 	} else {
 		x.garrs[expr] = &garr{label: x.garrLabel(), len: len, elemSize: elemSize}
 	}
+}
+
+func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
+	x.local = true
+	x.offset = 0
+
+	for _, param := range expr.Params {
+		x.exploreLetStmt(param)
+	}
+	x.exploreBlockStmt(expr.Body)
+	endLabel := x.branchLabel()
+
+	x.local = false
+	x.fns[expr] = &fn{label: x.fnLabel(), align: align(x.offset, 16)}
+	x.branches[expr] = &branch{labels: []string{endLabel}}
 }

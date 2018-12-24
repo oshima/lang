@@ -29,6 +29,15 @@ var precedences = map[token.Type]int{
 	token.SLASH:    PRODUCT,
 	token.PERCENT:  PRODUCT,
 	token.LBRACK:   SUFFIX,
+	token.LPAREN:   SUFFIX,
+}
+
+var typeStart = map[token.Type]bool{
+	token.INT:    true,
+	token.BOOL:   true,
+	token.STRING: true,
+	token.LBRACK: true, // Array
+	token.LPAREN: true, // Func
 }
 
 var unescape = map[rune]rune{
@@ -41,4 +50,9 @@ var unescape = map[rune]rune{
 	'v':  '\v',
 	'"':  '"',
 	'\\': '\\',
+}
+
+var libfuncs = map[string]bool{
+	"puts":   true,
+	"printf": true,
 }

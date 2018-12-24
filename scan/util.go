@@ -11,15 +11,14 @@ var punctuations = map[rune]token.Type{
 	'}': token.RBRACE,
 	'+': token.PLUS,
 	'*': token.ASTERISK,
-	'%': token.PERCENT,
 	'/': token.SLASH,
+	'%': token.PERCENT,
 	',': token.COMMA,
 	';': token.SEMICOLON,
 }
 
 var keywords = map[string]token.Type{
-	"func":     token.FUNC,
-	"var":      token.VAR,
+	"let":      token.LET,
 	"if":       token.IF,
 	"else":     token.ELSE,
 	"for":      token.FOR,
@@ -33,9 +32,10 @@ var keywords = map[string]token.Type{
 	"false":    token.FALSE,
 }
 
-var exprTerminators = map[token.Type]bool{
+var exprEnd = map[token.Type]bool{
 	token.RPAREN: true,
 	token.RBRACK: true,
+	token.RBRACE: true,
 	token.IDENT:  true,
 	token.NUMBER: true,
 	token.TRUE:   true,

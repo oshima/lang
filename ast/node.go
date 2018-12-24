@@ -37,14 +37,7 @@ func (prog *Program) astNode() {}
  Statement nodes
 */
 
-type FuncDecl struct {
-	Ident      *Ident
-	Params     []*VarDecl
-	ReturnType types.Type
-	Body       *BlockStmt
-}
-
-type VarDecl struct {
+type LetStmt struct {
 	Ident   *Ident
 	VarType types.Type
 	Value   Expr
@@ -86,10 +79,8 @@ type ExprStmt struct {
 	Expr Expr
 }
 
-func (stmt *VarDecl) astNode()       {}
-func (stmt *VarDecl) stmtNode()      {}
-func (stmt *FuncDecl) astNode()      {}
-func (stmt *FuncDecl) stmtNode()     {}
+func (stmt *LetStmt) astNode()       {}
+func (stmt *LetStmt) stmtNode()      {}
 func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
 func (stmt *IfStmt) astNode()        {}
@@ -127,7 +118,12 @@ type IndexExpr struct {
 	Index Expr
 }
 
-type FuncCall struct {
+type CallExpr struct {
+	Left   Expr
+	Params []Expr
+}
+
+type LibcallExpr struct {
 	Ident  *Ident
 	Params []Expr
 }
@@ -154,21 +150,31 @@ type ArrayLit struct {
 	Elems    []Expr
 }
 
-func (expr *PrefixExpr) astNode()  {}
-func (expr *PrefixExpr) exprNode() {}
-func (expr *InfixExpr) astNode()   {}
-func (expr *InfixExpr) exprNode()  {}
-func (expr *IndexExpr) astNode()   {}
-func (expr *IndexExpr) exprNode()  {}
-func (expr *FuncCall) astNode()    {}
-func (expr *FuncCall) exprNode()   {}
-func (expr *Ident) astNode()       {}
-func (expr *Ident) exprNode()      {}
-func (expr *IntLit) astNode()      {}
-func (expr *IntLit) exprNode()     {}
-func (expr *BoolLit) astNode()     {}
-func (expr *BoolLit) exprNode()    {}
-func (expr *StringLit) astNode()   {}
-func (expr *StringLit) exprNode()  {}
-func (expr *ArrayLit) astNode()    {}
-func (expr *ArrayLit) exprNode()   {}
+type FuncLit struct {
+	Params     []*LetStmt
+	ReturnType types.Type
+	Body       *BlockStmt
+}
+
+func (expr *PrefixExpr) astNode()   {}
+func (expr *PrefixExpr) exprNode()  {}
+func (expr *InfixExpr) astNode()    {}
+func (expr *InfixExpr) exprNode()   {}
+func (expr *IndexExpr) astNode()    {}
+func (expr *IndexExpr) exprNode()   {}
+func (expr *CallExpr) astNode()     {}
+func (expr *CallExpr) exprNode()    {}
+func (expr *LibcallExpr) astNode()  {}
+func (expr *LibcallExpr) exprNode() {}
+func (expr *Ident) astNode()        {}
+func (expr *Ident) exprNode()       {}
+func (expr *IntLit) astNode()       {}
+func (expr *IntLit) exprNode()      {}
+func (expr *BoolLit) astNode()      {}
+func (expr *BoolLit) exprNode()     {}
+func (expr *StringLit) astNode()    {}
+func (expr *StringLit) exprNode()   {}
+func (expr *ArrayLit) astNode()     {}
+func (expr *ArrayLit) exprNode()    {}
+func (expr *FuncLit) astNode()      {}
+func (expr *FuncLit) exprNode()     {}

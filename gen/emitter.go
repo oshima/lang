@@ -14,13 +14,13 @@ type emitter struct {
 	refs  map[ast.Node]ast.Node
 	types map[ast.Expr]types.Type
 
-	fns      map[*ast.FuncDecl]*fn
-	gvars    map[*ast.VarDecl]*gvar
-	lvars    map[*ast.VarDecl]*lvar
+	gvars    map[*ast.LetStmt]*gvar
+	lvars    map[*ast.LetStmt]*lvar
 	strs     map[*ast.StringLit]*str
 	garrs    map[*ast.ArrayLit]*garr
 	larrs    map[*ast.ArrayLit]*larr
-	branches map[ast.Stmt]*branch
+	fns      map[*ast.FuncLit]*fn
+	branches map[ast.Node]*branch
 }
 
 func (e *emitter) emitProgram(prog *ast.Program) {
@@ -44,8 +44,8 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 		e.emit(".comm %s,%d,%d", garr.label, garr.len*garr.elemSize, garr.elemSize)
 	}
 
-	for stmt, _ := range e.fns {
-		e.emitFuncDecl(stmt)
+	for expr, _ := range e.fns {
+		e.emitFuncCode(expr)
 	}
 
 	e.emit(".globl main")
@@ -61,10 +61,42 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 	e.emit("ret")
 }
 
+func (e *emitter) emitFuncCode(expr *ast.FuncLit) {
+	fn := e.fns[expr]
+	branch := e.branches[expr]
+	endLabel := branch.labels[0]
+
+	e.emitLabel(fn.label)
+	e.emit("push rbp")
+	e.emit("mov rbp, rsp")
+	if fn.align > 0 {
+		e.emit("sub rsp, %d", fn.align)
+	}
+
+	for i, param := range expr.Params {
+		lvar := e.lvars[param]
+		switch lvar.size {
+		case 1:
+			e.emit("mov byte ptr [rbp-%d], %s", lvar.offset, paramRegs[1][i])
+		case 8:
+			e.emit("mov qword ptr [rbp-%d], %s", lvar.offset, paramRegs[8][i])
+		}
+	}
+
+	e.emitBlockStmt(expr.Body)
+
+	e.emitLabel(endLabel)
+	if fn.align > 0 {
+		e.emit("add rsp, %d", fn.align)
+	}
+	e.emit("leave")
+	e.emit("ret")
+}
+
 func (e *emitter) emitStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
-	case *ast.VarDecl:
-		e.emitVarDecl(v)
+	case *ast.LetStmt:
+		e.emitLetStmt(v)
 	case *ast.BlockStmt:
 		e.emitBlockStmt(v)
 	case *ast.IfStmt:
@@ -84,39 +116,7 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 	}
 }
 
-func (e *emitter) emitFuncDecl(stmt *ast.FuncDecl) {
-	fn := e.fns[stmt]
-	branch := e.branches[stmt]
-	endLabel := branch.labels[0]
-
-	e.emitLabel(fn.label)
-	e.emit("push rbp")
-	e.emit("mov rbp, rsp")
-	if fn.align > 0 {
-		e.emit("sub rsp, %d", fn.align)
-	}
-
-	for i, param := range stmt.Params {
-		lvar := e.lvars[param]
-		switch lvar.size {
-		case 1:
-			e.emit("mov byte ptr [rbp-%d], %s", lvar.offset, paramRegs[1][i])
-		case 8:
-			e.emit("mov qword ptr [rbp-%d], %s", lvar.offset, paramRegs[8][i])
-		}
-	}
-
-	e.emitBlockStmt(stmt.Body)
-
-	e.emitLabel(endLabel)
-	if fn.align > 0 {
-		e.emit("add rsp, %d", fn.align)
-	}
-	e.emit("leave")
-	e.emit("ret")
-}
-
-func (e *emitter) emitVarDecl(stmt *ast.VarDecl) {
+func (e *emitter) emitLetStmt(stmt *ast.LetStmt) {
 	e.emitExpr(stmt.Value)
 
 	if lvar, ok := e.lvars[stmt]; ok {
@@ -181,7 +181,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 }
 
 func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
-	ref := e.refs[stmt].(*ast.FuncDecl)
+	ref := e.refs[stmt].(*ast.FuncLit)
 	branch := e.branches[ref]
 	endLabel := branch.labels[0]
 
@@ -210,7 +210,7 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
 	switch v := stmt.Target.(type) {
 	case *ast.Ident:
-		ref := e.refs[v].(*ast.VarDecl)
+		ref := e.refs[v].(*ast.LetStmt)
 
 		e.emitExpr(stmt.Value)
 
@@ -260,8 +260,10 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitInfixExpr(v)
 	case *ast.IndexExpr:
 		e.emitIndexExpr(v)
-	case *ast.FuncCall:
-		e.emitFuncCall(v)
+	case *ast.CallExpr:
+		e.emitCallExpr(v)
+	case *ast.LibcallExpr:
+		e.emitLibcallExpr(v)
 	case *ast.Ident:
 		e.emitIdent(v)
 	case *ast.IntLit:
@@ -272,6 +274,8 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitStringLit(v)
 	case *ast.ArrayLit:
 		e.emitArrayLit(v)
+	case *ast.FuncLit:
+		e.emitFuncLit(v)
 	}
 }
 
@@ -331,7 +335,7 @@ func (e *emitter) emitIndexExpr(expr *ast.IndexExpr) {
 	}
 }
 
-func (e *emitter) emitFuncCall(expr *ast.FuncCall) {
+func (e *emitter) emitCallExpr(expr *ast.CallExpr) {
 	for _, param := range expr.Params {
 		e.emitExpr(param)
 		e.emit("push rax")
@@ -340,17 +344,24 @@ func (e *emitter) emitFuncCall(expr *ast.FuncCall) {
 		j := len(expr.Params) - i - 1
 		e.emit("pop %s", paramRegs[8][j])
 	}
+	e.emitExpr(expr.Left)
+	e.emit("call rax")
+}
 
-	if ref, ok := e.refs[expr]; ok {
-		fn := e.fns[ref.(*ast.FuncDecl)]
-		e.emit("call %s", fn.label)
-	} else {
-		e.emit("call %s", expr.Ident.Name) // library function
+func (e *emitter) emitLibcallExpr(expr *ast.LibcallExpr) {
+	for _, param := range expr.Params {
+		e.emitExpr(param)
+		e.emit("push rax")
 	}
+	for i, _ := range expr.Params {
+		j := len(expr.Params) - i - 1
+		e.emit("pop %s", paramRegs[8][j])
+	}
+	e.emit("call %s", expr.Ident.Name)
 }
 
 func (e *emitter) emitIdent(expr *ast.Ident) {
-	ref := e.refs[expr].(*ast.VarDecl)
+	ref := e.refs[expr].(*ast.LetStmt)
 
 	if lvar, ok := e.lvars[ref]; ok {
 		switch lvar.size {
@@ -414,6 +425,11 @@ func (e *emitter) emitArrayLit(expr *ast.ArrayLit) {
 		}
 		e.emit("mov rax, offset flat:%s", garr.label)
 	}
+}
+
+func (e *emitter) emitFuncLit(expr *ast.FuncLit) {
+	fn := e.fns[expr]
+	e.emit("mov rax, offset flat:%s", fn.label)
 }
 
 func (e *emitter) emitLabel(label string) {

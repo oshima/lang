@@ -26,6 +26,8 @@ func sizeOf(ty types.Type) int {
 		return 8
 	case *types.Array:
 		return 8
+	case *types.Func:
+		return 8
 	default:
 		return 0 // unreachable here
 	}

@@ -1,8 +1,8 @@
-func lor(a bool, b bool) bool {
+let lor = (a bool, b bool) bool {
   return a || b;
-}
+};
 
-var result = "";
+let result = "";
 
 if lor(1 == 2, 1 < 2) {
   result = "true";

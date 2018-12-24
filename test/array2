@@ -1,4 +1,4 @@
-var arr = [2][2]int{
+let arr = [2][2]int{
   [2]int{0, 0},
   [2]int{0, 0},
 };

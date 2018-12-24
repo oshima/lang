@@ -109,7 +109,7 @@ func (s *scanner) readMinusOrNegativeNumber() *token.Token {
 	if s.lastTk == nil {
 		return s.readNumber()
 	}
-	if _, ok := exprTerminators[s.lastTk.Type]; ok {
+	if _, ok := exprEnd[s.lastTk.Type]; ok {
 		s.next()
 		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}

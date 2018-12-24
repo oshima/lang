@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 /*
  Interface
@@ -35,4 +38,26 @@ type Array struct {
 
 func (a *Array) String() string {
 	return fmt.Sprintf("[%d]%s", a.Len, a.ElemType)
+}
+
+/*
+ Func type
+*/
+
+type Func struct {
+	ParamTypes []Type
+	ReturnType Type
+}
+
+func (f *Func) String() string {
+	var params []string
+	for i, ty := range f.ParamTypes {
+		params[i] = ty.String()
+	}
+	if f.ReturnType == nil {
+		return fmt.Sprintf("(%s)", strings.Join(params, ", "))
+	} else {
+		return fmt.Sprintf("(%s) %s", strings.Join(params, ", "), f.ReturnType)
+	}
+
 }

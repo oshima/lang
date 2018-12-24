@@ -28,8 +28,7 @@ const (
 	AND Type = "AND"
 	OR  Type = "OR"
 
-	FUNC     Type = "FUNC"
-	VAR      Type = "VAR"
+	LET      Type = "LET"
 	IF       Type = "IF"
 	ELSE     Type = "ELSE"
 	FOR      Type = "FOR"
@@ -77,8 +76,7 @@ var strings = map[Type]string{
 	AND: "&&",
 	OR:  "||",
 
-	FUNC:     "func",
-	VAR:      "var",
+	LET:      "let",
 	IF:       "if",
 	ELSE:     "else",
 	FOR:      "for",

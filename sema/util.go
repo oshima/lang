@@ -2,11 +2,6 @@ package sema
 
 import "github.com/oshjma/lang/ast"
 
-var libFns = map[string]bool{
-	"puts":   true,
-	"printf": true,
-}
-
 func returnableStmt(stmt ast.Stmt) bool {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:

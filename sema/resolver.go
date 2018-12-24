@@ -54,10 +54,12 @@ func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 
 func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	switch v := stmt.(type) {
-	case *ast.FuncDecl:
-		r.resolveFuncDecl(v, e)
-	case *ast.VarDecl:
-		r.resolveVarDecl(v, e)
+	case *ast.LetStmt:
+		if _, ok := v.Value.(*ast.FuncLit); ok {
+			r.resolveLetStmtWithFuncLit(v, e)
+		} else {
+			r.resolveLetStmt(v, e)
+		}
 	case *ast.BlockStmt:
 		r.resolveBlockStmt(v, newEnv(e))
 	case *ast.IfStmt:
@@ -77,32 +79,21 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	}
 }
 
-func (r *resolver) resolveFuncDecl(stmt *ast.FuncDecl, e *env) {
-	if _, ok := e.get("return"); ok {
-		util.Error("Function declarations cannot be nested")
-	}
-	if err := e.set(stmt.Ident.Name, stmt); err != nil {
+func (r *resolver) resolveLetStmtWithFuncLit(stmt *ast.LetStmt, e *env) {
+	// register identifier name in advance to enable recursive calls in function
+	err := e.set(stmt.Ident.Name, stmt)
+	if err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
-	if stmt.ReturnType != nil && !returnableBlockStmt(stmt.Body) {
-		util.Error("Missing return at end of %s", stmt.Ident.Name)
-	}
-
-	e_ := newEnv(e)
-	e_.set("return", stmt)
-
-	for _, param := range stmt.Params {
-		r.resolveVarDecl(param, e_)
-	}
-	r.resolveBlockStmt(stmt.Body, e_)
+	r.resolveFuncLit(stmt.Value.(*ast.FuncLit), e)
 }
 
-func (r *resolver) resolveVarDecl(stmt *ast.VarDecl, e *env) {
+func (r *resolver) resolveLetStmt(stmt *ast.LetStmt, e *env) {
 	if stmt.Value != nil {
 		r.resolveExpr(stmt.Value, e)
 	}
-
-	if err := e.set(stmt.Ident.Name, stmt); err != nil {
+	err := e.set(stmt.Ident.Name, stmt)
+	if err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
 }
@@ -177,12 +168,16 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveInfixExpr(v, e)
 	case *ast.IndexExpr:
 		r.resolveIndexExpr(v, e)
-	case *ast.FuncCall:
-		r.resolveFuncCall(v, e)
+	case *ast.CallExpr:
+		r.resolveCallExpr(v, e)
+	case *ast.LibcallExpr:
+		r.resolveLibcallExpr(v, e)
 	case *ast.Ident:
 		r.resolveIdent(v, e)
 	case *ast.ArrayLit:
 		r.resolveArrayLit(v, e)
+	case *ast.FuncLit:
+		r.resolveFuncLit(v, e)
 	}
 }
 
@@ -200,31 +195,23 @@ func (r *resolver) resolveIndexExpr(expr *ast.IndexExpr, e *env) {
 	r.resolveExpr(expr.Index, e)
 }
 
-func (r *resolver) resolveFuncCall(expr *ast.FuncCall, e *env) {
+func (r *resolver) resolveCallExpr(expr *ast.CallExpr, e *env) {
+	r.resolveExpr(expr.Left, e)
 	for _, param := range expr.Params {
 		r.resolveExpr(param, e)
 	}
+}
 
-	ref, ok := e.get(expr.Ident.Name)
-	if !ok {
-		if _, ok := libFns[expr.Ident.Name]; !ok {
-			util.Error("%s is not declared", expr.Ident.Name)
-		}
-		return
+func (r *resolver) resolveLibcallExpr(expr *ast.LibcallExpr, e *env) {
+	for _, param := range expr.Params {
+		r.resolveExpr(param, e)
 	}
-	if _, ok := ref.(*ast.FuncDecl); !ok {
-		util.Error("%s is not a function", expr.Ident.Name)
-	}
-	r.refs[expr] = ref
 }
 
 func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
 	ref, ok := e.get(expr.Name)
 	if !ok {
 		util.Error("%s is not declared", expr.Name)
-	}
-	if _, ok := ref.(*ast.VarDecl); !ok {
-		util.Error("%s is not a variable", expr.Name)
 	}
 	r.refs[expr] = ref
 }
@@ -233,4 +220,21 @@ func (r *resolver) resolveArrayLit(expr *ast.ArrayLit, e *env) {
 	for _, elem := range expr.Elems {
 		r.resolveExpr(elem, e)
 	}
+}
+
+func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {
+	if _, ok := e.get("return"); ok {
+		util.Error("Function literals cannot be nested")
+	}
+	if expr.ReturnType != nil && !returnableBlockStmt(expr.Body) {
+		util.Error("Missing return at end of function")
+	}
+
+	e_ := newEnv(e)
+	e_.set("return", expr)
+
+	for _, param := range expr.Params {
+		r.resolveLetStmt(param, e_)
+	}
+	r.resolveBlockStmt(expr.Body, e_)
 }
