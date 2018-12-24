@@ -22,6 +22,9 @@ func Same(ty1 Type, ty2 Type) bool {
 		if !ok {
 			return false
 		}
+		if len(v1.ParamTypes) != len(v2.ParamTypes) {
+			return false
+		}
 		for i := range v1.ParamTypes {
 			if !Same(v1.ParamTypes[i], v2.ParamTypes[i]) {
 				return false

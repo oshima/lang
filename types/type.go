@@ -51,8 +51,8 @@ type Func struct {
 
 func (f *Func) String() string {
 	var params []string
-	for i, ty := range f.ParamTypes {
-		params[i] = ty.String()
+	for _, ty := range f.ParamTypes {
+		params = append(params, ty.String())
 	}
 	if f.ReturnType == nil {
 		return fmt.Sprintf("(%s)", strings.Join(params, ", "))
