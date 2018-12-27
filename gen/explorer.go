@@ -59,8 +59,8 @@ type larr struct {
 }
 
 type fn struct {
-	label string
-	align int
+	label     string
+	localArea int
 }
 
 type branch struct {
@@ -258,6 +258,6 @@ func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
 	endLabel := x.branchLabel()
 
 	x.local = false
-	x.fns[expr] = &fn{label: x.fnLabel(), align: align(x.offset, 16)}
+	x.fns[expr] = &fn{label: x.fnLabel(), localArea: align(x.offset, 16)}
 	x.branches[expr] = &branch{labels: []string{endLabel}}
 }

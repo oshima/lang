@@ -79,15 +79,6 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	}
 }
 
-func (r *resolver) resolveLetStmtWithFuncLit(stmt *ast.LetStmt, e *env) {
-	// register identifier name in advance to enable recursive calls in function
-	err := e.set(stmt.Ident.Name, stmt)
-	if err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
-	}
-	r.resolveFuncLit(stmt.Value.(*ast.FuncLit), e)
-}
-
 func (r *resolver) resolveLetStmt(stmt *ast.LetStmt, e *env) {
 	if stmt.Value != nil {
 		r.resolveExpr(stmt.Value, e)
@@ -96,6 +87,15 @@ func (r *resolver) resolveLetStmt(stmt *ast.LetStmt, e *env) {
 	if err != nil {
 		util.Error("%s has already been declared", stmt.Ident.Name)
 	}
+}
+
+func (r *resolver) resolveLetStmtWithFuncLit(stmt *ast.LetStmt, e *env) {
+	// register identifier name in advance to enable recursive calls in function
+	err := e.set(stmt.Ident.Name, stmt)
+	if err != nil {
+		util.Error("%s has already been declared", stmt.Ident.Name)
+	}
+	r.resolveFuncLit(stmt.Value.(*ast.FuncLit), e)
 }
 
 func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {

@@ -24,7 +24,7 @@ func (t *typechecker) typecheckProgram(prog *ast.Program) {
 func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
 	case *ast.LetStmt:
-		if _, ok := v.Value.(*ast.FuncLit); ok && v.VarType == nil {
+		if _, ok := v.Value.(*ast.FuncLit); ok {
 			t.typecheckLetStmtWithFuncLit(v)
 		} else {
 			t.typecheckLetStmt(v)
@@ -42,21 +42,6 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 	case *ast.ExprStmt:
 		t.typecheckExprStmt(v)
 	}
-}
-
-func (t *typechecker) typecheckLetStmtWithFuncLit(stmt *ast.LetStmt) {
-	value := stmt.Value.(*ast.FuncLit)
-
-	// before doing typecheck in function body,
-	// determine function's type and use it as the type of variable
-	paramTypes := make([]types.Type, 0, 4)
-	for _, param := range value.Params {
-		paramTypes = append(paramTypes, param.VarType)
-	}
-	t.types[value] = &types.Func{ParamTypes: paramTypes, ReturnType: value.ReturnType}
-	stmt.VarType = t.types[value]
-
-	t.typecheckBlockStmt(value.Body)
 }
 
 func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
@@ -78,6 +63,29 @@ func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
 			util.Error(f, stmt.VarType, stmt.Ident.Name, ty)
 		}
 	}
+}
+
+func (t *typechecker) typecheckLetStmtWithFuncLit(stmt *ast.LetStmt) {
+	value := stmt.Value.(*ast.FuncLit)
+
+	paramTypes := make([]types.Type, 0, 4)
+	for _, param := range value.Params {
+		paramTypes = append(paramTypes, param.VarType)
+	}
+	ty := &types.Func{ParamTypes: paramTypes, ReturnType: value.ReturnType}
+
+	t.types[value] = ty
+
+	if stmt.VarType == nil {
+		stmt.VarType = ty
+	} else {
+		if !types.Same(ty, stmt.VarType) {
+			f := "Expected %s value for %s, but got %s"
+			util.Error(f, stmt.VarType, stmt.Ident.Name, ty)
+		}
+	}
+
+	t.typecheckBlockStmt(value.Body)
 }
 
 func (t *typechecker) typecheckBlockStmt(stmt *ast.BlockStmt) {
@@ -120,15 +128,18 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 			f := "Expected %s return in function, but got nothing"
 			util.Error(f, ref.ReturnType)
 		}
-		return
-	}
+	} else {
+		t.typecheckExpr(stmt.Value)
+		ty := t.types[stmt.Value]
 
-	t.typecheckExpr(stmt.Value)
-	ty := t.types[stmt.Value]
-
-	if !types.Same(ty, ref.ReturnType) {
-		f := "Expected %s return in function, but got %s"
-		util.Error(f, ref.ReturnType, ty)
+		if ref.ReturnType == nil {
+			f := "Expected no return in function, but got %s"
+			util.Error(f, ty)
+		}
+		if !types.Same(ty, ref.ReturnType) {
+			f := "Expected %s return in function, but got %s"
+			util.Error(f, ref.ReturnType, ty)
+		}
 	}
 }
 

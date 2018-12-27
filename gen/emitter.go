@@ -69,8 +69,8 @@ func (e *emitter) emitFuncCode(expr *ast.FuncLit) {
 	e.emitLabel(fn.label)
 	e.emit("push rbp")
 	e.emit("mov rbp, rsp")
-	if fn.align > 0 {
-		e.emit("sub rsp, %d", fn.align)
+	if fn.localArea > 0 {
+		e.emit("sub rsp, %d", fn.localArea)
 	}
 
 	for i, param := range expr.Params {
@@ -86,8 +86,8 @@ func (e *emitter) emitFuncCode(expr *ast.FuncLit) {
 	e.emitBlockStmt(expr.Body)
 
 	e.emitLabel(endLabel)
-	if fn.align > 0 {
-		e.emit("add rsp, %d", fn.align)
+	if fn.localArea > 0 {
+		e.emit("add rsp, %d", fn.localArea)
 	}
 	e.emit("leave")
 	e.emit("ret")
