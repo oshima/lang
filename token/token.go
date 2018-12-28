@@ -17,6 +17,7 @@ const (
 	SLASH     Type = "SLASH"
 	PERCENT   Type = "PERCENT"
 	COMMA     Type = "COMMA"
+	COLON     Type = "COLON"
 	SEMICOLON Type = "SEMICOLON"
 
 	EQ  Type = "EQ"
@@ -27,6 +28,8 @@ const (
 	GE  Type = "GE"
 	AND Type = "AND"
 	OR  Type = "OR"
+
+	ARROW Type = "ARROW"
 
 	LET      Type = "LET"
 	IF       Type = "IF"
@@ -65,6 +68,7 @@ var strings = map[Type]string{
 	SLASH:     "/",
 	PERCENT:   "%",
 	COMMA:     ",",
+	COLON:     ":",
 	SEMICOLON: ";",
 
 	EQ:  "==",
@@ -75,6 +79,8 @@ var strings = map[Type]string{
 	GE:  ">=",
 	AND: "&&",
 	OR:  "||",
+
+	ARROW: "->",
 
 	LET:      "let",
 	IF:       "if",

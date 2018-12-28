@@ -1,4 +1,4 @@
-let sum = (f (int) int) int {
+let sum = (f: (int) -> int) -> int {
   let sum = 0;
   let n = 1;
   for n <= 10 {
@@ -8,14 +8,14 @@ let sum = (f (int) int) int {
   return sum;
 };
 
-let neg = (n int) int {
+let neg = (n: int) -> int {
   return -n;
 };
 
-let sqr = (n int) int {
+let sqr = (n: int) -> int {
   return n * n;
 };
 
 printf("%d, ", sum(neg));
 printf("%d, ", sum(sqr));
-printf("%d\n", sum((n int) int { return n * 2; }));
+printf("%d\n", sum((n: int) -> int { return n * 2; }));

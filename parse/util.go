@@ -32,14 +32,6 @@ var precedences = map[token.Type]int{
 	token.LPAREN:   SUFFIX,
 }
 
-var typeStart = map[token.Type]bool{
-	token.INT:    true,
-	token.BOOL:   true,
-	token.STRING: true,
-	token.LBRACK: true, // Array
-	token.LPAREN: true, // Func
-}
-
 var unescape = map[rune]rune{
 	'a':  '\a',
 	'b':  '\b',

@@ -1,6 +1,6 @@
 let x = 10;
 
-let add_x = (n int) int {
+let add_x = (n: int) -> int {
   return n + x;
 };
 

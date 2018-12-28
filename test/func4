@@ -1,8 +1,8 @@
-let sum = (a int, b int, c int, d int, e int, f int) int {
+let sum = (a: int, b: int, c: int, d: int, e: int, f: int) -> int {
   return a + b + c + d + e + f;
 };
 
-let sqr = (a int) int {
+let sqr = (a: int) -> int {
   return a * a;
 };
 

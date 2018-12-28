@@ -107,9 +107,9 @@ try "if true { if false { 10; } else { 20; } } else { 30; }" 20
 try "if false { if false { 10; } else { 20; } } else { 30; }" 30
 try "if false { 10; } else if false { 20; } else { 30; }" 30
 
-try "let x int = 3 + 4; x;" 7
-try "let x int = 10; { let x int = 20; x; }" 20
-try "let x int = 10; { let x int = 20; } x;" 10
+try "let x: int = 3 + 4; x;" 7
+try "let x: int = 10; { let x: int = 20; x; }" 20
+try "let x: int = 10; { let x: int = 20; } x;" 10
 
 try "let x = 2; x = x * 2; x = x * 2; x;" 8
 try "let x = false; x = x || true; x;" 1

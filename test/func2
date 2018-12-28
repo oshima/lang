@@ -1,4 +1,4 @@
-let lor = (a bool, b bool) bool {
+let lor = (a: bool, b: bool) -> bool {
   return a || b;
 };
 

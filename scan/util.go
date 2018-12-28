@@ -14,6 +14,7 @@ var punctuations = map[rune]token.Type{
 	'/': token.SLASH,
 	'%': token.PERCENT,
 	',': token.COMMA,
+	':': token.COLON,
 	';': token.SEMICOLON,
 }
 

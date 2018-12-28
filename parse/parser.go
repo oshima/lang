@@ -37,23 +37,27 @@ func (p *parser) expect(ty token.Type) {
 }
 
 func (p *parser) parseType() types.Type {
+	var ty types.Type
+
 	switch p.tk.Type {
 	case token.INT:
 		p.next()
-		return &types.Int{}
+		ty = &types.Int{}
 	case token.BOOL:
 		p.next()
-		return &types.Bool{}
+		ty = &types.Bool{}
 	case token.STRING:
 		p.next()
-		return &types.String{}
+		ty = &types.String{}
 	case token.LBRACK:
-		return p.parseArray()
+		ty = p.parseArray()
 	case token.LPAREN:
-		return p.parseFunc()
+		ty = p.parseFunc()
 	default:
-		return nil
+		util.Error("Unexpected %s", p.tk.Type)
 	}
+
+	return ty
 }
 
 func (p *parser) parseArray() *types.Array {
@@ -70,9 +74,6 @@ func (p *parser) parseArray() *types.Array {
 	p.expect(token.RBRACK)
 	p.next()
 	elemType := p.parseType()
-	if elemType == nil {
-		util.Error("Expected type but got %s", p.tk.Literal)
-	}
 	return &types.Array{Len: len, ElemType: elemType}
 }
 
@@ -91,7 +92,14 @@ func (p *parser) parseFunc() *types.Func {
 		}
 	}
 	p.next()
-	returnType := p.parseType()
+	p.expect(token.ARROW)
+	p.next()
+	var returnType types.Type
+	if p.tk.Type == token.BANG {
+		p.next()
+	} else {
+		returnType = p.parseType()
+	}
 	return &types.Func{ParamTypes: paramTypes, ReturnType: returnType}
 }
 
@@ -133,7 +141,11 @@ func (p *parser) parseLetStmt() *ast.LetStmt {
 	p.next()
 	p.expect(token.IDENT)
 	ident := p.parseIdent()
-	varType := p.parseType()
+	var varType types.Type
+	if p.tk.Type == token.COLON {
+		p.next()
+		varType = p.parseType()
+	}
 	p.expect(token.ASSIGN)
 	p.next()
 	value := p.parseExpr(LOWEST)
@@ -386,9 +398,6 @@ func (p *parser) parseArrayLit() *ast.ArrayLit {
 	p.expect(token.RBRACK)
 	p.next()
 	elemType := p.parseType()
-	if elemType == nil {
-		util.Error("Expected type but got %s", p.tk.Type)
-	}
 	p.expect(token.LBRACE)
 	p.next()
 	elems := make([]ast.Expr, 0, 8)
@@ -412,22 +421,31 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	// must be a FuncLit with no parameters
 	if p.tk.Type == token.RPAREN {
 		p.next()
-		returnType := p.parseType()
+		p.expect(token.ARROW)
+		p.next()
+		var returnType types.Type
+		switch p.tk.Type {
+		case token.LBRACE:
+			// ok
+		case token.BANG:
+			p.next()
+		default:
+			returnType = p.parseType()
+		}
 		p.expect(token.LBRACE)
 		body := p.parseBlockStmt()
 		return &ast.FuncLit{ReturnType: returnType, Body: body}
 	}
-	// PATTERN: (ident type ...
+	// PATTERN: (ident: ...
 	// must be a FuncLit with parameters
-	if _, ok := typeStart[p.peekTk().Type]; ok && p.tk.Type == token.IDENT {
+	if p.tk.Type == token.IDENT && p.peekTk().Type == token.COLON {
 		params := make([]*ast.LetStmt, 0, 4)
 		for p.tk.Type != token.RPAREN {
 			p.expect(token.IDENT)
 			ident := p.parseIdent()
+			p.expect(token.COLON)
+			p.next()
 			varType := p.parseType()
-			if varType == nil {
-				util.Error("Expected type but got %s", p.tk.Type)
-			}
 			params = append(params, &ast.LetStmt{Ident: ident, VarType: varType})
 			switch p.tk.Type {
 			case token.COMMA:
@@ -439,7 +457,17 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 			}
 		}
 		p.next()
-		returnType := p.parseType()
+		p.expect(token.ARROW)
+		p.next()
+		var returnType types.Type
+		switch p.tk.Type {
+		case token.LBRACE:
+			// ok
+		case token.BANG:
+			p.next()
+		default:
+			returnType = p.parseType()
+		}
 		p.expect(token.LBRACE)
 		body := p.parseBlockStmt()
 		return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}

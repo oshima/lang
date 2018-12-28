@@ -55,9 +55,9 @@ func (f *Func) String() string {
 		params = append(params, ty.String())
 	}
 	if f.ReturnType == nil {
-		return fmt.Sprintf("(%s)", strings.Join(params, ", "))
+		return fmt.Sprintf("(%s) -> !", strings.Join(params, ", "))
 	} else {
-		return fmt.Sprintf("(%s) %s", strings.Join(params, ", "), f.ReturnType)
+		return fmt.Sprintf("(%s) -> %s", strings.Join(params, ", "), f.ReturnType)
 	}
 
 }

@@ -53,12 +53,12 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch s.ch {
-	case '(', ')', '[', ']', '{', '}', '+', '*', '/', '%', ',', ';':
+	case '(', ')', '[', ']', '{', '}', '+', '*', '/', '%', ',', ':', ';':
 		tk = s.readPunct()
 	case '!':
 		tk = s.readBangOrNotEqual()
 	case '-':
-		tk = s.readMinusOrNegativeNumber()
+		tk = s.readMinusOrArrowOrNegativeNumber()
 	case '=':
 		tk = s.readAssignOrEqual()
 	case '<':
@@ -101,8 +101,14 @@ func (s *scanner) readBangOrNotEqual() *token.Token {
 	return &token.Token{Type: token.BANG, Literal: "!"}
 }
 
-func (s *scanner) readMinusOrNegativeNumber() *token.Token {
-	if !isDigit(s.peekCh()) {
+func (s *scanner) readMinusOrArrowOrNegativeNumber() *token.Token {
+	nextCh := s.peekCh()
+	if nextCh == '>' {
+		s.next()
+		s.next()
+		return &token.Token{Type: token.ARROW, Literal: "->"}
+	}
+	if !isDigit(nextCh) {
 		s.next()
 		return &token.Token{Type: token.MINUS, Literal: "-"}
 	}
