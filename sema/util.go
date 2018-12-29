@@ -25,8 +25,8 @@ func returnableBlockStmt(stmt *ast.BlockStmt) bool {
 }
 
 func returnableIfStmt(stmt *ast.IfStmt) bool {
-	if stmt.Altern == nil {
+	if stmt.Else == nil {
 		return false
 	}
-	return returnableBlockStmt(stmt.Conseq) && returnableStmt(stmt.Altern)
+	return returnableBlockStmt(stmt.Body) && returnableStmt(stmt.Else)
 }

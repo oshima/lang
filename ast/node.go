@@ -37,20 +37,20 @@ func (prog *Program) astNode() {}
  Statement nodes
 */
 
+type BlockStmt struct {
+	Stmts []Stmt
+}
+
 type LetStmt struct {
 	Ident   *Ident
 	VarType types.Type
 	Value   Expr
 }
 
-type BlockStmt struct {
-	Stmts []Stmt
-}
-
 type IfStmt struct {
-	Cond   Expr
-	Conseq *BlockStmt
-	Altern Stmt // *BlockStmt or *IfStmt
+	Cond Expr
+	Body *BlockStmt
+	Else Stmt // *BlockStmt or *IfStmt
 }
 
 type ForStmt struct {
@@ -58,16 +58,16 @@ type ForStmt struct {
 	Body *BlockStmt
 }
 
-type ReturnStmt struct {
-	Value Expr
-}
-
 type ContinueStmt struct {
-	dummy byte
+	_ byte
 }
 
 type BreakStmt struct {
-	dummy byte
+	_ byte
+}
+
+type ReturnStmt struct {
+	Value Expr
 }
 
 type AssignStmt struct {
@@ -79,20 +79,20 @@ type ExprStmt struct {
 	Expr Expr
 }
 
-func (stmt *LetStmt) astNode()       {}
-func (stmt *LetStmt) stmtNode()      {}
 func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
+func (stmt *LetStmt) astNode()       {}
+func (stmt *LetStmt) stmtNode()      {}
 func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
 func (stmt *ForStmt) astNode()       {}
 func (stmt *ForStmt) stmtNode()      {}
-func (stmt *ReturnStmt) astNode()    {}
-func (stmt *ReturnStmt) stmtNode()   {}
 func (stmt *ContinueStmt) astNode()  {}
 func (stmt *ContinueStmt) stmtNode() {}
 func (stmt *BreakStmt) astNode()     {}
 func (stmt *BreakStmt) stmtNode()    {}
+func (stmt *ReturnStmt) astNode()    {}
+func (stmt *ReturnStmt) stmtNode()   {}
 func (stmt *AssignStmt) astNode()    {}
 func (stmt *AssignStmt) stmtNode()   {}
 func (stmt *ExprStmt) astNode()      {}
@@ -108,8 +108,8 @@ type PrefixExpr struct {
 }
 
 type InfixExpr struct {
-	Left  Expr
 	Op    string
+	Left  Expr
 	Right Expr
 }
 

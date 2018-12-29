@@ -116,18 +116,18 @@ try "let x = false; x = x || true; x;" 1
 try "let x = 10; { let x = 20; x = x + 10; x; }" 30
 try "let x = 10; { let x = 20; x = x + 10; } x;" 10
 
-try-file ./test/for1 55
-try-file ./test/for2 55
-try-file ./test/for3 225
+try-file ./test/for1.lg 55
+try-file ./test/for2.lg 55
+try-file ./test/for3.lg 225
 
-try-file ./test/func1 40
-try-file ./test/func2 true
-try-file ./test/func3 15
-try-file ./test/func4 91
-try-file ./test/func5 "-55, 385, 110"
-try-file ./test/func-fib 102334155
+try-file ./test/func1.lg 40
+try-file ./test/func2.lg true
+try-file ./test/func3.lg 15
+try-file ./test/func4.lg 91
+try-file ./test/func5.lg "-55, 385, 110"
+try-file ./test/func-fib.lg 102334155
 
-try-file ./test/array1 ok
-try-file ./test/array2 ok
+try-file ./test/array1.lg ok
+try-file ./test/array2.lg ok
 
 echo OK

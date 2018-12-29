@@ -23,14 +23,14 @@ func (t *typechecker) typecheckProgram(prog *ast.Program) {
 
 func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
+	case *ast.BlockStmt:
+		t.typecheckBlockStmt(v)
 	case *ast.LetStmt:
 		if _, ok := v.Value.(*ast.FuncLit); ok {
 			t.typecheckLetStmtWithFuncLit(v)
 		} else {
 			t.typecheckLetStmt(v)
 		}
-	case *ast.BlockStmt:
-		t.typecheckBlockStmt(v)
 	case *ast.IfStmt:
 		t.typecheckIfStmt(v)
 	case *ast.ForStmt:
@@ -41,6 +41,12 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 		t.typecheckAssignStmt(v)
 	case *ast.ExprStmt:
 		t.typecheckExprStmt(v)
+	}
+}
+
+func (t *typechecker) typecheckBlockStmt(stmt *ast.BlockStmt) {
+	for _, stmt_ := range stmt.Stmts {
+		t.typecheckStmt(stmt_)
 	}
 }
 
@@ -88,12 +94,6 @@ func (t *typechecker) typecheckLetStmtWithFuncLit(stmt *ast.LetStmt) {
 	t.typecheckBlockStmt(value.Body)
 }
 
-func (t *typechecker) typecheckBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		t.typecheckStmt(stmt_)
-	}
-}
-
 func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 	t.typecheckExpr(stmt.Cond)
 	ty := t.types[stmt.Cond]
@@ -102,10 +102,10 @@ func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 		util.Error("Expected bool value for if condition, but got %s", ty)
 	}
 
-	t.typecheckBlockStmt(stmt.Conseq)
+	t.typecheckBlockStmt(stmt.Body)
 
-	if stmt.Altern != nil {
-		t.typecheckStmt(stmt.Altern)
+	if stmt.Else != nil {
+		t.typecheckStmt(stmt.Else)
 	}
 }
 

@@ -95,10 +95,10 @@ func (e *emitter) emitFuncCode(expr *ast.FuncLit) {
 
 func (e *emitter) emitStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
-	case *ast.LetStmt:
-		e.emitLetStmt(v)
 	case *ast.BlockStmt:
 		e.emitBlockStmt(v)
+	case *ast.LetStmt:
+		e.emitLetStmt(v)
 	case *ast.IfStmt:
 		e.emitIfStmt(v)
 	case *ast.ForStmt:
@@ -113,6 +113,12 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 		e.emitAssignStmt(v)
 	case *ast.ExprStmt:
 		e.emitExprStmt(v)
+	}
+}
+
+func (e *emitter) emitBlockStmt(stmt *ast.BlockStmt) {
+	for _, stmt_ := range stmt.Stmts {
+		e.emitStmt(stmt_)
 	}
 }
 
@@ -137,31 +143,25 @@ func (e *emitter) emitLetStmt(stmt *ast.LetStmt) {
 	}
 }
 
-func (e *emitter) emitBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		e.emitStmt(stmt_)
-	}
-}
-
 func (e *emitter) emitIfStmt(stmt *ast.IfStmt) {
 	branch := e.branches[stmt]
 
 	e.emitExpr(stmt.Cond)
 	e.emit("cmp rax, 0")
 
-	if stmt.Altern == nil {
+	if stmt.Else == nil {
 		endLabel := branch.labels[0]
 		e.emit("je %s", endLabel)
-		e.emitBlockStmt(stmt.Conseq)
+		e.emitBlockStmt(stmt.Body)
 		e.emitLabel(endLabel)
 	} else {
 		altLabel := branch.labels[0]
 		endLabel := branch.labels[1]
 		e.emit("je %s", altLabel)
-		e.emitBlockStmt(stmt.Conseq)
+		e.emitBlockStmt(stmt.Body)
 		e.emit("jmp %s", endLabel)
 		e.emitLabel(altLabel)
-		e.emitStmt(stmt.Altern)
+		e.emitStmt(stmt.Else)
 		e.emitLabel(endLabel)
 	}
 }
@@ -180,17 +180,6 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	e.emitLabel(endLabel)
 }
 
-func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
-	ref := e.refs[stmt].(*ast.FuncLit)
-	branch := e.branches[ref]
-	endLabel := branch.labels[0]
-
-	if stmt.Value != nil {
-		e.emitExpr(stmt.Value)
-	}
-	e.emit("jmp %s", endLabel)
-}
-
 func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 	ref := e.refs[stmt].(*ast.ForStmt)
 	branch := e.branches[ref]
@@ -204,6 +193,17 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 	branch := e.branches[ref]
 	endLabel := branch.labels[1]
 
+	e.emit("jmp %s", endLabel)
+}
+
+func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
+	ref := e.refs[stmt].(*ast.FuncLit)
+	branch := e.branches[ref]
+	endLabel := branch.labels[0]
+
+	if stmt.Value != nil {
+		e.emitExpr(stmt.Value)
+	}
 	e.emit("jmp %s", endLabel)
 }
 
@@ -340,8 +340,8 @@ func (e *emitter) emitCallExpr(expr *ast.CallExpr) {
 		e.emitExpr(param)
 		e.emit("push rax")
 	}
-	for i, _ := range expr.Params {
-		j := len(expr.Params) - i - 1
+	for i := range expr.Params {
+		j := len(expr.Params) - 1 - i
 		e.emit("pop %s", paramRegs[8][j])
 	}
 	e.emitExpr(expr.Left)
@@ -353,8 +353,8 @@ func (e *emitter) emitLibcallExpr(expr *ast.LibcallExpr) {
 		e.emitExpr(param)
 		e.emit("push rax")
 	}
-	for i, _ := range expr.Params {
-		j := len(expr.Params) - i - 1
+	for i := range expr.Params {
+		j := len(expr.Params) - 1 - i
 		e.emit("pop %s", paramRegs[8][j])
 	}
 	e.emit("call %s", expr.Ident.Name)

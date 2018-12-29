@@ -113,20 +113,20 @@ func (p *parser) parseProgram() *ast.Program {
 
 func (p *parser) parseStmt() ast.Stmt {
 	switch p.tk.Type {
-	case token.LET:
-		return p.parseLetStmt()
 	case token.LBRACE:
 		return p.parseBlockStmt()
+	case token.LET:
+		return p.parseLetStmt()
 	case token.IF:
 		return p.parseIfStmt()
 	case token.FOR:
 		return p.parseForStmt()
-	case token.RETURN:
-		return p.parseReturnStmt()
 	case token.CONTINUE:
 		return p.parseContinueStmt()
 	case token.BREAK:
 		return p.parseBreakStmt()
+	case token.RETURN:
+		return p.parseReturnStmt()
 	default:
 		expr := p.parseExpr(LOWEST)
 		if p.tk.Type == token.ASSIGN {
@@ -135,6 +135,16 @@ func (p *parser) parseStmt() ast.Stmt {
 			return p.parseExprStmt(expr)
 		}
 	}
+}
+
+func (p *parser) parseBlockStmt() *ast.BlockStmt {
+	p.next()
+	stmts := make([]ast.Stmt, 0, 8)
+	for p.tk.Type != token.RBRACE {
+		stmts = append(stmts, p.parseStmt())
+	}
+	p.next()
+	return &ast.BlockStmt{Stmts: stmts}
 }
 
 func (p *parser) parseLetStmt() *ast.LetStmt {
@@ -154,35 +164,25 @@ func (p *parser) parseLetStmt() *ast.LetStmt {
 	return &ast.LetStmt{Ident: ident, VarType: varType, Value: value}
 }
 
-func (p *parser) parseBlockStmt() *ast.BlockStmt {
-	p.next()
-	stmts := make([]ast.Stmt, 0, 8)
-	for p.tk.Type != token.RBRACE {
-		stmts = append(stmts, p.parseStmt())
-	}
-	p.next()
-	return &ast.BlockStmt{Stmts: stmts}
-}
-
 func (p *parser) parseIfStmt() *ast.IfStmt {
 	p.next()
 	cond := p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
-	conseq := p.parseBlockStmt()
+	body := p.parseBlockStmt()
 	if p.tk.Type != token.ELSE {
-		return &ast.IfStmt{Cond: cond, Conseq: conseq}
+		return &ast.IfStmt{Cond: cond, Body: body}
 	}
 	p.next()
-	var altern ast.Stmt
+	var els ast.Stmt
 	switch p.tk.Type {
 	case token.LBRACE:
-		altern = p.parseBlockStmt()
+		els = p.parseBlockStmt()
 	case token.IF:
-		altern = p.parseIfStmt()
+		els = p.parseIfStmt()
 	default:
 		util.Error("Expected { or if but got %s", p.tk.Type)
 	}
-	return &ast.IfStmt{Cond: cond, Conseq: conseq, Altern: altern}
+	return &ast.IfStmt{Cond: cond, Body: body, Else: els}
 }
 
 func (p *parser) parseForStmt() *ast.ForStmt {
@@ -191,18 +191,6 @@ func (p *parser) parseForStmt() *ast.ForStmt {
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.ForStmt{Cond: cond, Body: body}
-}
-
-func (p *parser) parseReturnStmt() *ast.ReturnStmt {
-	p.next()
-	if p.tk.Type == token.SEMICOLON {
-		p.next()
-		return &ast.ReturnStmt{}
-	}
-	value := p.parseExpr(LOWEST)
-	p.expect(token.SEMICOLON)
-	p.next()
-	return &ast.ReturnStmt{Value: value}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
@@ -217,6 +205,18 @@ func (p *parser) parseBreakStmt() *ast.BreakStmt {
 	p.expect(token.SEMICOLON)
 	p.next()
 	return &ast.BreakStmt{}
+}
+
+func (p *parser) parseReturnStmt() *ast.ReturnStmt {
+	p.next()
+	if p.tk.Type == token.SEMICOLON {
+		p.next()
+		return &ast.ReturnStmt{}
+	}
+	value := p.parseExpr(LOWEST)
+	p.expect(token.SEMICOLON)
+	p.next()
+	return &ast.ReturnStmt{Value: value}
 }
 
 func (p *parser) parseAssignStmt(target ast.Expr) *ast.AssignStmt {
@@ -293,7 +293,7 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	prec := p.lookPrec()
 	p.next()
 	right := p.parseExpr(prec)
-	return &ast.InfixExpr{Left: left, Op: op, Right: right}
+	return &ast.InfixExpr{Op: op, Left: left, Right: right}
 }
 
 func (p *parser) parseIndexExpr(left ast.Expr) *ast.IndexExpr {

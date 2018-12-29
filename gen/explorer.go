@@ -105,10 +105,10 @@ func (x *explorer) exploreProgram(node *ast.Program) {
 
 func (x *explorer) exploreStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
-	case *ast.LetStmt:
-		x.exploreLetStmt(v)
 	case *ast.BlockStmt:
 		x.exploreBlockStmt(v)
+	case *ast.LetStmt:
+		x.exploreLetStmt(v)
 	case *ast.IfStmt:
 		x.exploreIfStmt(v)
 	case *ast.ForStmt:
@@ -119,6 +119,12 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 		x.exploreAssignStmt(v)
 	case *ast.ExprStmt:
 		x.exploreExprStmt(v)
+	}
+}
+
+func (x *explorer) exploreBlockStmt(stmt *ast.BlockStmt) {
+	for _, stmt_ := range stmt.Stmts {
+		x.exploreStmt(stmt_)
 	}
 }
 
@@ -136,22 +142,16 @@ func (x *explorer) exploreLetStmt(stmt *ast.LetStmt) {
 	}
 }
 
-func (x *explorer) exploreBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		x.exploreStmt(stmt_)
-	}
-}
-
 func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 	x.exploreExpr(stmt.Cond)
-	x.exploreBlockStmt(stmt.Conseq)
+	x.exploreBlockStmt(stmt.Body)
 
-	if stmt.Altern == nil {
+	if stmt.Else == nil {
 		endLabel := x.branchLabel()
 		x.branches[stmt] = &branch{labels: []string{endLabel}}
 	} else {
 		altLabel := x.branchLabel()
-		x.exploreStmt(stmt.Altern)
+		x.exploreStmt(stmt.Else)
 		endLabel := x.branchLabel()
 		x.branches[stmt] = &branch{labels: []string{altLabel, endLabel}}
 	}

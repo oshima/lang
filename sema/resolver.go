@@ -54,28 +54,34 @@ func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 
 func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	switch v := stmt.(type) {
+	case *ast.BlockStmt:
+		r.resolveBlockStmt(v, newEnv(e))
 	case *ast.LetStmt:
 		if _, ok := v.Value.(*ast.FuncLit); ok {
 			r.resolveLetStmtWithFuncLit(v, e)
 		} else {
 			r.resolveLetStmt(v, e)
 		}
-	case *ast.BlockStmt:
-		r.resolveBlockStmt(v, newEnv(e))
 	case *ast.IfStmt:
 		r.resolveIfStmt(v, e)
 	case *ast.ForStmt:
 		r.resolveForStmt(v, e)
-	case *ast.ReturnStmt:
-		r.resolveReturnStmt(v, e)
 	case *ast.ContinueStmt:
 		r.resolveContinueStmt(v, e)
 	case *ast.BreakStmt:
 		r.resolveBreakStmt(v, e)
+	case *ast.ReturnStmt:
+		r.resolveReturnStmt(v, e)
 	case *ast.AssignStmt:
 		r.resolveAssignStmt(v, e)
 	case *ast.ExprStmt:
 		r.resolveExprStmt(v, e)
+	}
+}
+
+func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
+	for _, stmt_ := range stmt.Stmts {
+		r.resolveStmt(stmt_, e)
 	}
 }
 
@@ -98,18 +104,12 @@ func (r *resolver) resolveLetStmtWithFuncLit(stmt *ast.LetStmt, e *env) {
 	r.resolveFuncLit(stmt.Value.(*ast.FuncLit), e)
 }
 
-func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
-	for _, stmt_ := range stmt.Stmts {
-		r.resolveStmt(stmt_, e)
-	}
-}
-
 func (r *resolver) resolveIfStmt(stmt *ast.IfStmt, e *env) {
 	r.resolveExpr(stmt.Cond, e)
-	r.resolveBlockStmt(stmt.Conseq, newEnv(e))
+	r.resolveBlockStmt(stmt.Body, newEnv(e))
 
-	if stmt.Altern != nil {
-		r.resolveStmt(stmt.Altern, e)
+	if stmt.Else != nil {
+		r.resolveStmt(stmt.Else, e)
 	}
 }
 
@@ -121,18 +121,6 @@ func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 	e_.set("break", stmt)
 
 	r.resolveBlockStmt(stmt.Body, e_)
-}
-
-func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
-	if stmt.Value != nil {
-		r.resolveExpr(stmt.Value, e)
-	}
-
-	ref, ok := e.get("return")
-	if !ok {
-		util.Error("Illegal use of return")
-	}
-	r.refs[stmt] = ref
 }
 
 func (r *resolver) resolveContinueStmt(stmt *ast.ContinueStmt, e *env) {
@@ -147,6 +135,18 @@ func (r *resolver) resolveBreakStmt(stmt *ast.BreakStmt, e *env) {
 	ref, ok := e.get("break")
 	if !ok {
 		util.Error("Illegal use of break")
+	}
+	r.refs[stmt] = ref
+}
+
+func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
+	if stmt.Value != nil {
+		r.resolveExpr(stmt.Value, e)
+	}
+
+	ref, ok := e.get("return")
+	if !ok {
+		util.Error("Illegal use of return")
 	}
 	r.refs[stmt] = ref
 }
