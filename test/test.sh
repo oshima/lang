@@ -112,9 +112,10 @@ try "let x: int = 10; { let x: int = 20; x; }" 20
 try "let x: int = 10; { let x: int = 20; } x;" 10
 
 try "let x = 2; x = x * 2; x = x * 2; x;" 8
-try "let x = false; x = x || true; x;" 1
 try "let x = 10; { let x = 20; x = x + 10; x; }" 30
 try "let x = 10; { let x = 20; x = x + 10; } x;" 10
+try "let x, y = 1, 2; x, y = y, x; x;" 2
+try "let x, y = 1, 2; x, y = y, x; y;" 1
 
 try-file ./test/for1.lg 55
 try-file ./test/for2.lg 55

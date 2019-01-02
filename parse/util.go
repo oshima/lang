@@ -44,7 +44,7 @@ var unescape = map[rune]rune{
 	'\\': '\\',
 }
 
-var libfuncs = map[string]bool{
+var libFuncs = map[string]bool{
 	"puts":   true,
 	"printf": true,
 }

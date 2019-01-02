@@ -1,6 +1,5 @@
 let sum = (f: (int) -> int) -> int {
-  let sum = 0;
-  let n = 1;
+  let n, sum = 1, 0;
   for n <= 10 {
     sum = sum + f(n);
     n = n + 1;

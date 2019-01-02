@@ -6,25 +6,31 @@ import "github.com/oshjma/lang/types"
  Interfaces
 */
 
-// for all AST nodes
+// All AST nodes implement Node
 type Node interface {
 	astNode()
 }
 
-// for statement nodes
+// All statement nodes implement Stmt
 type Stmt interface {
 	Node
 	stmtNode()
 }
 
-// for expression nodes
+// All declaration nodes implement Decl
+type Decl interface {
+	Node
+	declNode()
+}
+
+// All expression nodes implement Expr
 type Expr interface {
 	Node
 	exprNode()
 }
 
 /*
- Root node
+ Program (root node)
 */
 
 type Program struct {
@@ -42,9 +48,8 @@ type BlockStmt struct {
 }
 
 type LetStmt struct {
-	Ident   *Ident
-	VarType types.Type
-	Value   Expr
+	Vars   []*VarDecl
+	Values []Expr
 }
 
 type IfStmt struct {
@@ -71,8 +76,8 @@ type ReturnStmt struct {
 }
 
 type AssignStmt struct {
-	Target Expr // *Ident or *IndexExpr
-	Value  Expr
+	Targets []Expr // consist of *VarRef or *IndexExpr
+	Values  []Expr
 }
 
 type ExprStmt struct {
@@ -99,6 +104,18 @@ func (stmt *ExprStmt) astNode()      {}
 func (stmt *ExprStmt) stmtNode()     {}
 
 /*
+ Declaration nodes
+*/
+
+type VarDecl struct {
+	Ident   string
+	VarType types.Type
+}
+
+func (decl *VarDecl) astNode()  {}
+func (decl *VarDecl) declNode() {}
+
+/*
  Expression nodes
 */
 
@@ -123,13 +140,13 @@ type CallExpr struct {
 	Params []Expr
 }
 
-type LibcallExpr struct {
-	Ident  *Ident
+type LibCallExpr struct {
+	Ident  string
 	Params []Expr
 }
 
-type Ident struct {
-	Name string
+type VarRef struct {
+	Ident string
 }
 
 type IntLit struct {
@@ -151,7 +168,7 @@ type ArrayLit struct {
 }
 
 type FuncLit struct {
-	Params     []*LetStmt
+	Params     []*VarDecl
 	ReturnType types.Type
 	Body       *BlockStmt
 }
@@ -164,10 +181,10 @@ func (expr *IndexExpr) astNode()    {}
 func (expr *IndexExpr) exprNode()   {}
 func (expr *CallExpr) astNode()     {}
 func (expr *CallExpr) exprNode()    {}
-func (expr *LibcallExpr) astNode()  {}
-func (expr *LibcallExpr) exprNode() {}
-func (expr *Ident) astNode()        {}
-func (expr *Ident) exprNode()       {}
+func (expr *LibCallExpr) astNode()  {}
+func (expr *LibCallExpr) exprNode() {}
+func (expr *VarRef) astNode()       {}
+func (expr *VarRef) exprNode()      {}
 func (expr *IntLit) astNode()       {}
 func (expr *IntLit) exprNode()      {}
 func (expr *BoolLit) astNode()      {}

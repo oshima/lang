@@ -28,10 +28,11 @@ func (s *scanner) peekCh() rune {
 	return 0
 }
 
-func (s *scanner) expect(ch rune) {
+func (s *scanner) consume(ch rune) {
 	if s.ch != ch {
 		util.Error("Expected %c but got %c", ch, s.ch)
 	}
+	s.next()
 }
 
 func (s *scanner) skipWs() {
@@ -151,15 +152,13 @@ func (s *scanner) readGreaterOrGreaterEqual() *token.Token {
 
 func (s *scanner) readAnd() *token.Token {
 	s.next()
-	s.expect('&')
-	s.next()
+	s.consume('&')
 	return &token.Token{Type: token.AND, Literal: "&&"}
 }
 
 func (s *scanner) readOr() *token.Token {
 	s.next()
-	s.expect('|')
-	s.next()
+	s.consume('|')
 	return &token.Token{Type: token.OR, Literal: "||"}
 }
 

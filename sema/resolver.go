@@ -1,42 +1,9 @@
 package sema
 
 import (
-	"errors"
 	"github.com/oshjma/lang/ast"
 	"github.com/oshjma/lang/util"
 )
-
-/*
- Environment - create the scope of name bindings
-*/
-
-type env struct {
-	store map[string]ast.Node
-	outer *env
-}
-
-func newEnv(outer *env) *env {
-	return &env{
-		store: make(map[string]ast.Node),
-		outer: outer,
-	}
-}
-
-func (e *env) set(name string, node ast.Node) error {
-	if _, ok := e.store[name]; ok {
-		return errors.New("Duplicate entries")
-	}
-	e.store[name] = node
-	return nil
-}
-
-func (e *env) get(name string) (ast.Node, bool) {
-	node, ok := e.store[name]
-	if !ok && e.outer != nil {
-		node, ok = e.outer.get(name)
-	}
-	return node, ok
-}
 
 /*
  Resolver - resolve references between AST nodes
@@ -46,22 +13,22 @@ type resolver struct {
 	refs map[ast.Node]ast.Node
 }
 
+/* Program */
+
 func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 	for _, stmt := range prog.Stmts {
 		r.resolveStmt(stmt, e)
 	}
 }
 
+/* Stmt */
+
 func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:
 		r.resolveBlockStmt(v, newEnv(e))
 	case *ast.LetStmt:
-		if _, ok := v.Value.(*ast.FuncLit); ok {
-			r.resolveLetStmtWithFuncLit(v, e)
-		} else {
-			r.resolveLetStmt(v, e)
-		}
+		r.resolveLetStmt(v, e)
 	case *ast.IfStmt:
 		r.resolveIfStmt(v, e)
 	case *ast.ForStmt:
@@ -86,22 +53,19 @@ func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
 }
 
 func (r *resolver) resolveLetStmt(stmt *ast.LetStmt, e *env) {
-	if stmt.Value != nil {
-		r.resolveExpr(stmt.Value, e)
+	for i, value := range stmt.Values {
+		var_ := stmt.Vars[i]
+		if fn, ok := value.(*ast.FuncLit); ok {
+			e_ := newEnv(e)
+			r.resolveVarDecl(var_, e_)
+			r.resolveFuncLit(fn, e_)
+		} else {
+			r.resolveExpr(value, e)
+		}
 	}
-	err := e.set(stmt.Ident.Name, stmt)
-	if err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
+	for _, var_ := range stmt.Vars {
+		r.resolveVarDecl(var_, e)
 	}
-}
-
-func (r *resolver) resolveLetStmtWithFuncLit(stmt *ast.LetStmt, e *env) {
-	// register identifier name in advance to enable recursive calls in function
-	err := e.set(stmt.Ident.Name, stmt)
-	if err != nil {
-		util.Error("%s has already been declared", stmt.Ident.Name)
-	}
-	r.resolveFuncLit(stmt.Value.(*ast.FuncLit), e)
 }
 
 func (r *resolver) resolveIfStmt(stmt *ast.IfStmt, e *env) {
@@ -152,13 +116,28 @@ func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
 }
 
 func (r *resolver) resolveAssignStmt(stmt *ast.AssignStmt, e *env) {
-	r.resolveExpr(stmt.Target, e)
-	r.resolveExpr(stmt.Value, e)
+	for _, t := range stmt.Targets {
+		r.resolveExpr(t, e)
+	}
+	for _, v := range stmt.Values {
+		r.resolveExpr(v, e)
+	}
 }
 
 func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {
 	r.resolveExpr(stmt.Expr, e)
 }
+
+/* Decl */
+
+func (r *resolver) resolveVarDecl(decl *ast.VarDecl, e *env) {
+	err := e.set(decl.Ident, decl)
+	if err != nil {
+		util.Error("%s has already been declared", decl.Ident)
+	}
+}
+
+/* Expr */
 
 func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 	switch v := expr.(type) {
@@ -170,10 +149,10 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveIndexExpr(v, e)
 	case *ast.CallExpr:
 		r.resolveCallExpr(v, e)
-	case *ast.LibcallExpr:
-		r.resolveLibcallExpr(v, e)
-	case *ast.Ident:
-		r.resolveIdent(v, e)
+	case *ast.LibCallExpr:
+		r.resolveLibCallExpr(v, e)
+	case *ast.VarRef:
+		r.resolveVarRef(v, e)
 	case *ast.ArrayLit:
 		r.resolveArrayLit(v, e)
 	case *ast.FuncLit:
@@ -202,16 +181,16 @@ func (r *resolver) resolveCallExpr(expr *ast.CallExpr, e *env) {
 	}
 }
 
-func (r *resolver) resolveLibcallExpr(expr *ast.LibcallExpr, e *env) {
+func (r *resolver) resolveLibCallExpr(expr *ast.LibCallExpr, e *env) {
 	for _, param := range expr.Params {
 		r.resolveExpr(param, e)
 	}
 }
 
-func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
-	ref, ok := e.get(expr.Name)
+func (r *resolver) resolveVarRef(expr *ast.VarRef, e *env) {
+	ref, ok := e.get(expr.Ident)
 	if !ok {
-		util.Error("%s is not declared", expr.Name)
+		util.Error("%s is not declared", expr.Ident)
 	}
 	r.refs[expr] = ref
 }
@@ -234,7 +213,7 @@ func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {
 	e_.set("return", expr)
 
 	for _, param := range expr.Params {
-		r.resolveLetStmt(param, e_)
+		r.resolveVarDecl(param, e_)
 	}
 	r.resolveBlockStmt(expr.Body, e_)
 }
