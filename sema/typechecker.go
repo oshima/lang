@@ -62,6 +62,7 @@ func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
 			ty := &types.Func{ParamTypes: paramTypes, ReturnType: fn.ReturnType}
 
 			t.types[fn] = ty
+
 			if var_.VarType == nil {
 				var_.VarType = ty // type inference (write on AST node)
 			} else {
@@ -70,6 +71,7 @@ func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
 					util.Error(f, var_.VarType, var_.Ident, ty)
 				}
 			}
+
 			t.typecheckBlockStmt(fn.Body)
 		} else {
 			t.typecheckExpr(value)
@@ -77,7 +79,7 @@ func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
 
 			if var_.VarType == nil {
 				if ty == nil {
-					util.Error("No initial values for %s", var_.Ident)
+					util.Error("No initial value for %s", var_.Ident)
 				}
 				var_.VarType = ty // type inference (write on AST node)
 			} else {
@@ -280,19 +282,23 @@ func (t *typechecker) typecheckCallExpr(expr *ast.CallExpr) {
 	if !ok {
 		util.Error("Expected function to call, but got %s", ty)
 	}
+
 	if len(expr.Params) != len(fn.ParamTypes) {
 		f := "Wrong number of parameters (expected %d, given %d)"
 		util.Error(f, len(fn.ParamTypes), len(expr.Params))
 	}
 	for i, param := range expr.Params {
+		paramType := fn.ParamTypes[i]
+
 		t.typecheckExpr(param)
 		ty := t.types[param]
 
-		if !types.Same(ty, fn.ParamTypes[i]) {
+		if !types.Same(ty, paramType) {
 			f := "Expected %s value for #%d parameter, but got %s"
-			util.Error(f, fn.ParamTypes[i], i+1, ty)
+			util.Error(f, paramType, i+1, ty)
 		}
 	}
+
 	t.types[expr] = fn.ReturnType
 }
 
@@ -309,10 +315,6 @@ func (t *typechecker) typecheckVarRef(expr *ast.VarRef) {
 }
 
 func (t *typechecker) typecheckArrayLit(expr *ast.ArrayLit) {
-	if len(expr.Elems) > expr.Len {
-		f := "Too many elements for array (expected %d, given %d)"
-		util.Error(f, expr.Len, len(expr.Elems))
-	}
 	for _, elem := range expr.Elems {
 		t.typecheckExpr(elem)
 		ty := t.types[elem]

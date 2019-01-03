@@ -29,7 +29,7 @@ func sizeOf(ty types.Type) int {
 	case *types.Func:
 		return 8
 	default:
-		return 0 // unreachable here
+		return 0 // unreachable
 	}
 }
 

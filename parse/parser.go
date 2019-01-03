@@ -57,27 +57,24 @@ func (p *parser) consumeComma(terminator token.Type) {
 /* Type */
 
 func (p *parser) parseType() types.Type {
-	var ty types.Type
-
 	switch p.tk.Type {
 	case token.INT:
 		p.next()
-		ty = &types.Int{}
+		return &types.Int{}
 	case token.BOOL:
 		p.next()
-		ty = &types.Bool{}
+		return &types.Bool{}
 	case token.STRING:
 		p.next()
-		ty = &types.String{}
+		return &types.String{}
 	case token.LBRACK:
-		ty = p.parseArray()
+		return p.parseArray()
 	case token.LPAREN:
-		ty = p.parseFunc()
+		return p.parseFunc()
 	default:
 		util.Error("Unexpected %s", p.tk.Type)
+		return nil // unreachable
 	}
-
-	return ty
 }
 
 func (p *parser) parseArray() *types.Array {
@@ -88,7 +85,7 @@ func (p *parser) parseArray() *types.Array {
 		util.Error("Could not parse %s as integer", p.tk.Literal)
 	}
 	if len < 0 {
-		util.Error("Array's length must be non-negative")
+		util.Error("Array length must be non-negative")
 	}
 	p.next()
 	p.consume(token.RBRACK)
@@ -410,12 +407,12 @@ func (p *parser) parseStringLit() *ast.StringLit {
 func (p *parser) parseArrayLit() *ast.ArrayLit {
 	p.next()
 	p.expect(token.NUMBER)
-	len, err := strconv.Atoi(p.tk.Literal)
+	len_, err := strconv.Atoi(p.tk.Literal)
 	if err != nil {
 		util.Error("Could not parse %s as integer", p.tk.Literal)
 	}
-	if len < 0 {
-		util.Error("Array's length must be non-negative")
+	if len_ < 0 {
+		util.Error("Array length must be non-negative")
 	}
 	p.next()
 	p.consume(token.RBRACK)
@@ -426,8 +423,11 @@ func (p *parser) parseArrayLit() *ast.ArrayLit {
 		elems = append(elems, p.parseExpr(LOWEST))
 		p.consumeComma(token.RBRACE)
 	}
+	if len(elems) > len_ {
+		util.Error("Too many elements in array")
+	}
 	p.next()
-	return &ast.ArrayLit{Len: len, ElemType: elemType, Elems: elems}
+	return &ast.ArrayLit{Len: len_, ElemType: elemType, Elems: elems}
 }
 
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {

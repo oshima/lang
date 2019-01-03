@@ -97,11 +97,11 @@ func (x *explorer) exploreBlockStmt(stmt *ast.BlockStmt) {
 }
 
 func (x *explorer) exploreLetStmt(stmt *ast.LetStmt) {
-	for _, value := range stmt.Values {
-		x.exploreExpr(value)
-	}
 	for _, var_ := range stmt.Vars {
 		x.exploreVarDecl(var_)
+	}
+	for _, value := range stmt.Values {
+		x.exploreExpr(value)
 	}
 }
 

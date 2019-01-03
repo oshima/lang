@@ -55,6 +55,7 @@ func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
 func (r *resolver) resolveLetStmt(stmt *ast.LetStmt, e *env) {
 	for i, value := range stmt.Values {
 		var_ := stmt.Vars[i]
+
 		if fn, ok := value.(*ast.FuncLit); ok {
 			e_ := newEnv(e)
 			r.resolveVarDecl(var_, e_)
