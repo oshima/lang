@@ -20,6 +20,9 @@ func (p *parser) next() {
 }
 
 func (p *parser) peekTk() *token.Token {
+	if p.tk.Type == token.EOF {
+		util.Error("Unexpected EOF")
+	}
 	return p.tokens[p.pos+1]
 }
 
@@ -132,7 +135,7 @@ func (p *parser) parseStmt() ast.Stmt {
 	case token.IF:
 		return p.parseIfStmt()
 	case token.FOR:
-		return p.parseForStmt()
+		return p.parseForStmtOrForInStmt()
 	case token.CONTINUE:
 		return p.parseContinueStmt()
 	case token.BREAK:
@@ -201,12 +204,29 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Cond: cond, Body: body, Else: els}
 }
 
-func (p *parser) parseForStmt() *ast.ForStmt {
+func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
 	p.next()
-	cond := p.parseExpr(LOWEST)
+	ty := p.peekTk().Type
+	// ForStmt
+	if ty != token.COLON && ty != token.COMMA && ty != token.IN {
+		cond := p.parseExpr(LOWEST)
+		p.expect(token.LBRACE)
+		body := p.parseBlockStmt()
+		return &ast.ForStmt{Cond: cond, Body: body}
+	}
+	// ForInStmt
+	elem := p.parseVarDecl()
+	index := &ast.VarDecl{}
+	array := &ast.VarDecl{}
+	if p.tk.Type == token.COMMA {
+		p.next()
+		index = p.parseVarDecl()
+	}
+	p.consume(token.IN)
+	expr := p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
-	return &ast.ForStmt{Cond: cond, Body: body}
+	return &ast.ForInStmt{Elem: elem, Index: index, Array: array, Expr: expr, Body: body}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
@@ -432,30 +452,35 @@ func (p *parser) parseArrayLit() *ast.ArrayLit {
 
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	p.next()
-	// FuncLit
-	if p.tk.Type == token.RPAREN || p.tk.Type == token.IDENT && p.peekTk().Type == token.COLON {
-		params := make([]*ast.VarDecl, 0, 4)
-		for p.tk.Type != token.RPAREN {
-			params = append(params, p.parseVarDecl())
-			p.consumeComma(token.RPAREN)
-		}
-		p.next()
-		p.consume(token.ARROW)
-		var returnType types.Type
-		switch p.tk.Type {
-		case token.LBRACE:
-			// ok
-		case token.BANG:
-			p.next()
-		default:
-			returnType = p.parseType()
-		}
-		p.expect(token.LBRACE)
-		body := p.parseBlockStmt()
-		return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
-	}
 	// grouped expression
-	expr := p.parseExpr(LOWEST)
-	p.consume(token.RPAREN)
-	return expr
+	if p.tk.Type != token.RPAREN && p.peekTk().Type != token.COLON {
+		expr := p.parseExpr(LOWEST)
+		p.consume(token.RPAREN)
+		return expr
+	}
+	// FuncLit
+	params := make([]*ast.VarDecl, 0, 4)
+	for p.tk.Type != token.RPAREN {
+		params = append(params, p.parseVarDecl())
+		p.consumeComma(token.RPAREN)
+	}
+	for _, param := range params {
+		if param.VarType == nil {
+			util.Error("Parameter type must be annotated")
+		}
+	}
+	p.next()
+	p.consume(token.ARROW)
+	var returnType types.Type
+	switch p.tk.Type {
+	case token.LBRACE:
+		// ok
+	case token.BANG:
+		p.next()
+	default:
+		returnType = p.parseType()
+	}
+	p.expect(token.LBRACE)
+	body := p.parseBlockStmt()
+	return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
 }

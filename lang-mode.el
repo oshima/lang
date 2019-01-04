@@ -4,6 +4,7 @@
    "if"
    "else"
    "for"
+   "in"
    "continue"
    "break"
    "return"))

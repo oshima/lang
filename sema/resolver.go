@@ -33,6 +33,8 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 		r.resolveIfStmt(v, e)
 	case *ast.ForStmt:
 		r.resolveForStmt(v, e)
+	case *ast.ForInStmt:
+		r.resolveForInStmt(v, e)
 	case *ast.ContinueStmt:
 		r.resolveContinueStmt(v, e)
 	case *ast.BreakStmt:
@@ -88,6 +90,19 @@ func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 	r.resolveBlockStmt(stmt.Body, e_)
 }
 
+func (r *resolver) resolveForInStmt(stmt *ast.ForInStmt, e *env) {
+	r.resolveExpr(stmt.Expr, e)
+
+	e_ := newEnv(e)
+	e_.set("continue", stmt)
+	e_.set("break", stmt)
+
+	r.resolveVarDecl(stmt.Elem, e_)
+	r.resolveVarDecl(stmt.Index, e_)
+
+	r.resolveBlockStmt(stmt.Body, e_)
+}
+
 func (r *resolver) resolveContinueStmt(stmt *ast.ContinueStmt, e *env) {
 	ref, ok := e.get("continue")
 	if !ok {
@@ -132,6 +147,9 @@ func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {
 /* Decl */
 
 func (r *resolver) resolveVarDecl(decl *ast.VarDecl, e *env) {
+	if decl.Ident == "" {
+		return // don't register implicit variable
+	}
 	err := e.set(decl.Ident, decl)
 	if err != nil {
 		util.Error("%s has already been declared", decl.Ident)

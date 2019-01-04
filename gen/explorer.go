@@ -31,8 +31,8 @@ type explorer struct {
 	offset int
 }
 
-func (x *explorer) gvarLabel(name string) string {
-	label := fmt.Sprintf("gvar%d_%s", x.nGvarLabel, name)
+func (x *explorer) gvarLabel() string {
+	label := fmt.Sprintf("gvar%d", x.nGvarLabel)
 	x.nGvarLabel += 1
 	return label
 }
@@ -81,6 +81,8 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 		x.exploreIfStmt(v)
 	case *ast.ForStmt:
 		x.exploreForStmt(v)
+	case *ast.ForInStmt:
+		x.exploreForInStmt(v)
 	case *ast.ReturnStmt:
 		x.exploreReturnStmt(v)
 	case *ast.AssignStmt:
@@ -121,8 +123,19 @@ func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 }
 
 func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
-	beginLabel := x.branchLabel()
 	x.exploreExpr(stmt.Cond)
+	beginLabel := x.branchLabel()
+	x.exploreBlockStmt(stmt.Body)
+	endLabel := x.branchLabel()
+	x.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
+}
+
+func (x *explorer) exploreForInStmt(stmt *ast.ForInStmt) {
+	x.exploreVarDecl(stmt.Elem)
+	x.exploreVarDecl(stmt.Index)
+	x.exploreVarDecl(stmt.Array)
+	x.exploreExpr(stmt.Expr)
+	beginLabel := x.branchLabel()
 	x.exploreBlockStmt(stmt.Body)
 	endLabel := x.branchLabel()
 	x.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
@@ -155,7 +168,11 @@ func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
 		x.offset = align(x.offset+size, size)
 		x.lvars[decl] = &lvar{offset: x.offset, size: size}
 	} else {
-		x.gvars[decl] = &gvar{label: x.gvarLabel(decl.Ident), size: size}
+		label := x.gvarLabel()
+		if decl.Ident != "" {
+			label = label + "_" + decl.Ident
+		}
+		x.gvars[decl] = &gvar{label: label, size: size}
 	}
 }
 

@@ -63,6 +63,14 @@ type ForStmt struct {
 	Body *BlockStmt
 }
 
+type ForInStmt struct {
+	Elem  *VarDecl
+	Index *VarDecl
+	Array *VarDecl // implicit variable
+	Expr  Expr
+	Body  *BlockStmt
+}
+
 type ContinueStmt struct {
 	_ byte
 }
@@ -92,6 +100,8 @@ func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
 func (stmt *ForStmt) astNode()       {}
 func (stmt *ForStmt) stmtNode()      {}
+func (stmt *ForInStmt) astNode()     {}
+func (stmt *ForInStmt) stmtNode()    {}
 func (stmt *ContinueStmt) astNode()  {}
 func (stmt *ContinueStmt) stmtNode() {}
 func (stmt *BreakStmt) astNode()     {}

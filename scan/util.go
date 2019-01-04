@@ -23,6 +23,7 @@ var keywords = map[string]token.Type{
 	"if":       token.IF,
 	"else":     token.ELSE,
 	"for":      token.FOR,
+	"in":       token.IN,
 	"continue": token.CONTINUE,
 	"break":    token.BREAK,
 	"return":   token.RETURN,

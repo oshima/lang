@@ -1,0 +1,9 @@
+let local = () -> {
+  let sum, arr = 0, [5]int{5, 6, 7, 8, 9};
+  for n, i in arr {
+    sum = sum + n + i;
+  }
+  printf("%d\n", sum);
+};
+
+local();

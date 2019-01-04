@@ -35,6 +35,8 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 		t.typecheckIfStmt(v)
 	case *ast.ForStmt:
 		t.typecheckForStmt(v)
+	case *ast.ForInStmt:
+		t.typecheckForInStmt(v)
 	case *ast.ReturnStmt:
 		t.typecheckReturnStmt(v)
 	case *ast.AssignStmt:
@@ -118,6 +120,35 @@ func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 	if _, ok := ty.(*types.Bool); !ok {
 		util.Error("Expected bool value for while condition, but got %s", ty)
 	}
+
+	t.typecheckBlockStmt(stmt.Body)
+}
+
+func (t *typechecker) typecheckForInStmt(stmt *ast.ForInStmt) {
+	t.typecheckExpr(stmt.Expr)
+	ty := t.types[stmt.Expr]
+
+	arr, ok := ty.(*types.Array)
+	if !ok {
+		util.Error("Expected array to iterate, but got %s", ty)
+	}
+
+	if stmt.Elem.VarType == nil {
+		stmt.Elem.VarType = arr.ElemType
+	} else {
+		if !types.Same(arr.ElemType, stmt.Elem.VarType) {
+			f := "Expected array of %s elements, but got %s"
+			util.Error(f, stmt.Elem.VarType, arr.ElemType)
+		}
+	}
+	if stmt.Index.VarType == nil {
+		stmt.Index.VarType = &types.Int{}
+	} else {
+		if _, ok := stmt.Index.VarType.(*types.Int); !ok {
+			util.Error("Index variable must be int type")
+		}
+	}
+	stmt.Array.VarType = arr
 
 	t.typecheckBlockStmt(stmt.Body)
 }

@@ -35,6 +35,7 @@ const (
 	IF       Type = "IF"
 	ELSE     Type = "ELSE"
 	FOR      Type = "FOR"
+	IN       Type = "IN"
 	CONTINUE Type = "CONTINUE"
 	BREAK    Type = "BREAK"
 	RETURN   Type = "RETURN"
@@ -86,6 +87,7 @@ var strings = map[Type]string{
 	IF:       "if",
 	ELSE:     "else",
 	FOR:      "for",
+	IN:       "in",
 	CONTINUE: "continue",
 	BREAK:    "break",
 	RETURN:   "return",

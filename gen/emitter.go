@@ -115,6 +115,8 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 		e.emitIfStmt(v)
 	case *ast.ForStmt:
 		e.emitForStmt(v)
+	case *ast.ForInStmt:
+		e.emitForInStmt(v)
 	case *ast.ReturnStmt:
 		e.emitReturnStmt(v)
 	case *ast.ContinueStmt:
@@ -196,8 +198,83 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	e.emitLabel(endLabel)
 }
 
+func (e *emitter) emitForInStmt(stmt *ast.ForInStmt) {
+	branch := e.branches[stmt]
+	beginLabel := branch.labels[0]
+	endLabel := branch.labels[1]
+
+	// init
+	e.emitExpr(stmt.Expr)
+	if lvar, ok := e.lvars[stmt.Array]; ok {
+		e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
+	} else {
+		gvar := e.gvars[stmt.Array]
+		e.emit("mov qword ptr %s[rip], rax", gvar.label)
+	}
+	if lvar, ok := e.lvars[stmt.Index]; ok {
+		e.emit("mov qword ptr [rbp-%d], 0", lvar.offset)
+	} else {
+		gvar := e.gvars[stmt.Index]
+		e.emit("mov qword ptr %s[rip], 0", gvar.label)
+	}
+	e.emitLabel(beginLabel)
+
+	// cond
+	len := stmt.Array.VarType.(*types.Array).Len
+	if lvar, ok := e.lvars[stmt.Index]; ok {
+		e.emit("mov rcx, qword ptr [rbp-%d]", lvar.offset)
+		e.emit("cmp rcx, %d", len)
+	} else {
+		gvar := e.gvars[stmt.Index]
+		e.emit("mov rcx, qword ptr %s[rip]", gvar.label)
+		e.emit("cmp rcx, %d", len)
+	}
+	e.emit("jge %s", endLabel)
+
+	// pre
+	if lvar, ok := e.lvars[stmt.Elem]; ok {
+		switch lvar.size {
+		case 1:
+			e.emit("mov al, byte ptr [rax+rcx]")
+			e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
+		case 8:
+			e.emit("mov rax, qword ptr [rax+rcx*8]")
+			e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
+		}
+	} else {
+		gvar := e.gvars[stmt.Elem]
+		switch gvar.size {
+		case 1:
+			e.emit("mov al, byte ptr [rax+rcx]")
+			e.emit("mov byte ptr %s[rip], al", gvar.label)
+		case 8:
+			e.emit("mov rax, qword ptr [rax+rcx*8]")
+			e.emit("mov qword ptr %s[rip], rax", gvar.label)
+		}
+	}
+
+	// body
+	e.emitBlockStmt(stmt.Body)
+
+	// post
+	if lvar, ok := e.lvars[stmt.Array]; ok {
+		e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
+	} else {
+		gvar := e.gvars[stmt.Array]
+		e.emit("mov rax, qword ptr %s[rip]", gvar.label)
+	}
+	if lvar, ok := e.lvars[stmt.Index]; ok {
+		e.emit("inc qword ptr [rbp-%d]", lvar.offset)
+	} else {
+		gvar := e.gvars[stmt.Index]
+		e.emit("inc qword ptr %s[rip]", gvar.label)
+	}
+	e.emit("jmp %s", beginLabel)
+	e.emitLabel(endLabel)
+}
+
 func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
-	ref := e.refs[stmt].(*ast.ForStmt)
+	ref := e.refs[stmt]
 	branch := e.branches[ref]
 	beginLabel := branch.labels[0]
 
@@ -205,7 +282,7 @@ func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 }
 
 func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
-	ref := e.refs[stmt].(*ast.ForStmt)
+	ref := e.refs[stmt]
 	branch := e.branches[ref]
 	endLabel := branch.labels[1]
 
@@ -213,7 +290,7 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 }
 
 func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
-	ref := e.refs[stmt].(*ast.FuncLit)
+	ref := e.refs[stmt]
 	branch := e.branches[ref]
 	endLabel := branch.labels[0]
 
