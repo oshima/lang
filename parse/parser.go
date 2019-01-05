@@ -255,8 +255,8 @@ func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 	expr := p.parseExpr(LOWEST)
 	// ExprStmt
-	if p.tk.Type == token.SEMICOLON {
-		p.next()
+	if p.tk.Type != token.COMMA && p.tk.Type != token.ASSIGN {
+		p.consume(token.SEMICOLON)
 		return &ast.ExprStmt{Expr: expr}
 	}
 	// AssignStmt

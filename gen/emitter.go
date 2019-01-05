@@ -173,12 +173,12 @@ func (e *emitter) emitIfStmt(stmt *ast.IfStmt) {
 		e.emitBlockStmt(stmt.Body)
 		e.emitLabel(endLabel)
 	} else {
-		altLabel := branch.labels[0]
+		elseLabel := branch.labels[0]
 		endLabel := branch.labels[1]
-		e.emit("je %s", altLabel)
+		e.emit("je %s", elseLabel)
 		e.emitBlockStmt(stmt.Body)
 		e.emit("jmp %s", endLabel)
-		e.emitLabel(altLabel)
+		e.emitLabel(elseLabel)
 		e.emitStmt(stmt.Else)
 		e.emitLabel(endLabel)
 	}

@@ -115,10 +115,10 @@ func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 		endLabel := x.branchLabel()
 		x.branches[stmt] = &branch{labels: []string{endLabel}}
 	} else {
-		altLabel := x.branchLabel()
+		elseLabel := x.branchLabel()
 		x.exploreStmt(stmt.Else)
 		endLabel := x.branchLabel()
-		x.branches[stmt] = &branch{labels: []string{altLabel, endLabel}}
+		x.branches[stmt] = &branch{labels: []string{elseLabel, endLabel}}
 	}
 }
 
