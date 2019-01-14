@@ -9,7 +9,7 @@ func Generate(prog *ast.Program, meta *ast.Metadata) {
 		strs:     make(map[*ast.StringLit]*str),
 		garrs:    make(map[*ast.ArrayLit]*garr),
 		larrs:    make(map[*ast.ArrayLit]*larr),
-		fns:      make(map[*ast.FuncLit]*fn),
+		fns:      make(map[ast.Node]*fn),
 		branches: make(map[ast.Node]*branch),
 	}
 	x.exploreProgram(prog)

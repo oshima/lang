@@ -130,8 +130,10 @@ func (p *parser) parseStmt() ast.Stmt {
 	switch p.tk.Type {
 	case token.LBRACE:
 		return p.parseBlockStmt()
-	case token.LET:
-		return p.parseLetStmt()
+	case token.VAR:
+		return p.parseVarStmt()
+	case token.FUNC:
+		return p.parseFuncStmt()
 	case token.IF:
 		return p.parseIfStmt()
 	case token.FOR:
@@ -157,30 +159,25 @@ func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	return &ast.BlockStmt{Stmts: stmts}
 }
 
-func (p *parser) parseLetStmt() *ast.LetStmt {
+func (p *parser) parseVarStmt() *ast.VarStmt {
 	p.next()
 	vars := make([]*ast.VarDecl, 0, 2)
-	for p.tk.Type != token.ASSIGN {
-		vars = append(vars, p.parseVarDecl())
-		p.consumeComma(token.ASSIGN)
-	}
-	if len(vars) == 0 {
-		util.Error("Unexpected =")
-	}
-	p.next()
-	values := make([]ast.Expr, 0, 2)
 	for p.tk.Type != token.SEMICOLON {
-		values = append(values, p.parseExpr(LOWEST))
+		var_ := p.parseVarDecl()
+		if var_.Value == nil {
+			util.Error("%s has no initial value", var_.Name)
+		}
+		vars = append(vars, var_)
 		p.consumeComma(token.SEMICOLON)
 	}
-	if len(values) == 0 {
-		util.Error("Unexpected ;")
-	}
-	if len(values) != len(vars) {
-		util.Error("Wrong number of initializers")
-	}
 	p.next()
-	return &ast.LetStmt{Vars: vars, Values: values}
+	return &ast.VarStmt{Vars: vars}
+}
+
+func (p *parser) parseFuncStmt() *ast.FuncStmt {
+	p.next()
+	func_ := p.parseFuncDecl()
+	return &ast.FuncStmt{Func: func_}
 }
 
 func (p *parser) parseIfStmt() *ast.IfStmt {
@@ -208,25 +205,30 @@ func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
 	p.next()
 	ty := p.peekTk().Type
 	// ForStmt
-	if ty != token.COLON && ty != token.COMMA && ty != token.IN {
+	if ty != token.COMMA && ty != token.IN {
 		cond := p.parseExpr(LOWEST)
 		p.expect(token.LBRACE)
 		body := p.parseBlockStmt()
 		return &ast.ForStmt{Cond: cond, Body: body}
 	}
 	// ForInStmt
-	elem := p.parseVarDecl()
+	elem := &ast.VarDecl{}
 	index := &ast.VarDecl{}
 	array := &ast.VarDecl{}
+	p.expect(token.IDENT)
+	elem.Name = p.tk.Literal
+	p.next()
 	if p.tk.Type == token.COMMA {
 		p.next()
-		index = p.parseVarDecl()
+		p.expect(token.IDENT)
+		index.Name = p.tk.Literal
+		p.next()
 	}
 	p.consume(token.IN)
-	expr := p.parseExpr(LOWEST)
+	array.Value = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
-	return &ast.ForInStmt{Elem: elem, Index: index, Array: array, Expr: expr, Body: body}
+	return &ast.ForInStmt{Elem: elem, Index: index, Array: array, Body: body}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
@@ -268,7 +270,7 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 	}
 	for _, target := range targets {
 		switch target.(type) {
-		case *ast.VarRef, *ast.IndexExpr:
+		case *ast.Ident, *ast.IndexExpr:
 			// ok
 		default:
 			util.Error("Invalid target in assignment")
@@ -290,20 +292,6 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 	return &ast.AssignStmt{Targets: targets, Values: values}
 }
 
-/* Decl */
-
-func (p *parser) parseVarDecl() *ast.VarDecl {
-	p.expect(token.IDENT)
-	ident := p.tk.Literal
-	p.next()
-	if p.tk.Type != token.COLON {
-		return &ast.VarDecl{Ident: ident}
-	}
-	p.next()
-	varType := p.parseType()
-	return &ast.VarDecl{Ident: ident, VarType: varType}
-}
-
 /* Expr */
 
 func (p *parser) parseExpr(prec int) ast.Expr {
@@ -313,7 +301,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 	case token.BANG, token.MINUS:
 		expr = p.parsePrefixExpr()
 	case token.IDENT:
-		expr = p.parseVarRef()
+		expr = p.parseIdent()
 	case token.NUMBER:
 		expr = p.parseIntLit()
 	case token.TRUE, token.FALSE:
@@ -372,18 +360,18 @@ func (p *parser) parseCallExprOrLibCallExpr(left ast.Expr) ast.Expr {
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
-	if v, ok := left.(*ast.VarRef); ok {
-		if _, ok := libFuncs[v.Ident]; ok {
-			return &ast.LibCallExpr{Ident: v.Ident, Params: params}
+	if v, ok := left.(*ast.Ident); ok {
+		if _, ok := libFuncs[v.Name]; ok {
+			return &ast.LibCallExpr{Name: v.Name, Params: params}
 		}
 	}
 	return &ast.CallExpr{Left: left, Params: params}
 }
 
-func (p *parser) parseVarRef() *ast.VarRef {
-	ident := p.tk.Literal
+func (p *parser) parseIdent() *ast.Ident {
+	name := p.tk.Literal
 	p.next()
-	return &ast.VarRef{Ident: ident}
+	return &ast.Ident{Name: name}
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
@@ -461,13 +449,15 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	// FuncLit
 	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
-		params = append(params, p.parseVarDecl())
-		p.consumeComma(token.RPAREN)
-	}
-	for _, param := range params {
+		param := p.parseVarDecl()
 		if param.VarType == nil {
-			util.Error("Parameter type must be annotated")
+			util.Error("Type of parameter must be annotated")
 		}
+		if param.Value != nil {
+			util.Error("Parameter cannot have initial value")
+		}
+		params = append(params, param)
+		p.consumeComma(token.RPAREN)
 	}
 	p.next()
 	p.consume(token.ARROW)
@@ -483,4 +473,56 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
+}
+
+/* Decl */
+
+func (p *parser) parseVarDecl() *ast.VarDecl {
+	p.expect(token.IDENT)
+	name := p.tk.Literal
+	p.next()
+	var varType types.Type
+	if p.tk.Type == token.COLON {
+		p.next()
+		varType = p.parseType()
+	}
+	var value ast.Expr
+	if p.tk.Type == token.ASSIGN {
+		p.next()
+		value = p.parseExpr(LOWEST)
+	}
+	return &ast.VarDecl{Name: name, VarType: varType, Value: value}
+}
+
+func (p *parser) parseFuncDecl() *ast.FuncDecl {
+	p.expect(token.IDENT)
+	name := p.tk.Literal
+	p.next()
+	p.consume(token.LPAREN)
+	params := make([]*ast.VarDecl, 0, 4)
+	for p.tk.Type != token.RPAREN {
+		param := p.parseVarDecl()
+		if param.VarType == nil {
+			util.Error("Type of parameter must be annotated")
+		}
+		if param.Value != nil {
+			util.Error("Parameter cannot have initial value")
+		}
+		params = append(params, param)
+		p.consumeComma(token.RPAREN)
+	}
+	p.next()
+	p.consume(token.ARROW)
+	var returnType types.Type
+	switch p.tk.Type {
+	case token.LBRACE:
+		// ok
+	case token.BANG:
+		p.next()
+	default:
+		returnType = p.parseType()
+	}
+	p.expect(token.LBRACE)
+	body := p.parseBlockStmt()
+	return &ast.FuncDecl{Name: name, Params: params, ReturnType: returnType, Body: body}
 }

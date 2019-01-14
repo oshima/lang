@@ -17,16 +17,16 @@ type Stmt interface {
 	stmtNode()
 }
 
-// All declaration nodes implement Decl
-type Decl interface {
-	Node
-	declNode()
-}
-
 // All expression nodes implement Expr
 type Expr interface {
 	Node
 	exprNode()
+}
+
+// All declaration nodes implement Decl
+type Decl interface {
+	Node
+	declNode()
 }
 
 /*
@@ -47,9 +47,12 @@ type BlockStmt struct {
 	Stmts []Stmt
 }
 
-type LetStmt struct {
-	Vars   []*VarDecl
-	Values []Expr
+type VarStmt struct {
+	Vars []*VarDecl
+}
+
+type FuncStmt struct {
+	Func *FuncDecl
 }
 
 type IfStmt struct {
@@ -67,7 +70,6 @@ type ForInStmt struct {
 	Elem  *VarDecl
 	Index *VarDecl
 	Array *VarDecl // implicit variable
-	Expr  Expr
 	Body  *BlockStmt
 }
 
@@ -94,8 +96,10 @@ type ExprStmt struct {
 
 func (stmt *BlockStmt) astNode()     {}
 func (stmt *BlockStmt) stmtNode()    {}
-func (stmt *LetStmt) astNode()       {}
-func (stmt *LetStmt) stmtNode()      {}
+func (stmt *VarStmt) astNode()       {}
+func (stmt *VarStmt) stmtNode()      {}
+func (stmt *FuncStmt) astNode()      {}
+func (stmt *FuncStmt) stmtNode()     {}
 func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
 func (stmt *ForStmt) astNode()       {}
@@ -112,18 +116,6 @@ func (stmt *AssignStmt) astNode()    {}
 func (stmt *AssignStmt) stmtNode()   {}
 func (stmt *ExprStmt) astNode()      {}
 func (stmt *ExprStmt) stmtNode()     {}
-
-/*
- Declaration nodes
-*/
-
-type VarDecl struct {
-	Ident   string
-	VarType types.Type
-}
-
-func (decl *VarDecl) astNode()  {}
-func (decl *VarDecl) declNode() {}
 
 /*
  Expression nodes
@@ -151,12 +143,12 @@ type CallExpr struct {
 }
 
 type LibCallExpr struct {
-	Ident  string
+	Name   string
 	Params []Expr
 }
 
-type VarRef struct {
-	Ident string
+type Ident struct {
+	Name string
 }
 
 type IntLit struct {
@@ -193,8 +185,8 @@ func (expr *CallExpr) astNode()     {}
 func (expr *CallExpr) exprNode()    {}
 func (expr *LibCallExpr) astNode()  {}
 func (expr *LibCallExpr) exprNode() {}
-func (expr *VarRef) astNode()       {}
-func (expr *VarRef) exprNode()      {}
+func (expr *Ident) astNode()        {}
+func (expr *Ident) exprNode()       {}
 func (expr *IntLit) astNode()       {}
 func (expr *IntLit) exprNode()      {}
 func (expr *BoolLit) astNode()      {}
@@ -205,3 +197,25 @@ func (expr *ArrayLit) astNode()     {}
 func (expr *ArrayLit) exprNode()    {}
 func (expr *FuncLit) astNode()      {}
 func (expr *FuncLit) exprNode()     {}
+
+/*
+ Declaration nodes
+*/
+
+type VarDecl struct {
+	Name    string
+	VarType types.Type
+	Value   Expr
+}
+
+type FuncDecl struct {
+	Name       string
+	Params     []*VarDecl
+	ReturnType types.Type
+	Body       *BlockStmt
+}
+
+func (decl *VarDecl) astNode()   {}
+func (decl *VarDecl) declNode()  {}
+func (decl *FuncDecl) astNode()  {}
+func (decl *FuncDecl) declNode() {}

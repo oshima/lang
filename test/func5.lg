@@ -1,20 +1,23 @@
-let sum = (f: (int) -> int) -> int {
-  let n, sum = 1, 0;
-  for n <= 10 {
-    sum = sum + f(n);
-    n = n + 1;
+func sum_orig(arr: [10]int, fn: (int) -> int) -> int {
+  var sum = 0;
+  for n in arr {
+    sum = sum + fn(n);
   }
   return sum;
-};
+}
 
-let neg = (n: int) -> int {
+var sum = sum_orig;
+
+var neg = (n: int) -> int {
   return -n;
 };
 
-let sqr = (n: int) -> int {
+var sqr = (n: int) -> int {
   return n * n;
 };
 
-printf("%d, ", sum(neg));
-printf("%d, ", sum(sqr));
-printf("%d\n", sum((n: int) -> int { return n * 2; }));
+var arr = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+printf("%d, ", sum(arr, neg));
+printf("%d, ", sum(arr, sqr));
+printf("%d\n", sum(arr, (n: int) -> int { return n * 2; }));

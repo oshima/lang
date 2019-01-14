@@ -16,7 +16,7 @@ type explorer struct {
 	strs     map[*ast.StringLit]*str
 	garrs    map[*ast.ArrayLit]*garr
 	larrs    map[*ast.ArrayLit]*larr
-	fns      map[*ast.FuncLit]*fn
+	fns      map[ast.Node]*fn
 	branches map[ast.Node]*branch
 
 	// counters of labels
@@ -75,8 +75,10 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:
 		x.exploreBlockStmt(v)
-	case *ast.LetStmt:
-		x.exploreLetStmt(v)
+	case *ast.VarStmt:
+		x.exploreVarStmt(v)
+	case *ast.FuncStmt:
+		x.exploreFuncStmt(v)
 	case *ast.IfStmt:
 		x.exploreIfStmt(v)
 	case *ast.ForStmt:
@@ -98,13 +100,14 @@ func (x *explorer) exploreBlockStmt(stmt *ast.BlockStmt) {
 	}
 }
 
-func (x *explorer) exploreLetStmt(stmt *ast.LetStmt) {
+func (x *explorer) exploreVarStmt(stmt *ast.VarStmt) {
 	for _, var_ := range stmt.Vars {
 		x.exploreVarDecl(var_)
 	}
-	for _, value := range stmt.Values {
-		x.exploreExpr(value)
-	}
+}
+
+func (x *explorer) exploreFuncStmt(stmt *ast.FuncStmt) {
+	x.exploreFuncDecl(stmt.Func)
 }
 
 func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
@@ -134,7 +137,6 @@ func (x *explorer) exploreForInStmt(stmt *ast.ForInStmt) {
 	x.exploreVarDecl(stmt.Elem)
 	x.exploreVarDecl(stmt.Index)
 	x.exploreVarDecl(stmt.Array)
-	x.exploreExpr(stmt.Expr)
 	beginLabel := x.branchLabel()
 	x.exploreBlockStmt(stmt.Body)
 	endLabel := x.branchLabel()
@@ -158,22 +160,6 @@ func (x *explorer) exploreAssignStmt(stmt *ast.AssignStmt) {
 
 func (x *explorer) exploreExprStmt(stmt *ast.ExprStmt) {
 	x.exploreExpr(stmt.Expr)
-}
-
-/* Decl */
-
-func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
-	size := sizeOf(decl.VarType)
-	if x.local {
-		x.offset = align(x.offset+size, size)
-		x.lvars[decl] = &lvar{offset: x.offset, size: size}
-	} else {
-		label := x.gvarLabel()
-		if decl.Ident != "" {
-			label = label + "_" + decl.Ident
-		}
-		x.gvars[decl] = &gvar{label: label, size: size}
-	}
 }
 
 /* Expr */
@@ -258,4 +244,39 @@ func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
 	x.local = false
 	x.fns[expr] = &fn{label: x.fnLabel(), localArea: align(x.offset, 16)}
 	x.branches[expr] = &branch{labels: []string{endLabel}}
+}
+
+/* Decl */
+
+func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
+	if decl.Value != nil {
+		x.exploreExpr(decl.Value)
+	}
+
+	size := sizeOf(decl.VarType)
+	if x.local {
+		x.offset = align(x.offset+size, size)
+		x.lvars[decl] = &lvar{offset: x.offset, size: size}
+	} else {
+		label := x.gvarLabel() + "_" + decl.Name
+		x.gvars[decl] = &gvar{label: label, size: size}
+	}
+}
+
+func (x *explorer) exploreFuncDecl(decl *ast.FuncDecl) {
+	x.local = true
+	x.offset = 0
+
+	for _, param := range decl.Params {
+		x.exploreVarDecl(param)
+	}
+	x.exploreBlockStmt(decl.Body)
+	endLabel := x.branchLabel()
+
+	x.local = false
+	x.fns[decl] = &fn{
+		label:     x.fnLabel() + "_" + decl.Name,
+		localArea: align(x.offset, 16),
+	}
+	x.branches[decl] = &branch{labels: []string{endLabel}}
 }

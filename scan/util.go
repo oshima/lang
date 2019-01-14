@@ -19,7 +19,8 @@ var punctuations = map[rune]token.Type{
 }
 
 var keywords = map[string]token.Type{
-	"let":      token.LET,
+	"var":      token.VAR,
+	"func":     token.FUNC,
 	"if":       token.IF,
 	"else":     token.ELSE,
 	"for":      token.FOR,

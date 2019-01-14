@@ -1,10 +1,10 @@
-let x = 10;
+var x = 10;
 
-let add_x = (n: int) -> int {
+func add_x(n: int) -> int {
   return n + x;
-};
+}
 
-let sum = add_x(5);
+var sum = add_x(5);
 
 x = 20;
 

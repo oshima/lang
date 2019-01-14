@@ -1,11 +1,11 @@
-let abs = (n: int) -> int {
+var abs = (n: int) -> int {
   if (n >= 0) {
     return n;
   }
   return -n;
 };
 
-let sqr = (n: int) -> int {
+var sqr = (n: int) -> int {
   return n * n;
 };
 

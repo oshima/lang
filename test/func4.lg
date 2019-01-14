@@ -1,9 +1,9 @@
-let sum = (a: int, b: int, c: int, d: int, e: int, f: int) -> int {
+func sum(a: int, b: int, c: int, d: int, e: int, f: int) -> int {
   return a + b + c + d + e + f;
-};
+}
 
-let sqr = (a: int) -> int {
+func sqr(a: int) -> int {
   return a * a;
-};
+}
 
 printf("%d\n", sum(sqr(1), sqr(2), sqr(3), sqr(4), sqr(5), sqr(6)));

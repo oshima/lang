@@ -1,6 +1,7 @@
 (defconst lang-keywords
   (list
-   "let"
+   "var"
+   "func"
    "if"
    "else"
    "for"

@@ -1,4 +1,4 @@
-let i, sum = -10, 0;
+var i = -10, sum = 0;
 
 for true {
   if i < 1 {

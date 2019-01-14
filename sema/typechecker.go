@@ -29,8 +29,10 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
 	case *ast.BlockStmt:
 		t.typecheckBlockStmt(v)
-	case *ast.LetStmt:
-		t.typecheckLetStmt(v)
+	case *ast.VarStmt:
+		t.typecheckVarStmt(v)
+	case *ast.FuncStmt:
+		t.typecheckFuncStmt(v)
 	case *ast.IfStmt:
 		t.typecheckIfStmt(v)
 	case *ast.ForStmt:
@@ -52,50 +54,14 @@ func (t *typechecker) typecheckBlockStmt(stmt *ast.BlockStmt) {
 	}
 }
 
-func (t *typechecker) typecheckLetStmt(stmt *ast.LetStmt) {
-	for i, var_ := range stmt.Vars {
-		value := stmt.Values[i]
-
-		if fn, ok := value.(*ast.FuncLit); ok {
-			paramTypes := make([]types.Type, 0, 4)
-			for _, param := range fn.Params {
-				paramTypes = append(paramTypes, param.VarType)
-			}
-			ty := &types.Func{ParamTypes: paramTypes, ReturnType: fn.ReturnType}
-
-			t.types[fn] = ty
-
-			if var_.VarType == nil {
-				var_.VarType = ty // type inference (write on AST node)
-			} else {
-				if !types.Same(ty, var_.VarType) {
-					f := "Expected %s value for %s, but got %s"
-					util.Error(f, var_.VarType, var_.Ident, ty)
-				}
-			}
-
-			t.typecheckBlockStmt(fn.Body)
-		} else {
-			t.typecheckExpr(value)
-			ty := t.types[value]
-
-			if var_.VarType == nil {
-				if ty == nil {
-					util.Error("No initial value for %s", var_.Ident)
-				}
-				var_.VarType = ty // type inference (write on AST node)
-			} else {
-				if ty == nil {
-					f := "Expected %s value for %s, but got nothing"
-					util.Error(f, var_.VarType, var_.Ident)
-				}
-				if !types.Same(ty, var_.VarType) {
-					f := "Expected %s value for %s, but got %s"
-					util.Error(f, var_.VarType, var_.Ident, ty)
-				}
-			}
-		}
+func (t *typechecker) typecheckVarStmt(stmt *ast.VarStmt) {
+	for _, var_ := range stmt.Vars {
+		t.typecheckVarDecl(var_)
 	}
+}
+
+func (t *typechecker) typecheckFuncStmt(stmt *ast.FuncStmt) {
+	t.typecheckFuncDecl(stmt.Func)
 }
 
 func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
@@ -125,53 +91,48 @@ func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 }
 
 func (t *typechecker) typecheckForInStmt(stmt *ast.ForInStmt) {
-	t.typecheckExpr(stmt.Expr)
-	ty := t.types[stmt.Expr]
+	t.typecheckVarDecl(stmt.Array)
+	ty := stmt.Array.VarType
 
 	arr, ok := ty.(*types.Array)
 	if !ok {
-		util.Error("Expected array to iterate, but got %s", ty)
+		util.Error("Expected array iterator, but got %s", ty)
 	}
 
-	if stmt.Elem.VarType == nil {
-		stmt.Elem.VarType = arr.ElemType
-	} else {
-		if !types.Same(arr.ElemType, stmt.Elem.VarType) {
-			f := "Expected array of %s elements, but got %s"
-			util.Error(f, stmt.Elem.VarType, arr.ElemType)
-		}
-	}
-	if stmt.Index.VarType == nil {
-		stmt.Index.VarType = &types.Int{}
-	} else {
-		if _, ok := stmt.Index.VarType.(*types.Int); !ok {
-			util.Error("Index variable must be int type")
-		}
-	}
-	stmt.Array.VarType = arr
+	stmt.Elem.VarType = arr.ElemType
+	stmt.Index.VarType = &types.Int{}
 
 	t.typecheckBlockStmt(stmt.Body)
 }
 
 func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
-	ref := t.refs[stmt].(*ast.FuncLit)
+	ref := t.refs[stmt]
+
+	var returnType types.Type
+
+	switch v := ref.(type) {
+	case *ast.FuncDecl:
+		returnType = v.ReturnType
+	case *ast.FuncLit:
+		returnType = v.ReturnType
+	}
 
 	if stmt.Value == nil {
-		if ref.ReturnType != nil {
+		if returnType != nil {
 			f := "Expected %s return in function, but got nothing"
-			util.Error(f, ref.ReturnType)
+			util.Error(f, returnType)
 		}
 	} else {
 		t.typecheckExpr(stmt.Value)
 		ty := t.types[stmt.Value]
 
-		if ref.ReturnType == nil {
+		if returnType == nil {
 			f := "Expected no return in function, but got %s"
 			util.Error(f, ty)
 		}
-		if !types.Same(ty, ref.ReturnType) {
+		if !types.Same(ty, returnType) {
 			f := "Expected %s return in function, but got %s"
-			util.Error(f, ref.ReturnType, ty)
+			util.Error(f, returnType, ty)
 		}
 	}
 }
@@ -210,8 +171,8 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 		t.typecheckCallExpr(v)
 	case *ast.LibCallExpr:
 		t.typecheckLibCallExpr(v)
-	case *ast.VarRef:
-		t.typecheckVarRef(v)
+	case *ast.Ident:
+		t.typecheckIdent(v)
 	case *ast.IntLit:
 		t.types[v] = &types.Int{}
 	case *ast.BoolLit:
@@ -283,6 +244,15 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 			util.Error(f, expr.Op, lty, rty)
 		}
 		t.types[expr] = &types.Bool{}
+	case "=":
+		if lty == nil || rty == nil {
+			util.Error("Unexpected void operand for %s", expr.Op)
+		}
+		if !types.Same(lty, rty) {
+			f := "Expected same type operands for %s, but got %s, %s"
+			util.Error(f, expr.Op, lty, rty)
+		}
+		t.types[expr] = lty
 	}
 }
 
@@ -340,9 +310,19 @@ func (t *typechecker) typecheckLibCallExpr(expr *ast.LibCallExpr) {
 	t.types[expr] = nil // FIXME
 }
 
-func (t *typechecker) typecheckVarRef(expr *ast.VarRef) {
-	ref := t.refs[expr].(*ast.VarDecl)
-	t.types[expr] = ref.VarType
+func (t *typechecker) typecheckIdent(expr *ast.Ident) {
+	ref := t.refs[expr]
+
+	switch v := ref.(type) {
+	case *ast.VarDecl:
+		t.types[expr] = v.VarType
+	case *ast.FuncDecl:
+		paramTypes := make([]types.Type, 0, 4)
+		for _, param := range v.Params {
+			paramTypes = append(paramTypes, param.VarType)
+		}
+		t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: v.ReturnType}
+	}
 }
 
 func (t *typechecker) typecheckArrayLit(expr *ast.ArrayLit) {
@@ -366,4 +346,51 @@ func (t *typechecker) typecheckFuncLit(expr *ast.FuncLit) {
 		paramTypes = append(paramTypes, param.VarType)
 	}
 	t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: expr.ReturnType}
+}
+
+/* Decl */
+
+func (t *typechecker) typecheckVarDecl(decl *ast.VarDecl) {
+	switch v := decl.Value.(type) {
+	case *ast.FuncLit:
+		paramTypes := make([]types.Type, 0, 4)
+		for _, param := range v.Params {
+			paramTypes = append(paramTypes, param.VarType)
+		}
+		ty := &types.Func{ParamTypes: paramTypes, ReturnType: v.ReturnType}
+		t.types[v] = ty
+
+		if decl.VarType == nil {
+			decl.VarType = ty // type inference (write on AST node)
+		} else {
+			if !types.Same(ty, decl.VarType) {
+				f := "Expected %s value for %s, but got %s"
+				util.Error(f, decl.VarType, decl.Name, ty)
+			}
+		}
+		t.typecheckBlockStmt(v.Body)
+	default:
+		t.typecheckExpr(v)
+		ty := t.types[v]
+
+		if decl.VarType == nil {
+			if ty == nil {
+				util.Error("No initial value for %s", decl.Name)
+			}
+			decl.VarType = ty // type inference (write on AST node)
+		} else {
+			if ty == nil {
+				f := "Expected %s value for %s, but got nothing"
+				util.Error(f, decl.VarType, decl.Name)
+			}
+			if !types.Same(ty, decl.VarType) {
+				f := "Expected %s value for %s, but got %s"
+				util.Error(f, decl.VarType, decl.Name, ty)
+			}
+		}
+	}
+}
+
+func (t *typechecker) typecheckFuncDecl(decl *ast.FuncDecl) {
+	t.typecheckBlockStmt(decl.Body)
 }

@@ -21,18 +21,18 @@ func newEnv(outer *env) *env {
 	}
 }
 
-func (e *env) set(ident string, node ast.Node) error {
-	if _, ok := e.store[ident]; ok {
+func (e *env) set(name string, node ast.Node) error {
+	if _, ok := e.store[name]; ok {
 		return errors.New("Duplicate entries")
 	}
-	e.store[ident] = node
+	e.store[name] = node
 	return nil
 }
 
-func (e *env) get(ident string) (ast.Node, bool) {
-	node, ok := e.store[ident]
+func (e *env) get(name string) (ast.Node, bool) {
+	node, ok := e.store[name]
 	if !ok && e.outer != nil {
-		node, ok = e.outer.get(ident)
+		node, ok = e.outer.get(name)
 	}
 	return node, ok
 }

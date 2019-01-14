@@ -31,7 +31,8 @@ const (
 
 	ARROW Type = "ARROW"
 
-	LET      Type = "LET"
+	VAR      Type = "VAR"
+	FUNC     Type = "FUNC"
 	IF       Type = "IF"
 	ELSE     Type = "ELSE"
 	FOR      Type = "FOR"
@@ -83,7 +84,8 @@ var strings = map[Type]string{
 
 	ARROW: "->",
 
-	LET:      "let",
+	VAR:      "var",
+	FUNC:     "func",
 	IF:       "if",
 	ELSE:     "else",
 	FOR:      "for",
