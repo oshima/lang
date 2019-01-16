@@ -159,8 +159,7 @@ func (e *emitter) emitVarStmt(stmt *ast.VarStmt) {
 			case 8:
 				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 			}
-		} else {
-			gvar := e.gvars[var_]
+		} else if gvar, ok := e.gvars[var_]; ok {
 			switch gvar.size {
 			case 1:
 				e.emit("mov byte ptr %s[rip], al", gvar.label)
@@ -217,28 +216,23 @@ func (e *emitter) emitForInStmt(stmt *ast.ForInStmt) {
 	e.emitExpr(stmt.Array.Value)
 	if lvar, ok := e.lvars[stmt.Array]; ok {
 		e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
-	} else {
-		gvar := e.gvars[stmt.Array]
+	} else if gvar, ok := e.gvars[stmt.Array]; ok {
 		e.emit("mov qword ptr %s[rip], rax", gvar.label)
 	}
 	if lvar, ok := e.lvars[stmt.Index]; ok {
 		e.emit("mov qword ptr [rbp-%d], 0", lvar.offset)
-	} else {
-		gvar := e.gvars[stmt.Index]
+	} else if gvar, ok := e.gvars[stmt.Index]; ok {
 		e.emit("mov qword ptr %s[rip], 0", gvar.label)
 	}
 	e.emitLabel(beginLabel)
 
 	// cond
-	len := stmt.Array.VarType.(*types.Array).Len
 	if lvar, ok := e.lvars[stmt.Index]; ok {
 		e.emit("mov rcx, qword ptr [rbp-%d]", lvar.offset)
-		e.emit("cmp rcx, %d", len)
-	} else {
-		gvar := e.gvars[stmt.Index]
+	} else if gvar, ok := e.gvars[stmt.Index]; ok {
 		e.emit("mov rcx, qword ptr %s[rip]", gvar.label)
-		e.emit("cmp rcx, %d", len)
 	}
+	e.emit("cmp rcx, %d", stmt.Array.VarType.(*types.Array).Len)
 	e.emit("jge %s", endLabel)
 
 	// pre
@@ -251,8 +245,7 @@ func (e *emitter) emitForInStmt(stmt *ast.ForInStmt) {
 			e.emit("mov rax, qword ptr [rax+rcx*8]")
 			e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 		}
-	} else {
-		gvar := e.gvars[stmt.Elem]
+	} else if gvar, ok := e.gvars[stmt.Elem]; ok {
 		switch gvar.size {
 		case 1:
 			e.emit("mov al, byte ptr [rax+rcx]")
@@ -269,14 +262,12 @@ func (e *emitter) emitForInStmt(stmt *ast.ForInStmt) {
 	// post
 	if lvar, ok := e.lvars[stmt.Array]; ok {
 		e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
-	} else {
-		gvar := e.gvars[stmt.Array]
+	} else if gvar, ok := e.gvars[stmt.Array]; ok {
 		e.emit("mov rax, qword ptr %s[rip]", gvar.label)
 	}
 	if lvar, ok := e.lvars[stmt.Index]; ok {
 		e.emit("inc qword ptr [rbp-%d]", lvar.offset)
-	} else {
-		gvar := e.gvars[stmt.Index]
+	} else if gvar, ok := e.gvars[stmt.Index]; ok {
 		e.emit("inc qword ptr %s[rip]", gvar.label)
 	}
 	e.emit("jmp %s", beginLabel)
@@ -337,8 +328,7 @@ func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
 			case 8:
 				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 			}
-		} else {
-			gvar := e.gvars[ref]
+		} else if gvar, ok := e.gvars[ref]; ok {
 			switch gvar.size {
 			case 1:
 				e.emit("mov byte ptr %s[rip], al", gvar.label)
@@ -498,8 +488,7 @@ func (e *emitter) emitIdent(expr *ast.Ident) {
 			case 8:
 				e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
 			}
-		} else {
-			gvar := e.gvars[v]
+		} else if gvar, ok := e.gvars[v]; ok {
 			switch gvar.size {
 			case 1:
 				e.emit("movzx rax, byte ptr %s[rip]", gvar.label)
@@ -534,25 +523,24 @@ func (e *emitter) emitArrayLit(expr *ast.ArrayLit) {
 	if larr, ok := e.larrs[expr]; ok {
 		for i, elem := range expr.Elems {
 			e.emitExpr(elem)
-			elemOffset := larr.offset - i*larr.elemSize
+			offset := larr.offset - i*larr.elemSize
 			switch larr.elemSize {
 			case 1:
-				e.emit("mov byte ptr [rbp-%d], al", elemOffset)
+				e.emit("mov byte ptr [rbp-%d], al", offset)
 			case 8:
-				e.emit("mov qword ptr [rbp-%d], rax", elemOffset)
+				e.emit("mov qword ptr [rbp-%d], rax", offset)
 			}
 		}
 		e.emit("lea rax, [rbp-%d]", larr.offset)
-	} else {
-		garr := e.garrs[expr]
+	} else if garr, ok := e.garrs[expr]; ok {
 		for i, elem := range expr.Elems {
 			e.emitExpr(elem)
-			elemOffset := i * garr.elemSize
+			offset := i * garr.elemSize
 			switch garr.elemSize {
 			case 1:
-				e.emit("mov byte ptr %s[rip+%d], al", garr.label, elemOffset)
+				e.emit("mov byte ptr %s[rip+%d], al", garr.label, offset)
 			case 8:
-				e.emit("mov qword ptr %s[rip+%d], rax", garr.label, elemOffset)
+				e.emit("mov qword ptr %s[rip+%d], rax", garr.label, offset)
 			}
 		}
 		e.emit("mov rax, offset flat:%s", garr.label)
