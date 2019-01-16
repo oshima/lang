@@ -311,56 +311,54 @@ func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
 }
 
 func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
-	for i, value := range stmt.Values {
-		e.emitExpr(value)
-		if i < len(stmt.Values)-1 {
-			e.emit("push rax")
-		}
+	switch stmt.Op {
+	case "=":
+		e.emitExpr(stmt.Value)
+	case "+=":
+		e.emitExpr(&ast.InfixExpr{Op: "+", Left: stmt.Target, Right: stmt.Value})
+	case "-=":
+		e.emitExpr(&ast.InfixExpr{Op: "-", Left: stmt.Target, Right: stmt.Value})
+	case "*=":
+		e.emitExpr(&ast.InfixExpr{Op: "*", Left: stmt.Target, Right: stmt.Value})
+	case "/=":
+		e.emitExpr(&ast.InfixExpr{Op: "/", Left: stmt.Target, Right: stmt.Value})
+	case "%=":
+		e.emitExpr(&ast.InfixExpr{Op: "%", Left: stmt.Target, Right: stmt.Value})
 	}
-	for i, _ := range stmt.Targets {
-		j := len(stmt.Targets) - 1 - i // reverse order
-		target := stmt.Targets[j]
-		value := stmt.Values[j]
 
-		switch v := target.(type) {
-		case *ast.Ident:
-			ref := e.refs[v].(*ast.VarDecl)
+	switch v := stmt.Target.(type) {
+	case *ast.Ident:
+		ref := e.refs[v].(*ast.VarDecl)
 
-			if i > 0 {
-				e.emit("pop rax")
-			}
-			if lvar, ok := e.lvars[ref]; ok {
-				switch lvar.size {
-				case 1:
-					e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
-				case 8:
-					e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
-				}
-			} else {
-				gvar := e.gvars[ref]
-				switch gvar.size {
-				case 1:
-					e.emit("mov byte ptr %s[rip], al", gvar.label)
-				case 8:
-					e.emit("mov qword ptr %s[rip], rax", gvar.label)
-				}
-			}
-		case *ast.IndexExpr:
-			if i == 0 {
-				e.emit("push rax")
-			}
-			e.emitExpr(v.Index)
-			e.emit("push rax")
-			e.emitExpr(v.Left) // rax: address of array head
-			e.emit("pop rcx")  // rcx: index
-			e.emit("pop rdx")  // rdx: value
-
-			switch sizeOf(e.types[value]) {
+		if lvar, ok := e.lvars[ref]; ok {
+			switch lvar.size {
 			case 1:
-				e.emit("mov byte ptr [rax+rcx], dl")
+				e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
 			case 8:
-				e.emit("mov qword ptr [rax+rcx*8], rdx")
+				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 			}
+		} else {
+			gvar := e.gvars[ref]
+			switch gvar.size {
+			case 1:
+				e.emit("mov byte ptr %s[rip], al", gvar.label)
+			case 8:
+				e.emit("mov qword ptr %s[rip], rax", gvar.label)
+			}
+		}
+	case *ast.IndexExpr:
+		e.emit("push rax")
+		e.emitExpr(v.Index)
+		e.emit("push rax")
+		e.emitExpr(v.Left) // rax: address of array head
+		e.emit("pop rcx")  // rcx: index
+		e.emit("pop rdx")  // rdx: value
+
+		switch sizeOf(e.types[stmt.Value]) {
+		case 1:
+			e.emit("mov byte ptr [rax+rcx], dl")
+		case 8:
+			e.emit("mov qword ptr [rax+rcx*8], rdx")
 		}
 	}
 }

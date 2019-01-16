@@ -256,40 +256,23 @@ func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 
 func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 	expr := p.parseExpr(LOWEST)
-	// ExprStmt
-	if p.tk.Type != token.COMMA && p.tk.Type != token.ASSIGN {
-		p.consume(token.SEMICOLON)
-		return &ast.ExprStmt{Expr: expr}
-	}
 	// AssignStmt
-	targets := []ast.Expr{expr}
-	p.consumeComma(token.ASSIGN)
-	for p.tk.Type != token.ASSIGN {
-		targets = append(targets, p.parseExpr(LOWEST))
-		p.consumeComma(token.ASSIGN)
-	}
-	for _, target := range targets {
-		switch target.(type) {
+	if _, ok := assignOps[p.tk.Type]; ok {
+		switch expr.(type) {
 		case *ast.Ident, *ast.IndexExpr:
 			// ok
 		default:
 			util.Error("Invalid target in assignment")
 		}
+		op := p.tk.Literal
+		p.next()
+		value := p.parseExpr(LOWEST)
+		p.consume(token.SEMICOLON)
+		return &ast.AssignStmt{Op: op, Target: expr, Value: value}
 	}
-	p.next()
-	values := make([]ast.Expr, 0, 2)
-	for p.tk.Type != token.SEMICOLON {
-		values = append(values, p.parseExpr(LOWEST))
-		p.consumeComma(token.SEMICOLON)
-	}
-	if len(values) == 0 {
-		util.Error("Unexpected ;")
-	}
-	if len(values) != len(targets) {
-		util.Error("Wrong number of values in assignment")
-	}
-	p.next()
-	return &ast.AssignStmt{Targets: targets, Values: values}
+	// ExprStmt
+	p.consume(token.SEMICOLON)
+	return &ast.ExprStmt{Expr: expr}
 }
 
 /* Expr */

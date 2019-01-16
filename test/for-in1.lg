@@ -6,7 +6,7 @@ var sum = 0, matrix = [3][3]int{
 
 for row in matrix {
   for col in row {
-    sum = sum + col;
+    sum += col;
   }
 }
 

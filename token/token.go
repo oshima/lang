@@ -9,6 +9,9 @@ const (
 	RBRACK    Type = "RBRACK"
 	LBRACE    Type = "LBRACE"
 	RBRACE    Type = "RBRACE"
+	COMMA     Type = "COMMA"
+	COLON     Type = "COLON"
+	SEMICOLON Type = "SEMICOLON"
 	ASSIGN    Type = "ASSIGN"
 	BANG      Type = "BANG"
 	PLUS      Type = "PLUS"
@@ -16,9 +19,6 @@ const (
 	ASTERISK  Type = "ASTERISK"
 	SLASH     Type = "SLASH"
 	PERCENT   Type = "PERCENT"
-	COMMA     Type = "COMMA"
-	COLON     Type = "COLON"
-	SEMICOLON Type = "SEMICOLON"
 
 	EQ  Type = "EQ"
 	NE  Type = "NE"
@@ -28,6 +28,12 @@ const (
 	GE  Type = "GE"
 	AND Type = "AND"
 	OR  Type = "OR"
+
+	ADD_ASSIGN Type = "ADD_ASSIGN"
+	SUB_ASSIGN Type = "SUB_ASSIGN"
+	MUL_ASSIGN Type = "MUL_ASSIGN"
+	DIV_ASSIGN Type = "DIV_ASSIGN"
+	MOD_ASSIGN Type = "MOD_ASSIGN"
 
 	ARROW Type = "ARROW"
 
@@ -62,6 +68,9 @@ var strings = map[Type]string{
 	RBRACK:    "]",
 	LBRACE:    "{",
 	RBRACE:    "}",
+	COMMA:     ",",
+	COLON:     ":",
+	SEMICOLON: ";",
 	ASSIGN:    "=",
 	BANG:      "!",
 	PLUS:      "+",
@@ -69,9 +78,6 @@ var strings = map[Type]string{
 	ASTERISK:  "*",
 	SLASH:     "/",
 	PERCENT:   "%",
-	COMMA:     ",",
-	COLON:     ":",
-	SEMICOLON: ";",
 
 	EQ:  "==",
 	NE:  "!=",
@@ -81,6 +87,12 @@ var strings = map[Type]string{
 	GE:  ">=",
 	AND: "&&",
 	OR:  "||",
+
+	ADD_ASSIGN: "+=",
+	SUB_ASSIGN: "-=",
+	MUL_ASSIGN: "*=",
+	DIV_ASSIGN: "/=",
+	MOD_ASSIGN: "%=",
 
 	ARROW: "->",
 

@@ -32,6 +32,15 @@ var precedences = map[token.Type]int{
 	token.LPAREN:   SUFFIX,
 }
 
+var assignOps = map[token.Type]bool{
+	token.ASSIGN:     true,
+	token.ADD_ASSIGN: true,
+	token.SUB_ASSIGN: true,
+	token.MUL_ASSIGN: true,
+	token.DIV_ASSIGN: true,
+	token.MOD_ASSIGN: true,
+}
+
 var unescape = map[rune]rune{
 	'a':  '\a',
 	'b':  '\b',

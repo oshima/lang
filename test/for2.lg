@@ -2,11 +2,11 @@ var i = -10, sum = 0;
 
 for true {
   if i < 1 {
-    i = i + 1;
+    i += 1;
     continue;
   }
-  sum = sum + i;
-  i = i + 1;
+  sum += i;
+  i += 1;
   if i > 10 { break; }
 }
 

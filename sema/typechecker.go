@@ -138,17 +138,24 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 }
 
 func (t *typechecker) typecheckAssignStmt(stmt *ast.AssignStmt) {
-	for i, target := range stmt.Targets {
-		value := stmt.Values[i]
+	t.typecheckExpr(stmt.Target)
+	t.typecheckExpr(stmt.Value)
+	tty := t.types[stmt.Target]
+	vty := t.types[stmt.Value]
 
-		t.typecheckExpr(target)
-		t.typecheckExpr(value)
-		tty := t.types[target]
-		vty := t.types[value]
-
+	switch stmt.Op {
+	case "=":
 		if !types.Same(tty, vty) {
-			f := "Expected %s value in assignment, but got %s"
-			util.Error(f, tty, vty)
+			util.Error("Expected %s value in assignment, but got %s", tty, vty)
+		}
+	case "+=", "-=", "*=", "/=", "%=":
+		_, tok := tty.(*types.Int)
+		_, vok := vty.(*types.Int)
+		if !tok {
+			util.Error("Expected int target in assignment, but got %s", tty)
+		}
+		if !vok {
+			util.Error("Expected int value in assignment, but got %s", vty)
 		}
 	}
 }

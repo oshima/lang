@@ -111,11 +111,9 @@ try "var x: int = 3 + 4; x;" 7
 try "var x: int = 10; { var x: int = 20; x; }" 20
 try "var x: int = 10; { var x: int = 20; } x;" 10
 
-try "var x = 2; x = x * 2; x = x * 2; x;" 8
 try "var x = 10; { var x = 20; x = x + 10; x; }" 30
 try "var x = 10; { var x = 20; x = x + 10; } x;" 10
-try "var x = 1, y = 2; x, y = y, x; x;" 2
-try "var x = 1, y = 2; x, y = y, x; y;" 1
+try "var x = 10; x += 2; x -= 3; x *= 4;" 36
 
 try-file ./test/for1.lg 55
 try-file ./test/for2.lg 55

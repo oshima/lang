@@ -86,8 +86,9 @@ type ReturnStmt struct {
 }
 
 type AssignStmt struct {
-	Targets []Expr // consist of *VarRef or *IndexExpr
-	Values  []Expr
+	Op     string
+	Target Expr
+	Value  Expr
 }
 
 type ExprStmt struct {

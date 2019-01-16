@@ -28,17 +28,17 @@ func (s *scanner) peekCh() rune {
 	return 0
 }
 
+func (s *scanner) skipWs() {
+	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
+		s.next()
+	}
+}
+
 func (s *scanner) consume(ch rune) {
 	if s.ch != ch {
 		util.Error("Expected %c but got %c", ch, s.ch)
 	}
 	s.next()
-}
-
-func (s *scanner) skipWs() {
-	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
-		s.next()
-	}
 }
 
 func (s *scanner) readTokens() []*token.Token {
@@ -54,14 +54,22 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch s.ch {
-	case '(', ')', '[', ']', '{', '}', '+', '*', '/', '%', ',', ':', ';':
+	case '(', ')', '[', ']', '{', '}', ',', ':', ';':
 		tk = s.readPunct()
-	case '!':
-		tk = s.readBangOrNotEqual()
-	case '-':
-		tk = s.readMinusOrArrowOrNegativeNumber()
 	case '=':
 		tk = s.readAssignOrEqual()
+	case '!':
+		tk = s.readBangOrNotEqual()
+	case '+':
+		tk = s.readPlusOrAddAssign()
+	case '-':
+		tk = s.readMinusOrSubAssignOrArrowOrNumber()
+	case '*':
+		tk = s.readAsteriskOrMulAssign()
+	case '/':
+		tk = s.readSlashOrDivAssign()
+	case '%':
+		tk = s.readPercentOrModAssign()
 	case '<':
 		tk = s.readLessOrLessEqual()
 	case '>':
@@ -93,6 +101,15 @@ func (s *scanner) readPunct() *token.Token {
 	return &token.Token{Type: ty, Literal: literal}
 }
 
+func (s *scanner) readAssignOrEqual() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.EQ, Literal: "=="}
+	}
+	return &token.Token{Type: token.ASSIGN, Literal: "="}
+}
+
 func (s *scanner) readBangOrNotEqual() *token.Token {
 	s.next()
 	if s.ch == '=' {
@@ -102,34 +119,66 @@ func (s *scanner) readBangOrNotEqual() *token.Token {
 	return &token.Token{Type: token.BANG, Literal: "!"}
 }
 
-func (s *scanner) readMinusOrArrowOrNegativeNumber() *token.Token {
+func (s *scanner) readPlusOrAddAssign() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.ADD_ASSIGN, Literal: "+="}
+	}
+	return &token.Token{Type: token.PLUS, Literal: "+"}
+}
+
+func (s *scanner) readMinusOrSubAssignOrArrowOrNumber() *token.Token {
 	nextCh := s.peekCh()
+	if nextCh == '=' {
+		s.next()
+		s.next()
+		return &token.Token{Type: token.SUB_ASSIGN, Literal: "-="}
+	}
 	if nextCh == '>' {
 		s.next()
 		s.next()
 		return &token.Token{Type: token.ARROW, Literal: "->"}
 	}
-	if !isDigit(nextCh) {
-		s.next()
-		return &token.Token{Type: token.MINUS, Literal: "-"}
-	}
-	if s.lastTk == nil {
+	if isDigit(nextCh) {
+		if s.lastTk == nil {
+			return s.readNumber()
+		}
+		if _, ok := exprEnd[s.lastTk.Type]; ok {
+			s.next()
+			return &token.Token{Type: token.MINUS, Literal: "-"}
+		}
 		return s.readNumber()
 	}
-	if _, ok := exprEnd[s.lastTk.Type]; ok {
-		s.next()
-		return &token.Token{Type: token.MINUS, Literal: "-"}
-	}
-	return s.readNumber()
+	s.next()
+	return &token.Token{Type: token.MINUS, Literal: "-"}
 }
 
-func (s *scanner) readAssignOrEqual() *token.Token {
+func (s *scanner) readAsteriskOrMulAssign() *token.Token {
 	s.next()
 	if s.ch == '=' {
 		s.next()
-		return &token.Token{Type: token.EQ, Literal: "=="}
+		return &token.Token{Type: token.MUL_ASSIGN, Literal: "*="}
 	}
-	return &token.Token{Type: token.ASSIGN, Literal: "="}
+	return &token.Token{Type: token.ASTERISK, Literal: "*"}
+}
+
+func (s *scanner) readSlashOrDivAssign() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.DIV_ASSIGN, Literal: "/="}
+	}
+	return &token.Token{Type: token.SLASH, Literal: "/"}
+}
+
+func (s *scanner) readPercentOrModAssign() *token.Token {
+	s.next()
+	if s.ch == '=' {
+		s.next()
+		return &token.Token{Type: token.MOD_ASSIGN, Literal: "%="}
+	}
+	return &token.Token{Type: token.PERCENT, Literal: "%"}
 }
 
 func (s *scanner) readLessOrLessEqual() *token.Token {

@@ -129,17 +129,13 @@ func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
 }
 
 func (r *resolver) resolveAssignStmt(stmt *ast.AssignStmt, e *env) {
-	for _, target := range stmt.Targets {
-		r.resolveExpr(target, e)
-		if v, ok := target.(*ast.Ident); ok {
-			if _, ok := r.refs[v].(*ast.FuncDecl); ok {
-				util.Error("%s is not a variable", v.Name)
-			}
+	r.resolveExpr(stmt.Target, e)
+	if v, ok := stmt.Target.(*ast.Ident); ok {
+		if _, ok := r.refs[v].(*ast.FuncDecl); ok {
+			util.Error("%s is not a variable", v.Name)
 		}
 	}
-	for _, value := range stmt.Values {
-		r.resolveExpr(value, e)
-	}
+	r.resolveExpr(stmt.Value, e)
 }
 
 func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {

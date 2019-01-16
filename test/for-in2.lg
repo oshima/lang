@@ -1,7 +1,7 @@
 func local() -> {
   var sum = 0, arr = [5]int{5, 6, 7, 8, 9};
   for n, i in arr {
-    sum = sum + n + i;
+    sum += n + i;
   }
   printf("%d\n", sum);
 }

@@ -150,12 +150,8 @@ func (x *explorer) exploreReturnStmt(stmt *ast.ReturnStmt) {
 }
 
 func (x *explorer) exploreAssignStmt(stmt *ast.AssignStmt) {
-	for _, target := range stmt.Targets {
-		x.exploreExpr(target)
-	}
-	for _, value := range stmt.Values {
-		x.exploreExpr(value)
-	}
+	x.exploreExpr(stmt.Target)
+	x.exploreExpr(stmt.Value)
 }
 
 func (x *explorer) exploreExprStmt(stmt *ast.ExprStmt) {
