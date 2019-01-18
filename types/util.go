@@ -16,7 +16,10 @@ func Same(ty1 Type, ty2 Type) bool {
 		if !ok {
 			return false
 		}
-		return v1.Len == v2.Len && Same(v1.ElemType, v2.ElemType)
+		if v1.Len != v2.Len {
+			return false
+		}
+		return Same(v1.ElemType, v2.ElemType)
 	case *Func:
 		v2, ok := ty2.(*Func)
 		if !ok {

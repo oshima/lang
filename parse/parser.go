@@ -445,15 +445,10 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	p.next()
 	p.consume(token.ARROW)
 	var returnType types.Type
-	switch p.tk.Type {
-	case token.LBRACE:
-		// ok
-	case token.BANG:
-		p.next()
-	default:
+	if p.tk.Type != token.LBRACE {
 		returnType = p.parseType()
+		p.expect(token.LBRACE)
 	}
-	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
 }
@@ -497,15 +492,10 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.next()
 	p.consume(token.ARROW)
 	var returnType types.Type
-	switch p.tk.Type {
-	case token.LBRACE:
-		// ok
-	case token.BANG:
-		p.next()
-	default:
+	if p.tk.Type != token.LBRACE {
 		returnType = p.parseType()
+		p.expect(token.LBRACE)
 	}
-	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
 	return &ast.FuncDecl{Name: name, Params: params, ReturnType: returnType, Body: body}
 }
