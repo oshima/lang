@@ -17,8 +17,8 @@ type emitter struct {
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
 	strs     map[*ast.StringLit]*str
-	garrs    map[*ast.ArrayLit]*garr
-	larrs    map[*ast.ArrayLit]*larr
+	garrs    map[ast.Expr]*garr
+	larrs    map[ast.Expr]*larr
 	fns      map[ast.Node]*fn
 	branches map[ast.Node]*branch
 }
@@ -381,6 +381,8 @@ func (e *emitter) emitExpr(expr ast.Expr) {
 		e.emitStringLit(v)
 	case *ast.ArrayLit:
 		e.emitArrayLit(v)
+	case *ast.ArrayShortLit:
+		e.emitArrayShortLit(v)
 	case *ast.FuncLit:
 		e.emitFuncLit(v)
 	}
@@ -535,6 +537,43 @@ func (e *emitter) emitArrayLit(expr *ast.ArrayLit) {
 	} else if garr, ok := e.garrs[expr]; ok {
 		for i, elem := range expr.Elems {
 			e.emitExpr(elem)
+			offset := i * garr.elemSize
+			switch garr.elemSize {
+			case 1:
+				e.emit("mov byte ptr %s[rip+%d], al", garr.label, offset)
+			case 8:
+				e.emit("mov qword ptr %s[rip+%d], rax", garr.label, offset)
+			}
+		}
+		e.emit("mov rax, offset flat:%s", garr.label)
+	}
+}
+
+func (e *emitter) emitArrayShortLit(expr *ast.ArrayShortLit) {
+	if expr.Value == nil {
+		if larr, ok := e.larrs[expr]; ok {
+			e.emit("lea rax, [rbp-%d]", larr.offset)
+		} else if garr, ok := e.garrs[expr]; ok {
+			e.emit("mov rax, offset flat:%s", garr.label)
+		}
+		return
+	}
+
+	e.emitExpr(expr.Value)
+
+	if larr, ok := e.larrs[expr]; ok {
+		for i := 0; i < larr.len; i++ {
+			offset := larr.offset - i*larr.elemSize
+			switch larr.elemSize {
+			case 1:
+				e.emit("mov byte ptr [rbp-%d], al", offset)
+			case 8:
+				e.emit("mov qword ptr [rbp-%d], rax", offset)
+			}
+		}
+		e.emit("lea rax, [rbp-%d]", larr.offset)
+	} else if garr, ok := e.garrs[expr]; ok {
+		for i := 0; i < garr.len; i++ {
 			offset := i * garr.elemSize
 			switch garr.elemSize {
 			case 1:

@@ -292,7 +292,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 	case token.QUOTED:
 		expr = p.parseStringLit()
 	case token.LBRACK:
-		expr = p.parseArrayLit()
+		expr = p.parseArrayLitOrArrayShortLit()
 	case token.LPAREN:
 		expr = p.parseFuncLitOrGroupedExpr()
 	default:
@@ -395,30 +395,37 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	return &ast.StringLit{Value: value}
 }
 
-func (p *parser) parseArrayLit() *ast.ArrayLit {
+func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 	p.next()
-	p.expect(token.NUMBER)
-	len_, err := strconv.Atoi(p.tk.Literal)
-	if err != nil {
-		util.Error("Could not parse %s as integer", p.tk.Literal)
+	expr := p.parseExpr(LOWEST)
+	// ArrayShortLit
+	if p.tk.Type == token.RBRACK {
+		if _, ok := typeStart[p.peekTk().Type]; ok {
+			i, ok := expr.(*ast.IntLit)
+			if !ok || i.Value < 0 {
+				util.Error("Array length must be positive number")
+			}
+			p.next()
+			elemType := p.parseType()
+			p.consume(token.LPAREN)
+			var value ast.Expr
+			if p.tk.Type != token.RPAREN {
+				value = p.parseExpr(LOWEST)
+				p.expect(token.RPAREN)
+			}
+			p.next()
+			return &ast.ArrayShortLit{Len: i.Value, ElemType: elemType, Value: value}
+		}
 	}
-	if len_ < 0 {
-		util.Error("Array length must be non-negative")
-	}
-	p.next()
-	p.consume(token.RBRACK)
-	elemType := p.parseType()
-	p.consume(token.LBRACE)
-	elems := make([]ast.Expr, 0, 8)
-	for p.tk.Type != token.RBRACE {
+	// ArrayLit
+	elems := []ast.Expr{expr}
+	p.consumeComma(token.RBRACK)
+	for p.tk.Type != token.RBRACK {
 		elems = append(elems, p.parseExpr(LOWEST))
-		p.consumeComma(token.RBRACE)
-	}
-	if len(elems) > len_ {
-		util.Error("Too many elements in array")
+		p.consumeComma(token.RBRACK)
 	}
 	p.next()
-	return &ast.ArrayLit{Len: len_, ElemType: elemType, Elems: elems}
+	return &ast.ArrayLit{Elems: elems}
 }
 
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {

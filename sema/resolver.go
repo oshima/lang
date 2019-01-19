@@ -160,6 +160,8 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveIdent(v, e)
 	case *ast.ArrayLit:
 		r.resolveArrayLit(v, e)
+	case *ast.ArrayShortLit:
+		r.resolveArrayShortLit(v, e)
 	case *ast.FuncLit:
 		r.resolveFuncLit(v, e)
 	}
@@ -204,6 +206,10 @@ func (r *resolver) resolveArrayLit(expr *ast.ArrayLit, e *env) {
 	for _, elem := range expr.Elems {
 		r.resolveExpr(elem, e)
 	}
+}
+
+func (r *resolver) resolveArrayShortLit(expr *ast.ArrayShortLit, e *env) {
+	r.resolveExpr(expr.Value, e)
 }
 
 func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {

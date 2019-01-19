@@ -188,6 +188,8 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 		t.types[v] = &types.String{}
 	case *ast.ArrayLit:
 		t.typecheckArrayLit(v)
+	case *ast.ArrayShortLit:
+		t.typecheckArrayShortLit(v)
 	case *ast.FuncLit:
 		t.typecheckFuncLit(v)
 	}
@@ -333,9 +335,24 @@ func (t *typechecker) typecheckIdent(expr *ast.Ident) {
 }
 
 func (t *typechecker) typecheckArrayLit(expr *ast.ArrayLit) {
-	for _, elem := range expr.Elems {
+	t.typecheckExpr(expr.Elems[0])
+	elemType := t.types[expr.Elems[0]]
+
+	for _, elem := range expr.Elems[1:] {
 		t.typecheckExpr(elem)
 		ty := t.types[elem]
+
+		if !types.Same(ty, elemType) {
+			util.Error("Array elements have different types")
+		}
+	}
+	t.types[expr] = &types.Array{Len: len(expr.Elems), ElemType: elemType}
+}
+
+func (t *typechecker) typecheckArrayShortLit(expr *ast.ArrayShortLit) {
+	if expr.Value != nil {
+		t.typecheckExpr(expr.Value)
+		ty := t.types[expr.Value]
 
 		if !types.Same(ty, expr.ElemType) {
 			f := "Expected %s value for array element, but got %s"

@@ -165,9 +165,13 @@ type StringLit struct {
 }
 
 type ArrayLit struct {
+	Elems []Expr
+}
+
+type ArrayShortLit struct {
 	Len      int
 	ElemType types.Type
-	Elems    []Expr
+	Value    Expr // initial value for all elements
 }
 
 type FuncLit struct {
@@ -176,28 +180,30 @@ type FuncLit struct {
 	Body       *BlockStmt
 }
 
-func (expr *PrefixExpr) astNode()   {}
-func (expr *PrefixExpr) exprNode()  {}
-func (expr *InfixExpr) astNode()    {}
-func (expr *InfixExpr) exprNode()   {}
-func (expr *IndexExpr) astNode()    {}
-func (expr *IndexExpr) exprNode()   {}
-func (expr *CallExpr) astNode()     {}
-func (expr *CallExpr) exprNode()    {}
-func (expr *LibCallExpr) astNode()  {}
-func (expr *LibCallExpr) exprNode() {}
-func (expr *Ident) astNode()        {}
-func (expr *Ident) exprNode()       {}
-func (expr *IntLit) astNode()       {}
-func (expr *IntLit) exprNode()      {}
-func (expr *BoolLit) astNode()      {}
-func (expr *BoolLit) exprNode()     {}
-func (expr *StringLit) astNode()    {}
-func (expr *StringLit) exprNode()   {}
-func (expr *ArrayLit) astNode()     {}
-func (expr *ArrayLit) exprNode()    {}
-func (expr *FuncLit) astNode()      {}
-func (expr *FuncLit) exprNode()     {}
+func (expr *PrefixExpr) astNode()     {}
+func (expr *PrefixExpr) exprNode()    {}
+func (expr *InfixExpr) astNode()      {}
+func (expr *InfixExpr) exprNode()     {}
+func (expr *IndexExpr) astNode()      {}
+func (expr *IndexExpr) exprNode()     {}
+func (expr *CallExpr) astNode()       {}
+func (expr *CallExpr) exprNode()      {}
+func (expr *LibCallExpr) astNode()    {}
+func (expr *LibCallExpr) exprNode()   {}
+func (expr *Ident) astNode()          {}
+func (expr *Ident) exprNode()         {}
+func (expr *IntLit) astNode()         {}
+func (expr *IntLit) exprNode()        {}
+func (expr *BoolLit) astNode()        {}
+func (expr *BoolLit) exprNode()       {}
+func (expr *StringLit) astNode()      {}
+func (expr *StringLit) exprNode()     {}
+func (expr *ArrayLit) astNode()       {}
+func (expr *ArrayLit) exprNode()      {}
+func (expr *ArrayShortLit) astNode()  {}
+func (expr *ArrayShortLit) exprNode() {}
+func (expr *FuncLit) astNode()        {}
+func (expr *FuncLit) exprNode()       {}
 
 /*
  Declaration nodes

@@ -32,6 +32,14 @@ var precedences = map[token.Type]int{
 	token.LPAREN:   SUFFIX,
 }
 
+var typeStart = map[token.Type]bool{
+	token.INT:    true,
+	token.BOOL:   true,
+	token.STRING: true,
+	token.LBRACK: true,
+	token.LPAREN: true,
+}
+
 var assignOps = map[token.Type]bool{
 	token.ASSIGN:     true,
 	token.ADD_ASSIGN: true,

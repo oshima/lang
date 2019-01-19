@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"github.com/oshjma/lang/ast"
+	"github.com/oshjma/lang/types"
 )
 
 /*
@@ -10,12 +11,14 @@ import (
 */
 
 type explorer struct {
+	types map[ast.Expr]types.Type
+
 	// objects
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
 	strs     map[*ast.StringLit]*str
-	garrs    map[*ast.ArrayLit]*garr
-	larrs    map[*ast.ArrayLit]*larr
+	garrs    map[ast.Expr]*garr
+	larrs    map[ast.Expr]*larr
 	fns      map[ast.Node]*fn
 	branches map[ast.Node]*branch
 
@@ -176,6 +179,8 @@ func (x *explorer) exploreExpr(expr ast.Expr) {
 		x.exploreStringLit(v)
 	case *ast.ArrayLit:
 		x.exploreArrayLit(v)
+	case *ast.ArrayShortLit:
+		x.exploreArrayShortLit(v)
 	case *ast.FuncLit:
 		x.exploreFuncLit(v)
 	}
@@ -213,8 +218,25 @@ func (x *explorer) exploreStringLit(expr *ast.StringLit) {
 }
 
 func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
+	ty := x.types[expr].(*types.Array)
+
 	for _, elem := range expr.Elems {
 		x.exploreExpr(elem)
+	}
+
+	len := ty.Len
+	elemSize := sizeOf(ty.ElemType)
+	if x.local {
+		x.offset = align(x.offset+len*elemSize, elemSize)
+		x.larrs[expr] = &larr{offset: x.offset, len: len, elemSize: elemSize}
+	} else {
+		x.garrs[expr] = &garr{label: x.garrLabel(), len: len, elemSize: elemSize}
+	}
+}
+
+func (x *explorer) exploreArrayShortLit(expr *ast.ArrayShortLit) {
+	if expr.Value != nil {
+		x.exploreExpr(expr.Value)
 	}
 
 	len := expr.Len
