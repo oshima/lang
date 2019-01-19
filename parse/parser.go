@@ -88,7 +88,7 @@ func (p *parser) parseArray() *types.Array {
 		util.Error("Could not parse %s as integer", p.tk.Literal)
 	}
 	if len < 0 {
-		util.Error("Array length must be non-negative")
+		util.Error("Array length must be non-negative number")
 	}
 	p.next()
 	p.consume(token.RBRACK)
@@ -106,8 +106,9 @@ func (p *parser) parseFunc() *types.Func {
 	p.next()
 	p.consume(token.ARROW)
 	var returnType types.Type
-	if p.tk.Type == token.BANG {
+	if p.tk.Type == token.LBRACE {
 		p.next()
+		p.consume(token.RBRACE)
 	} else {
 		returnType = p.parseType()
 	}
@@ -403,7 +404,7 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 		if _, ok := typeStart[p.peekTk().Type]; ok {
 			i, ok := expr.(*ast.IntLit)
 			if !ok || i.Value < 0 {
-				util.Error("Array length must be positive number")
+				util.Error("Array length must be non-negative number")
 			}
 			p.next()
 			elemType := p.parseType()
