@@ -24,6 +24,8 @@ func sizeOf(ty types.Type) int {
 		return 1
 	case *types.String:
 		return 8
+	case *types.Range:
+		return 8
 	case *types.Array:
 		return 8
 	case *types.Func:

@@ -10,6 +10,8 @@ const (
 	LESSGREATER
 	SUM
 	PRODUCT
+	IN
+	BETWEEN
 	PREFIX
 	SUFFIX
 )
@@ -28,6 +30,8 @@ var precedences = map[token.Type]int{
 	token.ASTERISK: PRODUCT,
 	token.SLASH:    PRODUCT,
 	token.PERCENT:  PRODUCT,
+	token.IN:       IN,
+	token.BETWEEN:  BETWEEN,
 	token.LBRACK:   SUFFIX,
 	token.LPAREN:   SUFFIX,
 }

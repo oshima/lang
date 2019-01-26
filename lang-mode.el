@@ -14,7 +14,8 @@
   (list
    "int"
    "bool"
-   "string"))
+   "string"
+   "range"))
 
 (defconst lang-builtins
   (list
@@ -41,21 +42,6 @@
           (eval `(or ,@lang-builtins))
           symbol-end)
      0 font-lock-builtin-face)
-
-    ;; Let statement
-    ;;(,(rx symbol-start
-    ;;      "let"
-    ;;      (1+ space)
-    ;;      (group (1+ (or alnum "_")))
-    ;;      symbol-end)
-    ;; 1 font-lock-variable-name-face)
-
-    ;; Function parameter
-    ;;(,(rx symbol-start
-    ;;      (group (1+ (or alnum "_")))
-    ;;      (0+ space)
-    ;;      ":")
-    ;; 1 font-lock-variable-name-face)
 
     ;; Function call
     (,(rx symbol-start

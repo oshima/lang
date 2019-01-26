@@ -11,6 +11,9 @@ func Same(ty1 Type, ty2 Type) bool {
 	case *String:
 		_, ok := ty2.(*String)
 		return ok
+	case *Range:
+		_, ok := ty2.(*Range)
+		return ok
 	case *Array:
 		v2, ok := ty2.(*Array)
 		if !ok {

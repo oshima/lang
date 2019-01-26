@@ -27,6 +27,7 @@ var keywords = map[string]token.Type{
 	"int":      token.INT,
 	"bool":     token.BOOL,
 	"string":   token.STRING,
+	"range":    token.RANGE,
 	"true":     token.TRUE,
 	"false":    token.FALSE,
 }

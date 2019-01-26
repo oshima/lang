@@ -17,6 +17,8 @@ type explorer struct {
 	gvars    map[*ast.VarDecl]*gvar
 	lvars    map[*ast.VarDecl]*lvar
 	strs     map[*ast.StringLit]*str
+	grngs    map[*ast.RangeLit]*grng
+	lrngs    map[*ast.RangeLit]*lrng
 	garrs    map[ast.Expr]*garr
 	larrs    map[ast.Expr]*larr
 	fns      map[ast.Node]*fn
@@ -25,6 +27,7 @@ type explorer struct {
 	// counters of labels
 	nGvarLabel   int
 	nStrLabel    int
+	nGrngLabel   int
 	nGarrLabel   int
 	nFnLabel     int
 	nBranchLabel int
@@ -49,6 +52,12 @@ func (x *explorer) strLabel() string {
 func (x *explorer) garrLabel() string {
 	label := fmt.Sprintf("garr%d", x.nGarrLabel)
 	x.nGarrLabel += 1
+	return label
+}
+
+func (x *explorer) grngLabel() string {
+	label := fmt.Sprintf("grng%d", x.nGrngLabel)
+	x.nGrngLabel += 1
 	return label
 }
 
@@ -139,11 +148,12 @@ func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
 func (x *explorer) exploreForInStmt(stmt *ast.ForInStmt) {
 	x.exploreVarDecl(stmt.Elem)
 	x.exploreVarDecl(stmt.Index)
-	x.exploreVarDecl(stmt.Array)
+	x.exploreVarDecl(stmt.Iter)
 	beginLabel := x.branchLabel()
 	x.exploreBlockStmt(stmt.Body)
+	continueLabel := x.branchLabel()
 	endLabel := x.branchLabel()
-	x.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
+	x.branches[stmt] = &branch{labels: []string{beginLabel, continueLabel, endLabel}}
 }
 
 func (x *explorer) exploreReturnStmt(stmt *ast.ReturnStmt) {
@@ -177,6 +187,8 @@ func (x *explorer) exploreExpr(expr ast.Expr) {
 		x.exploreLibCallExpr(v)
 	case *ast.StringLit:
 		x.exploreStringLit(v)
+	case *ast.RangeLit:
+		x.exploreRangeLit(v)
 	case *ast.ArrayLit:
 		x.exploreArrayLit(v)
 	case *ast.ArrayShortLit:
@@ -193,6 +205,20 @@ func (x *explorer) explorePrefixExpr(expr *ast.PrefixExpr) {
 func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 	x.exploreExpr(expr.Left)
 	x.exploreExpr(expr.Right)
+
+	if expr.Op == "in" {
+		switch x.types[expr.Right].(type) {
+		case *types.Array:
+			beginLabel := x.branchLabel()
+			falseLabel := x.branchLabel()
+			endLabel := x.branchLabel()
+			x.branches[expr] = &branch{labels: []string{beginLabel, falseLabel, endLabel}}
+		case *types.Range:
+			falseLabel := x.branchLabel()
+			endLabel := x.branchLabel()
+			x.branches[expr] = &branch{labels: []string{falseLabel, endLabel}}
+		}
+	}
 }
 
 func (x *explorer) exploreIndexExpr(expr *ast.IndexExpr) {
@@ -217,15 +243,27 @@ func (x *explorer) exploreStringLit(expr *ast.StringLit) {
 	x.strs[expr] = &str{label: x.strLabel(), value: expr.Value}
 }
 
-func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
-	ty := x.types[expr].(*types.Array)
+func (x *explorer) exploreRangeLit(expr *ast.RangeLit) {
+	x.exploreExpr(expr.Lower)
+	x.exploreExpr(expr.Upper)
 
+	if x.local {
+		x.offset = align(x.offset+16, 8)
+		x.lrngs[expr] = &lrng{offset: x.offset}
+	} else {
+		x.grngs[expr] = &grng{label: x.grngLabel()}
+	}
+}
+
+func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
 	for _, elem := range expr.Elems {
 		x.exploreExpr(elem)
 	}
 
+	ty := x.types[expr].(*types.Array)
 	len := ty.Len
 	elemSize := sizeOf(ty.ElemType)
+
 	if x.local {
 		x.offset = align(x.offset+len*elemSize, elemSize)
 		x.larrs[expr] = &larr{offset: x.offset, len: len, elemSize: elemSize}
@@ -241,6 +279,7 @@ func (x *explorer) exploreArrayShortLit(expr *ast.ArrayShortLit) {
 
 	len := expr.Len
 	elemSize := sizeOf(expr.ElemType)
+
 	if x.local {
 		x.offset = align(x.offset+len*elemSize, elemSize)
 		x.larrs[expr] = &larr{offset: x.offset, len: len, elemSize: elemSize}

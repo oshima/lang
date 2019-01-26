@@ -86,7 +86,7 @@ func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 }
 
 func (r *resolver) resolveForInStmt(stmt *ast.ForInStmt, e *env) {
-	r.resolveExpr(stmt.Array.Value, e)
+	r.resolveExpr(stmt.Iter.Value, e)
 
 	e_ := newEnv(e)
 	e_.set("continue", stmt)
@@ -158,6 +158,8 @@ func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 		r.resolveLibCallExpr(v, e)
 	case *ast.Ident:
 		r.resolveIdent(v, e)
+	case *ast.RangeLit:
+		r.resolveRangeLit(v, e)
 	case *ast.ArrayLit:
 		r.resolveArrayLit(v, e)
 	case *ast.ArrayShortLit:
@@ -200,6 +202,11 @@ func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
 		util.Error("%s is not declared", expr.Name)
 	}
 	r.refs[expr] = ref
+}
+
+func (r *resolver) resolveRangeLit(expr *ast.RangeLit, e *env) {
+	r.resolveExpr(expr.Lower, e)
+	r.resolveExpr(expr.Upper, e)
 }
 
 func (r *resolver) resolveArrayLit(expr *ast.ArrayLit, e *env) {

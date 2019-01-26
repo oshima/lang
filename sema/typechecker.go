@@ -91,15 +91,17 @@ func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 }
 
 func (t *typechecker) typecheckForInStmt(stmt *ast.ForInStmt) {
-	t.typecheckVarDecl(stmt.Array)
-	ty := stmt.Array.VarType
+	t.typecheckVarDecl(stmt.Iter)
+	ty := stmt.Iter.VarType
 
-	arr, ok := ty.(*types.Array)
-	if !ok {
-		util.Error("Expected array iterator, but got %s", ty)
+	switch v := ty.(type) {
+	case *types.Array:
+		stmt.Elem.VarType = v.ElemType
+	case *types.Range:
+		stmt.Elem.VarType = &types.Int{}
+	default:
+		util.Error("Expected array or range as a iterator, but got %s", ty)
 	}
-
-	stmt.Elem.VarType = arr.ElemType
 	stmt.Index.VarType = &types.Int{}
 
 	t.typecheckBlockStmt(stmt.Body)
@@ -186,6 +188,8 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 		t.types[v] = &types.Bool{}
 	case *ast.StringLit:
 		t.types[v] = &types.String{}
+	case *ast.RangeLit:
+		t.typecheckRangeLit(v)
 	case *ast.ArrayLit:
 		t.typecheckArrayLit(v)
 	case *ast.ArrayShortLit:
@@ -219,6 +223,10 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 	lty := t.types[expr.Left]
 	rty := t.types[expr.Right]
 
+	if lty == nil || rty == nil {
+		util.Error("Unexpected void operand for %s", expr.Op)
+	}
+
 	switch expr.Op {
 	case "+", "-", "*", "/", "%":
 		_, lok := lty.(*types.Int)
@@ -229,9 +237,6 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 		}
 		t.types[expr] = &types.Int{}
 	case "==", "!=":
-		if lty == nil || rty == nil {
-			util.Error("Unexpected void operand for %s", expr.Op)
-		}
 		if !types.Same(lty, rty) {
 			f := "Expected same type operands for %s, but got %s, %s"
 			util.Error(f, expr.Op, lty, rty)
@@ -253,15 +258,23 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 			util.Error(f, expr.Op, lty, rty)
 		}
 		t.types[expr] = &types.Bool{}
-	case "=":
-		if lty == nil || rty == nil {
-			util.Error("Unexpected void operand for %s", expr.Op)
+	case "in":
+		switch v := rty.(type) {
+		case *types.Array:
+			if !types.Same(lty, v.ElemType) {
+				f := "Expected %s value as a candidate in array, but got %s"
+				util.Error(f, v.ElemType, lty)
+			}
+		case *types.Range:
+			if _, ok := lty.(*types.Int); !ok {
+				f := "Expected int value as a candidate in range, but got %s"
+				util.Error(f, lty)
+			}
+		default:
+			f := "Expected array or range value as a group, but got %s"
+			util.Error(f, rty)
 		}
-		if !types.Same(lty, rty) {
-			f := "Expected same type operands for %s, but got %s, %s"
-			util.Error(f, expr.Op, lty, rty)
-		}
-		t.types[expr] = lty
+		t.types[expr] = &types.Bool{}
 	}
 }
 
@@ -332,6 +345,21 @@ func (t *typechecker) typecheckIdent(expr *ast.Ident) {
 		}
 		t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: v.ReturnType}
 	}
+}
+
+func (t *typechecker) typecheckRangeLit(expr *ast.RangeLit) {
+	t.typecheckExpr(expr.Lower)
+	t.typecheckExpr(expr.Upper)
+	lty := t.types[expr.Lower]
+	uty := t.types[expr.Upper]
+
+	_, lok := lty.(*types.Int)
+	_, uok := uty.(*types.Int)
+	if !lok || !uok {
+		f := "Expected int values for range boundaries, but got %s, %s"
+		util.Error(f, lty, uty)
+	}
+	t.types[expr] = &types.Range{}
 }
 
 func (t *typechecker) typecheckArrayLit(expr *ast.ArrayLit) {

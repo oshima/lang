@@ -18,6 +18,16 @@ type str struct {
 	value string
 }
 
+// global range
+type grng struct {
+	label string
+}
+
+// local range
+type lrng struct {
+	offset int
+}
+
 // global array
 type garr struct {
 	label    string

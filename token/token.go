@@ -35,7 +35,8 @@ const (
 	DIV_ASSIGN Type = "DIV_ASSIGN"
 	MOD_ASSIGN Type = "MOD_ASSIGN"
 
-	ARROW Type = "ARROW"
+	BETWEEN Type = "BETWEEN"
+	ARROW   Type = "ARROW"
 
 	VAR      Type = "VAR"
 	FUNC     Type = "FUNC"
@@ -50,6 +51,7 @@ const (
 	INT    Type = "INT"
 	BOOL   Type = "BOOL"
 	STRING Type = "STRING"
+	RANGE  Type = "RANGE"
 
 	IDENT  Type = "IDENT"
 	NUMBER Type = "NUMBER"
@@ -94,7 +96,8 @@ var strings = map[Type]string{
 	DIV_ASSIGN: "/=",
 	MOD_ASSIGN: "%=",
 
-	ARROW: "->",
+	BETWEEN: "..",
+	ARROW:   "->",
 
 	VAR:      "var",
 	FUNC:     "func",
@@ -109,6 +112,7 @@ var strings = map[Type]string{
 	INT:    "int",
 	BOOL:   "bool",
 	STRING: "string",
+	RANGE:  "range",
 
 	IDENT:  "identifier",
 	NUMBER: "number",

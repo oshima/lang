@@ -70,6 +70,9 @@ func (p *parser) parseType() types.Type {
 	case token.STRING:
 		p.next()
 		return &types.String{}
+	case token.RANGE:
+		p.next()
+		return &types.Range{}
 	case token.LBRACK:
 		return p.parseArray()
 	case token.LPAREN:
@@ -215,7 +218,7 @@ func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
 	// ForInStmt
 	elem := &ast.VarDecl{}
 	index := &ast.VarDecl{}
-	array := &ast.VarDecl{}
+	iter := &ast.VarDecl{}
 	p.expect(token.IDENT)
 	elem.Name = p.tk.Literal
 	p.next()
@@ -226,10 +229,10 @@ func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
 		p.next()
 	}
 	p.consume(token.IN)
-	array.Value = p.parseExpr(LOWEST)
+	iter.Value = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
-	return &ast.ForInStmt{Elem: elem, Index: index, Array: array, Body: body}
+	return &ast.ForInStmt{Elem: elem, Index: index, Iter: iter, Body: body}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
@@ -306,6 +309,8 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 			expr = p.parseIndexExpr(expr)
 		case token.LPAREN:
 			expr = p.parseCallExprOrLibCallExpr(expr)
+		case token.BETWEEN:
+			expr = p.parseRangeLit(expr)
 		default:
 			expr = p.parseInfixExpr(expr)
 		}
@@ -394,6 +399,12 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	}
 	p.next()
 	return &ast.StringLit{Value: value}
+}
+
+func (p *parser) parseRangeLit(lower ast.Expr) *ast.RangeLit {
+	p.next()
+	upper := p.parseExpr(BETWEEN)
+	return &ast.RangeLit{Lower: lower, Upper: upper}
 }
 
 func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {

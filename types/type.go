@@ -5,17 +5,13 @@ import (
 	"strings"
 )
 
-/*
- Interface
-*/
+/* Interface */
 
 type Type interface {
 	String() string // for error messages
 }
 
-/*
- Basic types
-*/
+/* Basic types */
 
 type Int struct{}
 
@@ -27,9 +23,7 @@ func (i *Int) String() string    { return "int" }
 func (b *Bool) String() string   { return "bool" }
 func (s *String) String() string { return "string" }
 
-/*
- Array type
-*/
+/* Array type */
 
 type Array struct {
 	Len      int
@@ -40,9 +34,13 @@ func (a *Array) String() string {
 	return fmt.Sprintf("[%d]%s", a.Len, a.ElemType)
 }
 
-/*
- Func type
-*/
+/* Range type */
+
+type Range struct{}
+
+func (r *Range) String() string { return "range" }
+
+/* Func type */
 
 type Func struct {
 	ParamTypes []Type

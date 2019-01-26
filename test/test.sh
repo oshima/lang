@@ -115,6 +115,11 @@ try "var x = 10; { var x = 20; x = x + 10; x; }" 30
 try "var x = 10; { var x = 20; x = x + 10; } x;" 10
 try "var x = 10; x += 2; x -= 3; x *= 4;" 36
 
+try "-5 in -5..5 && 0 in -5..5 && 5 in -5..5;" 1
+try "!(-6 in -5..5) && !(6 in -5..5);" 1
+try "2 in [1, 2, 3];" 1
+try "4 in [1, 2, 3];" 0
+
 try-file ./test/for1.lg 55
 try-file ./test/for2.lg 55
 try-file ./test/for3.lg 225

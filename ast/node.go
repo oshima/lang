@@ -69,7 +69,7 @@ type ForStmt struct {
 type ForInStmt struct {
 	Elem  *VarDecl
 	Index *VarDecl
-	Array *VarDecl // implicit variable
+	Iter  *VarDecl // implicit variable
 	Body  *BlockStmt
 }
 
@@ -164,6 +164,11 @@ type StringLit struct {
 	Value string
 }
 
+type RangeLit struct {
+	Lower Expr
+	Upper Expr
+}
+
 type ArrayLit struct {
 	Elems []Expr
 }
@@ -198,6 +203,8 @@ func (expr *BoolLit) astNode()        {}
 func (expr *BoolLit) exprNode()       {}
 func (expr *StringLit) astNode()      {}
 func (expr *StringLit) exprNode()     {}
+func (expr *RangeLit) astNode()       {}
+func (expr *RangeLit) exprNode()      {}
 func (expr *ArrayLit) astNode()       {}
 func (expr *ArrayLit) exprNode()      {}
 func (expr *ArrayShortLit) astNode()  {}

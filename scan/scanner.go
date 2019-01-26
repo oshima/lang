@@ -78,6 +78,8 @@ func (s *scanner) readToken() *token.Token {
 		tk = s.readAnd()
 	case '|':
 		tk = s.readOr()
+	case '.':
+		tk = s.readBetween()
 	case '"':
 		tk = s.readQuoted()
 	default:
@@ -209,6 +211,12 @@ func (s *scanner) readOr() *token.Token {
 	s.next()
 	s.consume('|')
 	return &token.Token{Type: token.OR, Literal: "||"}
+}
+
+func (s *scanner) readBetween() *token.Token {
+	s.next()
+	s.consume('.')
+	return &token.Token{Type: token.BETWEEN, Literal: ".."}
 }
 
 func (s *scanner) readQuoted() *token.Token {
