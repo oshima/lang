@@ -4,6 +4,7 @@
    "func"
    "if"
    "else"
+   "while"
    "for"
    "in"
    "continue"

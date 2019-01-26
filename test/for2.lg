@@ -1,13 +1,9 @@
-var i = -10, sum = 0;
-
-for true {
-  if i < 1 {
-    i += 1;
-    continue;
+func local() -> {
+  var sum = 0;
+  for n, i in 5..9 {
+    sum += n + i;
   }
-  sum += i;
-  i += 1;
-  if i > 10 { break; }
+  printf("%d\n", sum);
 }
 
-printf("%d\n", sum);
+local();

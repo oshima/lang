@@ -1,0 +1,13 @@
+var i = -10, sum = 0;
+
+while true {
+  if i < 1 {
+    i += 1;
+    continue;
+  }
+  sum += i;
+  i += 1;
+  if i > 10 { break; }
+}
+
+printf("%d\n", sum);

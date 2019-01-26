@@ -131,10 +131,10 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 		e.emitVarStmt(v)
 	case *ast.IfStmt:
 		e.emitIfStmt(v)
+	case *ast.WhileStmt:
+		e.emitWhileStmt(v)
 	case *ast.ForStmt:
 		e.emitForStmt(v)
-	case *ast.ForInStmt:
-		e.emitForInStmt(v)
 	case *ast.ReturnStmt:
 		e.emitReturnStmt(v)
 	case *ast.ContinueStmt:
@@ -199,7 +199,7 @@ func (e *emitter) emitIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
+func (e *emitter) emitWhileStmt(stmt *ast.WhileStmt) {
 	branch := e.branches[stmt]
 	beginLabel := branch.labels[0]
 	endLabel := branch.labels[1]
@@ -213,7 +213,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	e.emitLabel(endLabel)
 }
 
-func (e *emitter) emitForInStmt(stmt *ast.ForInStmt) {
+func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	branch := e.branches[stmt]
 	beginLabel := branch.labels[0]
 	continueLabel := branch.labels[1]
@@ -337,10 +337,10 @@ func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 	branch := e.branches[ref]
 
 	switch ref.(type) {
-	case *ast.ForStmt:
+	case *ast.WhileStmt:
 		beginLabel := branch.labels[0]
 		e.emit("jmp %s", beginLabel)
-	case *ast.ForInStmt:
+	case *ast.ForStmt:
 		continueLabel := branch.labels[1]
 		e.emit("jmp %s", continueLabel)
 	}
@@ -351,10 +351,10 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 	branch := e.branches[ref]
 
 	switch ref.(type) {
-	case *ast.ForStmt:
+	case *ast.WhileStmt:
 		endLabel := branch.labels[1]
 		e.emit("jmp %s", endLabel)
-	case *ast.ForInStmt:
+	case *ast.ForStmt:
 		endLabel := branch.labels[2]
 		e.emit("jmp %s", endLabel)
 	}

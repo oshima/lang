@@ -35,10 +35,10 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 		t.typecheckFuncStmt(v)
 	case *ast.IfStmt:
 		t.typecheckIfStmt(v)
+	case *ast.WhileStmt:
+		t.typecheckWhileStmt(v)
 	case *ast.ForStmt:
 		t.typecheckForStmt(v)
-	case *ast.ForInStmt:
-		t.typecheckForInStmt(v)
 	case *ast.ReturnStmt:
 		t.typecheckReturnStmt(v)
 	case *ast.AssignStmt:
@@ -79,7 +79,7 @@ func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
+func (t *typechecker) typecheckWhileStmt(stmt *ast.WhileStmt) {
 	t.typecheckExpr(stmt.Cond)
 	ty := t.types[stmt.Cond]
 
@@ -90,17 +90,17 @@ func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 	t.typecheckBlockStmt(stmt.Body)
 }
 
-func (t *typechecker) typecheckForInStmt(stmt *ast.ForInStmt) {
+func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 	t.typecheckVarDecl(stmt.Iter)
 	ty := stmt.Iter.VarType
 
 	switch v := ty.(type) {
-	case *types.Array:
-		stmt.Elem.VarType = v.ElemType
 	case *types.Range:
 		stmt.Elem.VarType = &types.Int{}
+	case *types.Array:
+		stmt.Elem.VarType = v.ElemType
 	default:
-		util.Error("Expected array or range as a iterator, but got %s", ty)
+		util.Error("Expected range or array as a iterator, but got %s", ty)
 	}
 	stmt.Index.VarType = &types.Int{}
 

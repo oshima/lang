@@ -140,8 +140,10 @@ func (p *parser) parseStmt() ast.Stmt {
 		return p.parseFuncStmt()
 	case token.IF:
 		return p.parseIfStmt()
+	case token.WHILE:
+		return p.parseWhileStmt()
 	case token.FOR:
-		return p.parseForStmtOrForInStmt()
+		return p.parseForStmt()
 	case token.CONTINUE:
 		return p.parseContinueStmt()
 	case token.BREAK:
@@ -205,17 +207,16 @@ func (p *parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Cond: cond, Body: body, Else: els}
 }
 
-func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
+func (p *parser) parseWhileStmt() *ast.WhileStmt {
 	p.next()
-	ty := p.peekTk().Type
-	// ForStmt
-	if ty != token.COMMA && ty != token.IN {
-		cond := p.parseExpr(LOWEST)
-		p.expect(token.LBRACE)
-		body := p.parseBlockStmt()
-		return &ast.ForStmt{Cond: cond, Body: body}
-	}
-	// ForInStmt
+	cond := p.parseExpr(LOWEST)
+	p.expect(token.LBRACE)
+	body := p.parseBlockStmt()
+	return &ast.WhileStmt{Cond: cond, Body: body}
+}
+
+func (p *parser) parseForStmt() *ast.ForStmt {
+	p.next()
 	elem := &ast.VarDecl{}
 	index := &ast.VarDecl{}
 	iter := &ast.VarDecl{}
@@ -232,7 +233,7 @@ func (p *parser) parseForStmtOrForInStmt() ast.Stmt {
 	iter.Value = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
 	body := p.parseBlockStmt()
-	return &ast.ForInStmt{Elem: elem, Index: index, Iter: iter, Body: body}
+	return &ast.ForStmt{Elem: elem, Index: index, Iter: iter, Body: body}
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {

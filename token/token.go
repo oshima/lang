@@ -42,6 +42,7 @@ const (
 	FUNC     Type = "FUNC"
 	IF       Type = "IF"
 	ELSE     Type = "ELSE"
+	WHILE    Type = "WHILE"
 	FOR      Type = "FOR"
 	IN       Type = "IN"
 	CONTINUE Type = "CONTINUE"
@@ -103,6 +104,7 @@ var strings = map[Type]string{
 	FUNC:     "func",
 	IF:       "if",
 	ELSE:     "else",
+	WHILE:    "while",
 	FOR:      "for",
 	IN:       "in",
 	CONTINUE: "continue",

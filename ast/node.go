@@ -61,12 +61,12 @@ type IfStmt struct {
 	Else Stmt // *BlockStmt or *IfStmt
 }
 
-type ForStmt struct {
+type WhileStmt struct {
 	Cond Expr
 	Body *BlockStmt
 }
 
-type ForInStmt struct {
+type ForStmt struct {
 	Elem  *VarDecl
 	Index *VarDecl
 	Iter  *VarDecl // implicit variable
@@ -103,10 +103,10 @@ func (stmt *FuncStmt) astNode()      {}
 func (stmt *FuncStmt) stmtNode()     {}
 func (stmt *IfStmt) astNode()        {}
 func (stmt *IfStmt) stmtNode()       {}
+func (stmt *WhileStmt) astNode()     {}
+func (stmt *WhileStmt) stmtNode()    {}
 func (stmt *ForStmt) astNode()       {}
 func (stmt *ForStmt) stmtNode()      {}
-func (stmt *ForInStmt) astNode()     {}
-func (stmt *ForInStmt) stmtNode()    {}
 func (stmt *ContinueStmt) astNode()  {}
 func (stmt *ContinueStmt) stmtNode() {}
 func (stmt *BreakStmt) astNode()     {}

@@ -93,10 +93,10 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 		x.exploreFuncStmt(v)
 	case *ast.IfStmt:
 		x.exploreIfStmt(v)
+	case *ast.WhileStmt:
+		x.exploreWhileStmt(v)
 	case *ast.ForStmt:
 		x.exploreForStmt(v)
-	case *ast.ForInStmt:
-		x.exploreForInStmt(v)
 	case *ast.ReturnStmt:
 		x.exploreReturnStmt(v)
 	case *ast.AssignStmt:
@@ -137,15 +137,15 @@ func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 	}
 }
 
-func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
-	x.exploreExpr(stmt.Cond)
+func (x *explorer) exploreWhileStmt(stmt *ast.WhileStmt) {
 	beginLabel := x.branchLabel()
+	x.exploreExpr(stmt.Cond)
 	x.exploreBlockStmt(stmt.Body)
 	endLabel := x.branchLabel()
 	x.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
 }
 
-func (x *explorer) exploreForInStmt(stmt *ast.ForInStmt) {
+func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
 	x.exploreVarDecl(stmt.Elem)
 	x.exploreVarDecl(stmt.Index)
 	x.exploreVarDecl(stmt.Iter)

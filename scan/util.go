@@ -19,6 +19,7 @@ var keywords = map[string]token.Type{
 	"func":     token.FUNC,
 	"if":       token.IF,
 	"else":     token.ELSE,
+	"while":    token.WHILE,
 	"for":      token.FOR,
 	"in":       token.IN,
 	"continue": token.CONTINUE,

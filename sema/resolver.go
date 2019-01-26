@@ -33,10 +33,10 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 		r.resolveFuncStmt(v, e)
 	case *ast.IfStmt:
 		r.resolveIfStmt(v, e)
+	case *ast.WhileStmt:
+		r.resolveWhileStmt(v, e)
 	case *ast.ForStmt:
 		r.resolveForStmt(v, e)
-	case *ast.ForInStmt:
-		r.resolveForInStmt(v, e)
 	case *ast.ContinueStmt:
 		r.resolveContinueStmt(v, e)
 	case *ast.BreakStmt:
@@ -75,7 +75,7 @@ func (r *resolver) resolveIfStmt(stmt *ast.IfStmt, e *env) {
 	}
 }
 
-func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
+func (r *resolver) resolveWhileStmt(stmt *ast.WhileStmt, e *env) {
 	r.resolveExpr(stmt.Cond, e)
 
 	e_ := newEnv(e)
@@ -85,7 +85,7 @@ func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 	r.resolveBlockStmt(stmt.Body, e_)
 }
 
-func (r *resolver) resolveForInStmt(stmt *ast.ForInStmt, e *env) {
+func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 	r.resolveExpr(stmt.Iter.Value, e)
 
 	e_ := newEnv(e)

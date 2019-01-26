@@ -120,12 +120,12 @@ try "!(-6 in -5..5) && !(6 in -5..5);" 1
 try "2 in [1, 2, 3];" 1
 try "4 in [1, 2, 3];" 0
 
-try-file ./test/for1.lg 55
-try-file ./test/for2.lg 55
-try-file ./test/for3.lg 225
+try-file ./test/while1.lg 55
+try-file ./test/while2.lg 55
+try-file ./test/while3.lg 225
 
-try-file ./test/for-in1.lg 45
-try-file ./test/for-in2.lg 45
+try-file ./test/for1.lg 45
+try-file ./test/for2.lg 45
 
 try-file ./test/func1.lg 40
 try-file ./test/func2.lg true

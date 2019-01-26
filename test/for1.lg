@@ -1,8 +1,14 @@
-var i = 1, sum = 0;
+var matrix = [
+  [1, 2, 3],
+  [4, 5, 6],
+  [7, 8, 9],
+];
 
-for i <= 10 {
-  sum += i;
-  i += 1;
+var sum = 0;
+for row in matrix {
+  for col in row {
+    sum += col;
+  }
 }
 
 printf("%d\n", sum);

@@ -1,9 +1,0 @@
-func local() -> {
-  var sum = 0;
-  for n, i in 5..9 {
-    sum += n + i;
-  }
-  printf("%d\n", sum);
-}
-
-local();
