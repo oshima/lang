@@ -500,15 +500,29 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("%s al", setcc[expr.Op])
 		e.emit("movzx rax, al")
 	case "in":
-		switch ty := e.types[expr.Right].(type) {
+		switch v := e.types[expr.Right].(type) {
+		case *types.Range:
+			branch := e.branches[expr]
+			falseLabel := branch.labels[0]
+			endLabel := branch.labels[1]
+
+			e.emit("cmp rax, qword ptr [rcx]")
+			e.emit("jl %s", falseLabel)
+			e.emit("cmp rax, qword ptr [rcx+8]")
+			e.emit("jg %s", falseLabel)
+			e.emit("mov rax, 1")
+			e.emit("jmp %s", endLabel)
+			e.emitLabel(falseLabel)
+			e.emit("mov rax, 0")
+			e.emitLabel(endLabel)
 		case *types.Array:
 			branch := e.branches[expr]
 			beginLabel := branch.labels[0]
 			falseLabel := branch.labels[1]
 			endLabel := branch.labels[2]
 
-			len := ty.Len
-			elemSize := sizeOf(ty.ElemType)
+			len := v.Len
+			elemSize := sizeOf(v.ElemType)
 
 			e.emit("mov rdx, rcx")
 			e.emit("add rdx, %d", len*elemSize)
@@ -523,20 +537,6 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 			}
 			e.emit("lea rcx, [rcx+%d]", elemSize)
 			e.emit("jne %s", beginLabel)
-			e.emit("mov rax, 1")
-			e.emit("jmp %s", endLabel)
-			e.emitLabel(falseLabel)
-			e.emit("mov rax, 0")
-			e.emitLabel(endLabel)
-		case *types.Range:
-			branch := e.branches[expr]
-			falseLabel := branch.labels[0]
-			endLabel := branch.labels[1]
-
-			e.emit("cmp rax, qword ptr [rcx]")
-			e.emit("jl %s", falseLabel)
-			e.emit("cmp rax, qword ptr [rcx+8]")
-			e.emit("jg %s", falseLabel)
 			e.emit("mov rax, 1")
 			e.emit("jmp %s", endLabel)
 			e.emitLabel(falseLabel)

@@ -11,7 +11,7 @@
    "break"
    "return"))
 
-(defconst lang-basictypes
+(defconst lang-types
   (list
    "int"
    "bool"
@@ -34,7 +34,7 @@
 
     ;; Basic types
     (,(rx symbol-start
-          (eval `(or ,@lang-basictypes))
+          (eval `(or ,@lang-types))
           symbol-end)
      0 font-lock-type-face)
 

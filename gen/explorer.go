@@ -32,7 +32,7 @@ type explorer struct {
 	nFnLabel     int
 	nBranchLabel int
 
-	// used for finding local objects
+	// used for collecting local objects
 	local  bool
 	offset int
 }
@@ -49,15 +49,15 @@ func (x *explorer) strLabel() string {
 	return label
 }
 
-func (x *explorer) garrLabel() string {
-	label := fmt.Sprintf("garr%d", x.nGarrLabel)
-	x.nGarrLabel += 1
-	return label
-}
-
 func (x *explorer) grngLabel() string {
 	label := fmt.Sprintf("grng%d", x.nGrngLabel)
 	x.nGrngLabel += 1
+	return label
+}
+
+func (x *explorer) garrLabel() string {
+	label := fmt.Sprintf("garr%d", x.nGarrLabel)
+	x.nGarrLabel += 1
 	return label
 }
 

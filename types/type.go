@@ -23,6 +23,12 @@ func (i *Int) String() string    { return "int" }
 func (b *Bool) String() string   { return "bool" }
 func (s *String) String() string { return "string" }
 
+/* Range type */
+
+type Range struct{}
+
+func (r *Range) String() string { return "range" }
+
 /* Array type */
 
 type Array struct {
@@ -33,12 +39,6 @@ type Array struct {
 func (a *Array) String() string {
 	return fmt.Sprintf("[%d]%s", a.Len, a.ElemType)
 }
-
-/* Range type */
-
-type Range struct{}
-
-func (r *Range) String() string { return "range" }
 
 /* Func type */
 
