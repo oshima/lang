@@ -472,10 +472,16 @@ func (e *emitter) emitPrefixExpr(expr *ast.PrefixExpr) {
 }
 
 func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
-	e.emitExpr(expr.Right)
-	e.emit("push rax")
-	e.emitExpr(expr.Left)
-	e.emit("pop rcx")
+	switch expr.Op {
+	case "&&", "||":
+		// do nothing
+	default:
+		// emit both operands in advance
+		e.emitExpr(expr.Right)
+		e.emit("push rax")
+		e.emitExpr(expr.Left) // rax: left
+		e.emit("pop rcx")     // rcx: right
+	}
 
 	switch expr.Op {
 	case "+":
@@ -491,10 +497,6 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("cqo")
 		e.emit("idiv rcx")
 		e.emit("mov rax, rdx")
-	case "&&":
-		e.emit("and rax, rcx")
-	case "||":
-		e.emit("or rax, rcx")
 	case "==", "!=", "<", "<=", ">", ">=":
 		e.emit("cmp rax, rcx")
 		e.emit("%s al", setcc[expr.Op])
@@ -543,6 +545,24 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 			e.emit("mov rax, 0")
 			e.emitLabel(endLabel)
 		}
+	case "&&":
+		branch := e.branches[expr]
+		endLabel := branch.labels[0]
+
+		e.emitExpr(expr.Left)
+		e.emit("cmp rax, 0")
+		e.emit("je %s", endLabel)
+		e.emitExpr(expr.Right)
+		e.emitLabel(endLabel)
+	case "||":
+		branch := e.branches[expr]
+		endLabel := branch.labels[0]
+
+		e.emitExpr(expr.Left)
+		e.emit("cmp rax, 1")
+		e.emit("je %s", endLabel)
+		e.emitExpr(expr.Right)
+		e.emitLabel(endLabel)
 	}
 }
 

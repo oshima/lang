@@ -206,7 +206,11 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 	x.exploreExpr(expr.Left)
 	x.exploreExpr(expr.Right)
 
-	if expr.Op == "in" {
+	switch expr.Op {
+	case "&&", "||":
+		endLabel := x.branchLabel()
+		x.branches[expr] = &branch{labels: []string{endLabel}}
+	case "in":
 		switch x.types[expr.Right].(type) {
 		case *types.Array:
 			beginLabel := x.branchLabel()
