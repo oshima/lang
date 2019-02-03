@@ -501,8 +501,28 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("cmp rax, rcx")
 		e.emit("%s al", setcc[expr.Op])
 		e.emit("movzx rax, al")
+	case "&&":
+		branch := e.branches[expr]
+		endLabel := branch.labels[0]
+
+		e.emitExpr(expr.Left)
+		e.emit("cmp rax, 0")
+		e.emit("je %s", endLabel)
+		e.emitExpr(expr.Right)
+		e.emitLabel(endLabel)
+	case "||":
+		branch := e.branches[expr]
+		endLabel := branch.labels[0]
+
+		e.emitExpr(expr.Left)
+		e.emit("cmp rax, 1")
+		e.emit("je %s", endLabel)
+		e.emitExpr(expr.Right)
+		e.emitLabel(endLabel)
 	case "in":
-		switch v := e.types[expr.Right].(type) {
+		ty := e.types[expr.Right]
+
+		switch v := ty.(type) {
 		case *types.Range:
 			branch := e.branches[expr]
 			falseLabel := branch.labels[0]
@@ -545,24 +565,6 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 			e.emit("mov rax, 0")
 			e.emitLabel(endLabel)
 		}
-	case "&&":
-		branch := e.branches[expr]
-		endLabel := branch.labels[0]
-
-		e.emitExpr(expr.Left)
-		e.emit("cmp rax, 0")
-		e.emit("je %s", endLabel)
-		e.emitExpr(expr.Right)
-		e.emitLabel(endLabel)
-	case "||":
-		branch := e.branches[expr]
-		endLabel := branch.labels[0]
-
-		e.emitExpr(expr.Left)
-		e.emit("cmp rax, 1")
-		e.emit("je %s", endLabel)
-		e.emitExpr(expr.Right)
-		e.emitLabel(endLabel)
 	}
 }
 
@@ -589,7 +591,6 @@ func (e *emitter) emitCallExpr(expr *ast.CallExpr) {
 		j := len(expr.Params) - 1 - i // reverse order
 		e.emit("pop %s", paramRegs[8][j])
 	}
-
 	if v, ok := expr.Left.(*ast.Ident); ok {
 		ref := e.refs[v]
 		if v, ok := ref.(*ast.FuncDecl); ok {

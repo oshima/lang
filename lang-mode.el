@@ -32,7 +32,7 @@
           symbol-end)
      0 font-lock-keyword-face)
 
-    ;; Basic types
+    ;; Types
     (,(rx symbol-start
           (eval `(or ,@lang-types))
           symbol-end)

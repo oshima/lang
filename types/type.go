@@ -11,7 +11,7 @@ type Type interface {
 	String() string // for error messages
 }
 
-/* Basic types */
+/* Types */
 
 type Int struct{}
 
@@ -19,32 +19,36 @@ type Bool struct{}
 
 type String struct{}
 
-func (i *Int) String() string    { return "int" }
-func (b *Bool) String() string   { return "bool" }
-func (s *String) String() string { return "string" }
-
-/* Range type */
-
 type Range struct{}
-
-func (r *Range) String() string { return "range" }
-
-/* Array type */
 
 type Array struct {
 	Len      int
 	ElemType Type
 }
 
-func (a *Array) String() string {
-	return fmt.Sprintf("[%d]%s", a.Len, a.ElemType)
-}
-
-/* Func type */
-
 type Func struct {
 	ParamTypes []Type
 	ReturnType Type
+}
+
+func (i *Int) String() string {
+	return "int"
+}
+
+func (b *Bool) String() string {
+	return "bool"
+}
+
+func (s *String) String() string {
+	return "string"
+}
+
+func (r *Range) String() string {
+	return "range"
+}
+
+func (a *Array) String() string {
+	return fmt.Sprintf("[%d]%s", a.Len, a.ElemType)
 }
 
 func (f *Func) String() string {

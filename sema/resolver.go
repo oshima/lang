@@ -17,8 +17,8 @@ type resolver struct {
 
 func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 	for _, stmt := range prog.Stmts {
-		// register the function names in advance
 		if v, ok := stmt.(*ast.FuncStmt); ok {
+			// register the function names in advance
 			if err := e.set(v.Func.Name, v.Func); err != nil {
 				util.Error("%s has already been declared", v.Func.Name)
 			}
@@ -60,8 +60,8 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 
 func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
 	for _, stmt := range stmt.Stmts {
-		// register the function names in advance
 		if v, ok := stmt.(*ast.FuncStmt); ok {
+			// register the function names in advance
 			if err := e.set(v.Func.Name, v.Func); err != nil {
 				util.Error("%s has already been declared", v.Func.Name)
 			}

@@ -212,15 +212,15 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 		x.branches[expr] = &branch{labels: []string{endLabel}}
 	case "in":
 		switch x.types[expr.Right].(type) {
+		case *types.Range:
+			falseLabel := x.branchLabel()
+			endLabel := x.branchLabel()
+			x.branches[expr] = &branch{labels: []string{falseLabel, endLabel}}
 		case *types.Array:
 			beginLabel := x.branchLabel()
 			falseLabel := x.branchLabel()
 			endLabel := x.branchLabel()
 			x.branches[expr] = &branch{labels: []string{beginLabel, falseLabel, endLabel}}
-		case *types.Range:
-			falseLabel := x.branchLabel()
-			endLabel := x.branchLabel()
-			x.branches[expr] = &branch{labels: []string{falseLabel, endLabel}}
 		}
 	}
 }

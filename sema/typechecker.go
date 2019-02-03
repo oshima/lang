@@ -260,15 +260,15 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 		t.types[expr] = &types.Bool{}
 	case "in":
 		switch v := rty.(type) {
-		case *types.Array:
-			if !types.Same(lty, v.ElemType) {
-				f := "Expected %s value as a candidate in array, but got %s"
-				util.Error(f, v.ElemType, lty)
-			}
 		case *types.Range:
 			if _, ok := lty.(*types.Int); !ok {
 				f := "Expected int value as a candidate in range, but got %s"
 				util.Error(f, lty)
+			}
+		case *types.Array:
+			if !types.Same(lty, v.ElemType) {
+				f := "Expected %s value as a candidate in array, but got %s"
+				util.Error(f, v.ElemType, lty)
 			}
 		default:
 			f := "Expected array or range value as a group, but got %s"
