@@ -69,7 +69,7 @@ func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 	ty := t.types[stmt.Cond]
 
 	if _, ok := ty.(*types.Bool); !ok {
-		util.Error("Expected bool value for if condition, but got %s", ty)
+		util.Error("Expected bool if-condition, but got %s", ty)
 	}
 
 	t.typecheckBlockStmt(stmt.Body)
@@ -84,7 +84,7 @@ func (t *typechecker) typecheckWhileStmt(stmt *ast.WhileStmt) {
 	ty := t.types[stmt.Cond]
 
 	if _, ok := ty.(*types.Bool); !ok {
-		util.Error("Expected bool value for while condition, but got %s", ty)
+		util.Error("Expected bool while-condition, but got %s", ty)
 	}
 
 	t.typecheckBlockStmt(stmt.Body)
@@ -262,16 +262,16 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 		switch v := rty.(type) {
 		case *types.Range:
 			if _, ok := lty.(*types.Int); !ok {
-				f := "Expected int value as a candidate in range, but got %s"
+				f := "Expected int candidate for range, but got %s"
 				util.Error(f, lty)
 			}
 		case *types.Array:
 			if !types.Same(lty, v.ElemType) {
-				f := "Expected %s value as a candidate in array, but got %s"
+				f := "Expected %s candidate for array, but got %s"
 				util.Error(f, v.ElemType, lty)
 			}
 		default:
-			f := "Expected array or range value as a group, but got %s"
+			f := "Expected range or array as a group, but got %s"
 			util.Error(f, rty)
 		}
 		t.types[expr] = &types.Bool{}
@@ -356,7 +356,7 @@ func (t *typechecker) typecheckRangeLit(expr *ast.RangeLit) {
 	_, lok := lty.(*types.Int)
 	_, uok := uty.(*types.Int)
 	if !lok || !uok {
-		f := "Expected int values for range boundaries, but got %s, %s"
+		f := "Expected int boundaries of range, but got %s, %s"
 		util.Error(f, lty, uty)
 	}
 	t.types[expr] = &types.Range{}
@@ -383,7 +383,7 @@ func (t *typechecker) typecheckArrayShortLit(expr *ast.ArrayShortLit) {
 		ty := t.types[expr.Value]
 
 		if !types.Same(ty, expr.ElemType) {
-			f := "Expected %s value for array element, but got %s"
+			f := "Expected %s element in array, but got %s"
 			util.Error(f, expr.ElemType, ty)
 		}
 	}
@@ -427,7 +427,7 @@ func (t *typechecker) typecheckVarDecl(decl *ast.VarDecl) {
 
 		if decl.VarType == nil {
 			if ty == nil {
-				util.Error("No initial value for %s", decl.Name)
+				util.Error("%s has no initial value", decl.Name)
 			}
 			decl.VarType = ty // type inference (write on AST node)
 		} else {
