@@ -6,7 +6,7 @@ lang is a toy language compiled to assembly code for x86_64-linux.
 
 ### Literals
 
-lang has six types of values: `int`, `bool`, `string`, `range`, `array` and `function`.
+lang has six types of values: `int`, `bool`, `string`, `range`, `array` and `function`.\
 There are literals for representing values of each types.
 
 ```go
@@ -81,7 +81,7 @@ var num: int = 3 + 5;
 
 ```
 
-Variable type annotation can be omitted.
+Variable type annotation can be omitted.\
 In which case, it is inferred by the type of initial value.
 
 ```go
@@ -101,7 +101,7 @@ printf("%d\n", num) // => 10
 
 ### Functions
 
-Using `func` statement, we can declare named function.
+Using `func` statement, we can declare named function.\
 It is required to annotate the types of parameters and return value.
 
 ```go
