@@ -1,6 +1,6 @@
 package scan
 
-import "github.com/oshjma/lang/token"
+import "github.com/oshima/lang/token"
 
 var punctuations = map[rune]token.Type{
 	'(': token.LPAREN,

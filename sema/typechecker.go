@@ -1,9 +1,9 @@
 package sema
 
 import (
-	"github.com/oshjma/lang/ast"
-	"github.com/oshjma/lang/types"
-	"github.com/oshjma/lang/util"
+	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/types"
+	"github.com/oshima/lang/util"
 )
 
 /*

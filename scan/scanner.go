@@ -1,8 +1,8 @@
 package scan
 
 import (
-	"github.com/oshjma/lang/token"
-	"github.com/oshjma/lang/util"
+	"github.com/oshima/lang/token"
+	"github.com/oshima/lang/util"
 )
 
 type scanner struct {

@@ -1,8 +1,8 @@
 package parse
 
 import (
-	"github.com/oshjma/lang/ast"
-	"github.com/oshjma/lang/token"
+	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/token"
 )
 
 func Parse(tokens []*token.Token) *ast.Program {

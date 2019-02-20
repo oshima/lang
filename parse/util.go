@@ -1,6 +1,6 @@
 package parse
 
-import "github.com/oshjma/lang/token"
+import "github.com/oshima/lang/token"
 
 const (
 	LOWEST int = iota

@@ -1,7 +1,9 @@
 package sema
 
-import "github.com/oshjma/lang/ast"
-import "github.com/oshjma/lang/types"
+import (
+	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/types"
+)
 
 func Analyze(prog *ast.Program) *ast.Metadata {
 	r := &resolver{

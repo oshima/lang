@@ -1,6 +1,6 @@
 package gen
 
-import "github.com/oshjma/lang/types"
+import "github.com/oshima/lang/types"
 
 var setcc = map[string]string{
 	"==": "sete",

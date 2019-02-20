@@ -1,6 +1,6 @@
 package gen
 
-import "github.com/oshjma/lang/ast"
+import "github.com/oshima/lang/ast"
 
 func Generate(prog *ast.Program, meta *ast.Metadata) {
 	x := &explorer{

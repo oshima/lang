@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"github.com/k0kubun/pp"
-	"github.com/oshjma/lang/gen"
-	"github.com/oshjma/lang/parse"
-	"github.com/oshjma/lang/scan"
-	"github.com/oshjma/lang/sema"
-	"github.com/oshjma/lang/util"
+	"github.com/oshima/lang/gen"
+	"github.com/oshima/lang/parse"
+	"github.com/oshima/lang/scan"
+	"github.com/oshima/lang/sema"
+	"github.com/oshima/lang/util"
 	"io/ioutil"
 	"os"
 )

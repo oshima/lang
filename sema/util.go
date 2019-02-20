@@ -1,6 +1,6 @@
 package sema
 
-import "github.com/oshjma/lang/ast"
+import "github.com/oshima/lang/ast"
 
 func returnableStmt(stmt ast.Stmt) bool {
 	switch v := stmt.(type) {

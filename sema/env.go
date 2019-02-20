@@ -2,7 +2,7 @@ package sema
 
 import (
 	"errors"
-	"github.com/oshjma/lang/ast"
+	"github.com/oshima/lang/ast"
 )
 
 /*

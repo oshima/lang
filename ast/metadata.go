@@ -1,6 +1,6 @@
 package ast
 
-import "github.com/oshjma/lang/types"
+import "github.com/oshima/lang/types"
 
 type Metadata struct {
 	Refs  map[Node]Node
