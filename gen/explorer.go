@@ -203,15 +203,23 @@ func (x *explorer) explorePrefixExpr(expr *ast.PrefixExpr) {
 }
 
 func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
-	x.exploreExpr(expr.Left)
-	x.exploreExpr(expr.Right)
+	switch expr.Op {
+	case "&&", "||":
+		x.exploreExpr(expr.Left)
+		x.exploreExpr(expr.Right)
+	default:
+		x.exploreExpr(expr.Right)
+		x.exploreExpr(expr.Left)
+	}
 
 	switch expr.Op {
 	case "&&", "||":
 		endLabel := x.branchLabel()
 		x.branches[expr] = &branch{labels: []string{endLabel}}
 	case "in":
-		switch x.types[expr.Right].(type) {
+		ty := x.types[expr.Right]
+
+		switch ty.(type) {
 		case *types.Range:
 			falseLabel := x.branchLabel()
 			endLabel := x.branchLabel()
