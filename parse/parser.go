@@ -15,7 +15,7 @@ type parser struct {
 }
 
 func (p *parser) next() {
-	p.pos += 1
+	p.pos++
 	p.tk = p.tokens[p.pos]
 }
 
@@ -27,7 +27,7 @@ func (p *parser) peekTk() *token.Token {
 }
 
 func (p *parser) lookPrec() int {
-	if prec, ok := precedences[p.tk.Type]; ok {
+	if prec, ok := precMap[p.tk.Type]; ok {
 		return prec
 	}
 	return LOWEST
@@ -57,7 +57,8 @@ func (p *parser) consumeComma(terminator token.Type) {
 	}
 }
 
-/* Type */
+// ----------------------------------------------------------------
+// Type
 
 func (p *parser) parseType() types.Type {
 	switch p.tk.Type {
@@ -118,7 +119,8 @@ func (p *parser) parseFunc() *types.Func {
 	return &types.Func{ParamTypes: paramTypes, ReturnType: returnType}
 }
 
-/* Program */
+// ----------------------------------------------------------------
+// Program
 
 func (p *parser) parseProgram() *ast.Program {
 	stmts := make([]ast.Stmt, 0, 8)
@@ -128,7 +130,8 @@ func (p *parser) parseProgram() *ast.Program {
 	return &ast.Program{Stmts: stmts}
 }
 
-/* Stmt */
+// ----------------------------------------------------------------
+// Stmt
 
 func (p *parser) parseStmt() ast.Stmt {
 	switch p.tk.Type {
@@ -169,11 +172,11 @@ func (p *parser) parseVarStmt() *ast.VarStmt {
 	p.next()
 	vars := make([]*ast.VarDecl, 0, 2)
 	for p.tk.Type != token.SEMICOLON {
-		var_ := p.parseVarDecl()
-		if var_.Value == nil {
-			util.Error("%s has no initial value", var_.Name)
+		v := p.parseVarDecl()
+		if v.Value == nil {
+			util.Error("%s has no initial value", v.Name)
 		}
-		vars = append(vars, var_)
+		vars = append(vars, v)
 		p.consumeComma(token.SEMICOLON)
 	}
 	p.next()
@@ -182,8 +185,8 @@ func (p *parser) parseVarStmt() *ast.VarStmt {
 
 func (p *parser) parseFuncStmt() *ast.FuncStmt {
 	p.next()
-	func_ := p.parseFuncDecl()
-	return &ast.FuncStmt{Func: func_}
+	fn := p.parseFuncDecl()
+	return &ast.FuncStmt{Func: fn}
 }
 
 func (p *parser) parseIfStmt() *ast.IfStmt {
@@ -280,7 +283,8 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 	return &ast.ExprStmt{Expr: expr}
 }
 
-/* Expr */
+// ----------------------------------------------------------------
+// Expr
 
 func (p *parser) parseExpr(prec int) ast.Expr {
 	var expr ast.Expr
@@ -384,16 +388,18 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	var escaped bool
 	for _, ch := range p.tk.Literal {
 		if escaped {
-			if ch_, ok := unescape[ch]; ok {
-				value += string(ch_)
+			if ch, ok := unescape[ch]; ok {
+				value += string(ch)
 				escaped = false
 			} else {
 				util.Error("Unknown escape sequence \\%c", ch)
 			}
 		} else {
-			if ch == '\\' {
+			if ch == '"' {
+				continue
+			} else if ch == '\\' {
 				escaped = true
-			} else if ch != '"' {
+			} else {
 				value += string(ch)
 			}
 		}
@@ -473,7 +479,8 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
 }
 
-/* Decl */
+// ----------------------------------------------------------------
+// Decl
 
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.expect(token.IDENT)

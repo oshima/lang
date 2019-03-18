@@ -6,14 +6,14 @@ import (
 )
 
 type scanner struct {
-	runes  []rune       // input source code
+	runes  []rune       // source code
 	pos    int          // current position
 	ch     rune         // current character
 	lastTk *token.Token // last token scanner has read
 }
 
 func (s *scanner) next() {
-	s.pos += 1
+	s.pos++
 	if s.pos < len(s.runes) {
 		s.ch = s.runes[s.pos]
 	} else {
@@ -125,7 +125,7 @@ func (s *scanner) readPlusOrAddAssign() *token.Token {
 	s.next()
 	if s.ch == '=' {
 		s.next()
-		return &token.Token{Type: token.ADD_ASSIGN, Literal: "+="}
+		return &token.Token{Type: token.ADDASSIGN, Literal: "+="}
 	}
 	return &token.Token{Type: token.PLUS, Literal: "+"}
 }
@@ -135,7 +135,7 @@ func (s *scanner) readMinusOrSubAssignOrArrowOrNumber() *token.Token {
 	if nextCh == '=' {
 		s.next()
 		s.next()
-		return &token.Token{Type: token.SUB_ASSIGN, Literal: "-="}
+		return &token.Token{Type: token.SUBASSIGN, Literal: "-="}
 	}
 	if nextCh == '>' {
 		s.next()
@@ -160,7 +160,7 @@ func (s *scanner) readAsteriskOrMulAssign() *token.Token {
 	s.next()
 	if s.ch == '=' {
 		s.next()
-		return &token.Token{Type: token.MUL_ASSIGN, Literal: "*="}
+		return &token.Token{Type: token.MULASSIGN, Literal: "*="}
 	}
 	return &token.Token{Type: token.ASTERISK, Literal: "*"}
 }
@@ -169,7 +169,7 @@ func (s *scanner) readSlashOrDivAssign() *token.Token {
 	s.next()
 	if s.ch == '=' {
 		s.next()
-		return &token.Token{Type: token.DIV_ASSIGN, Literal: "/="}
+		return &token.Token{Type: token.DIVASSIGN, Literal: "/="}
 	}
 	return &token.Token{Type: token.SLASH, Literal: "/"}
 }
@@ -178,7 +178,7 @@ func (s *scanner) readPercentOrModAssign() *token.Token {
 	s.next()
 	if s.ch == '=' {
 		s.next()
-		return &token.Token{Type: token.MOD_ASSIGN, Literal: "%="}
+		return &token.Token{Type: token.MODASSIGN, Literal: "%="}
 	}
 	return &token.Token{Type: token.PERCENT, Literal: "%"}
 }

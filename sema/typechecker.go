@@ -6,16 +6,14 @@ import (
 	"github.com/oshima/lang/util"
 )
 
-/*
- Typechecker - do type checking
-*/
-
+// typechecker performs type checking
 type typechecker struct {
 	refs  map[ast.Node]ast.Node
 	types map[ast.Expr]types.Type
 }
 
-/* Program */
+// ----------------------------------------------------------------
+// Program
 
 func (t *typechecker) typecheckProgram(prog *ast.Program) {
 	for _, stmt := range prog.Stmts {
@@ -23,7 +21,8 @@ func (t *typechecker) typecheckProgram(prog *ast.Program) {
 	}
 }
 
-/* Stmt */
+// ----------------------------------------------------------------
+// Stmt
 
 func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
@@ -49,14 +48,14 @@ func (t *typechecker) typecheckStmt(stmt ast.Stmt) {
 }
 
 func (t *typechecker) typecheckBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		t.typecheckStmt(stmt_)
+	for _, stmt := range stmt.Stmts {
+		t.typecheckStmt(stmt)
 	}
 }
 
 func (t *typechecker) typecheckVarStmt(stmt *ast.VarStmt) {
-	for _, var_ := range stmt.Vars {
-		t.typecheckVarDecl(var_)
+	for _, v := range stmt.Vars {
+		t.typecheckVarDecl(v)
 	}
 }
 
@@ -166,7 +165,8 @@ func (t *typechecker) typecheckExprStmt(stmt *ast.ExprStmt) {
 	t.typecheckExpr(stmt.Expr)
 }
 
-/* Expr */
+// ----------------------------------------------------------------
+// Expr
 
 func (t *typechecker) typecheckExpr(expr ast.Expr) {
 	switch v := expr.(type) {
@@ -400,7 +400,8 @@ func (t *typechecker) typecheckFuncLit(expr *ast.FuncLit) {
 	t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: expr.ReturnType}
 }
 
-/* Decl */
+// ----------------------------------------------------------------
+// Decl
 
 func (t *typechecker) typecheckVarDecl(decl *ast.VarDecl) {
 	switch v := decl.Value.(type) {

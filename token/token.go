@@ -1,7 +1,15 @@
 package token
 
+// Token represents the lexical token
+type Token struct {
+	Type    Type
+	Literal string
+}
+
+// Type represents the type of token
 type Type string
 
+// The list of token types
 const (
 	LPAREN    Type = "LPAREN"
 	RPAREN    Type = "RPAREN"
@@ -29,11 +37,11 @@ const (
 	AND Type = "AND"
 	OR  Type = "OR"
 
-	ADD_ASSIGN Type = "ADD_ASSIGN"
-	SUB_ASSIGN Type = "SUB_ASSIGN"
-	MUL_ASSIGN Type = "MUL_ASSIGN"
-	DIV_ASSIGN Type = "DIV_ASSIGN"
-	MOD_ASSIGN Type = "MOD_ASSIGN"
+	ADDASSIGN Type = "ADDASSIGN"
+	SUBASSIGN Type = "SUBASSIGN"
+	MULASSIGN Type = "MULASSIGN"
+	DIVASSIGN Type = "DIVASSIGN"
+	MODASSIGN Type = "MODASSIGN"
 
 	BETWEEN Type = "BETWEEN"
 	ARROW   Type = "ARROW"
@@ -91,11 +99,11 @@ var strings = map[Type]string{
 	AND: "&&",
 	OR:  "||",
 
-	ADD_ASSIGN: "+=",
-	SUB_ASSIGN: "-=",
-	MUL_ASSIGN: "*=",
-	DIV_ASSIGN: "/=",
-	MOD_ASSIGN: "%=",
+	ADDASSIGN: "+=",
+	SUBASSIGN: "-=",
+	MULASSIGN: "*=",
+	DIVASSIGN: "/=",
+	MODASSIGN: "%=",
 
 	BETWEEN: "..",
 	ARROW:   "->",
@@ -127,9 +135,4 @@ var strings = map[Type]string{
 
 func (t Type) String() string {
 	return strings[t]
-}
-
-type Token struct {
-	Type    Type
-	Literal string
 }

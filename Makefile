@@ -1,5 +1,7 @@
 install:
 	gofmt -w .
+	go vet ./...
+	golint ./...
 	go install
 
 test:

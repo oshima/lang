@@ -5,27 +5,36 @@ import (
 	"strings"
 )
 
-/* Interface */
+// ----------------------------------------------------------------
+// Interface
 
+// Type is the interface for all types in this language
 type Type interface {
-	String() string // for error messages
+	String() string
 }
 
-/* Types */
+// ----------------------------------------------------------------
+// Types
 
+// Int represents the integer type
 type Int struct{}
 
+// Bool represents the boolean type
 type Bool struct{}
 
+// String represents the string type
 type String struct{}
 
+// Range represents the range type
 type Range struct{}
 
+// Array represents the array type
 type Array struct {
 	Len      int
 	ElemType Type
 }
 
+// Func represents the function type
 type Func struct {
 	ParamTypes []Type
 	ReturnType Type
@@ -58,7 +67,6 @@ func (f *Func) String() string {
 	}
 	if f.ReturnType == nil {
 		return fmt.Sprintf("(%s) -> {}", strings.Join(params, ", "))
-	} else {
-		return fmt.Sprintf("(%s) -> %s", strings.Join(params, ", "), f.ReturnType)
 	}
+	return fmt.Sprintf("(%s) -> %s", strings.Join(params, ", "), f.ReturnType)
 }

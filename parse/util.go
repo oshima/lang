@@ -2,6 +2,7 @@ package parse
 
 import "github.com/oshima/lang/token"
 
+// The oparator precedence
 const (
 	LOWEST int = iota
 	OR
@@ -16,7 +17,7 @@ const (
 	SUFFIX
 )
 
-var precedences = map[token.Type]int{
+var precMap = map[token.Type]int{
 	token.OR:       OR,
 	token.AND:      AND,
 	token.EQ:       EQUAL,
@@ -45,12 +46,12 @@ var typeStart = map[token.Type]bool{
 }
 
 var assignOps = map[token.Type]bool{
-	token.ASSIGN:     true,
-	token.ADD_ASSIGN: true,
-	token.SUB_ASSIGN: true,
-	token.MUL_ASSIGN: true,
-	token.DIV_ASSIGN: true,
-	token.MOD_ASSIGN: true,
+	token.ASSIGN:    true,
+	token.ADDASSIGN: true,
+	token.SUBASSIGN: true,
+	token.MULASSIGN: true,
+	token.DIVASSIGN: true,
+	token.MODASSIGN: true,
 }
 
 var unescape = map[rune]rune{

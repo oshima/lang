@@ -5,20 +5,18 @@ import (
 	"github.com/oshima/lang/util"
 )
 
-/*
- Resolver - resolve references between AST nodes
-*/
-
+// resolver resolves the references between AST nodes
 type resolver struct {
 	refs map[ast.Node]ast.Node
 }
 
-/* Program */
+// ----------------------------------------------------------------
+// Program
 
 func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
+	// register the function names in advance
 	for _, stmt := range prog.Stmts {
 		if v, ok := stmt.(*ast.FuncStmt); ok {
-			// register the function names in advance
 			if err := e.set(v.Func.Name, v.Func); err != nil {
 				util.Error("%s has already been declared", v.Func.Name)
 			}
@@ -29,7 +27,8 @@ func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 	}
 }
 
-/* Stmt */
+// ----------------------------------------------------------------
+// Stmt
 
 func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 	switch v := stmt.(type) {
@@ -59,22 +58,22 @@ func (r *resolver) resolveStmt(stmt ast.Stmt, e *env) {
 }
 
 func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
+	// register the function names in advance
 	for _, stmt := range stmt.Stmts {
 		if v, ok := stmt.(*ast.FuncStmt); ok {
-			// register the function names in advance
 			if err := e.set(v.Func.Name, v.Func); err != nil {
 				util.Error("%s has already been declared", v.Func.Name)
 			}
 		}
 	}
-	for _, stmt_ := range stmt.Stmts {
-		r.resolveStmt(stmt_, e)
+	for _, stmt := range stmt.Stmts {
+		r.resolveStmt(stmt, e)
 	}
 }
 
 func (r *resolver) resolveVarStmt(stmt *ast.VarStmt, e *env) {
-	for _, var_ := range stmt.Vars {
-		r.resolveVarDecl(var_, e)
+	for _, v := range stmt.Vars {
+		r.resolveVarDecl(v, e)
 	}
 }
 
@@ -94,26 +93,26 @@ func (r *resolver) resolveIfStmt(stmt *ast.IfStmt, e *env) {
 func (r *resolver) resolveWhileStmt(stmt *ast.WhileStmt, e *env) {
 	r.resolveExpr(stmt.Cond, e)
 
-	e_ := newEnv(e)
-	e_.set("continue", stmt)
-	e_.set("break", stmt)
+	ne := newEnv(e)
+	ne.set("continue", stmt)
+	ne.set("break", stmt)
 
-	r.resolveBlockStmt(stmt.Body, e_)
+	r.resolveBlockStmt(stmt.Body, ne)
 }
 
 func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 	r.resolveExpr(stmt.Iter.Value, e)
 
-	e_ := newEnv(e)
-	e_.set("continue", stmt)
-	e_.set("break", stmt)
+	ne := newEnv(e)
+	ne.set("continue", stmt)
+	ne.set("break", stmt)
 
-	r.resolveVarDecl(stmt.Elem, e_)
+	r.resolveVarDecl(stmt.Elem, ne)
 	if stmt.Index.Name != "" {
-		r.resolveVarDecl(stmt.Index, e_)
+		r.resolveVarDecl(stmt.Index, ne)
 	}
 
-	r.resolveBlockStmt(stmt.Body, e_)
+	r.resolveBlockStmt(stmt.Body, ne)
 }
 
 func (r *resolver) resolveContinueStmt(stmt *ast.ContinueStmt, e *env) {
@@ -158,7 +157,8 @@ func (r *resolver) resolveExprStmt(stmt *ast.ExprStmt, e *env) {
 	r.resolveExpr(stmt.Expr, e)
 }
 
-/* Expr */
+// ----------------------------------------------------------------
+// Expr
 
 func (r *resolver) resolveExpr(expr ast.Expr, e *env) {
 	switch v := expr.(type) {
@@ -243,25 +243,26 @@ func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {
 		util.Error("Missing return at end of function")
 	}
 
-	e_ := newEnv(e)
-	e_.set("return", expr)
+	ne := newEnv(e)
+	ne.set("return", expr)
 
 	for _, param := range expr.Params {
-		r.resolveVarDecl(param, e_)
+		r.resolveVarDecl(param, ne)
 	}
-	r.resolveBlockStmt(expr.Body, e_)
+	r.resolveBlockStmt(expr.Body, ne)
 }
 
-/* Decl */
+// ----------------------------------------------------------------
+// Decl
 
 func (r *resolver) resolveVarDecl(decl *ast.VarDecl, e *env) {
 	switch v := decl.Value.(type) {
 	case nil:
 		// ok
 	case *ast.FuncLit:
-		e_ := newEnv(e)
-		e_.set(decl.Name, decl)
-		r.resolveFuncLit(v, e_)
+		ne := newEnv(e)
+		ne.set(decl.Name, decl)
+		r.resolveFuncLit(v, ne)
 	default:
 		r.resolveExpr(v, e)
 	}
@@ -279,11 +280,11 @@ func (r *resolver) resolveFuncDecl(decl *ast.FuncDecl, e *env) {
 		util.Error("Missing return at end of function")
 	}
 
-	e_ := newEnv(e)
-	e_.set("return", decl)
+	ne := newEnv(e)
+	ne.set("return", decl)
 
 	for _, param := range decl.Params {
-		r.resolveVarDecl(param, e_)
+		r.resolveVarDecl(param, ne)
 	}
-	r.resolveBlockStmt(decl.Body, e_)
+	r.resolveBlockStmt(decl.Body, ne)
 }

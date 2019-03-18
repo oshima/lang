@@ -6,10 +6,7 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-/*
- Emitter - emit asm code
-*/
-
+// emitter emits the target assembly code
 type emitter struct {
 	refs  map[ast.Node]ast.Node
 	types map[ast.Expr]types.Type
@@ -33,7 +30,8 @@ func (e *emitter) emitLabel(label string) {
 	fmt.Println(label + ":")
 }
 
-/* Program */
+// ----------------------------------------------------------------
+// Program
 
 func (e *emitter) emitProgram(prog *ast.Program) {
 	e.emit(".intel_syntax noprefix")
@@ -60,7 +58,7 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 		e.emit(".comm %s,%d,%d", garr.label, garr.len*garr.elemSize, garr.elemSize)
 	}
 
-	for node, _ := range e.fns {
+	for node := range e.fns {
 		e.emitFuncCode(node)
 	}
 
@@ -121,7 +119,8 @@ func (e *emitter) emitFuncCode(node ast.Node) {
 	e.emit("ret")
 }
 
-/* Stmt */
+// ----------------------------------------------------------------
+// Stmt
 
 func (e *emitter) emitStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
@@ -149,23 +148,23 @@ func (e *emitter) emitStmt(stmt ast.Stmt) {
 }
 
 func (e *emitter) emitBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		e.emitStmt(stmt_)
+	for _, stmt := range stmt.Stmts {
+		e.emitStmt(stmt)
 	}
 }
 
 func (e *emitter) emitVarStmt(stmt *ast.VarStmt) {
-	for _, var_ := range stmt.Vars {
-		e.emitExpr(var_.Value)
+	for _, v := range stmt.Vars {
+		e.emitExpr(v.Value)
 
-		if lvar, ok := e.lvars[var_]; ok {
+		if lvar, ok := e.lvars[v]; ok {
 			switch lvar.size {
 			case 1:
 				e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
 			case 8:
 				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 			}
-		} else if gvar, ok := e.gvars[var_]; ok {
+		} else if gvar, ok := e.gvars[v]; ok {
 			switch gvar.size {
 			case 1:
 				e.emit("mov byte ptr %s[rip], al", gvar.label)
@@ -427,7 +426,8 @@ func (e *emitter) emitExprStmt(stmt *ast.ExprStmt) {
 	e.emitExpr(stmt.Expr)
 }
 
-/* Expr */
+// ----------------------------------------------------------------
+// Expr
 
 func (e *emitter) emitExpr(expr ast.Expr) {
 	switch v := expr.(type) {

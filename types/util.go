@@ -1,5 +1,6 @@
 package types
 
+// Same checks if two input types are same or not
 func Same(ty1 Type, ty2 Type) bool {
 	switch v1 := ty1.(type) {
 	case *Int:

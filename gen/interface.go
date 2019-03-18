@@ -2,6 +2,7 @@ package gen
 
 import "github.com/oshima/lang/ast"
 
+// Generate travarses the input AST and emits the target assembly code
 func Generate(prog *ast.Program, meta *ast.Metadata) {
 	x := &explorer{
 		types:    meta.Types,

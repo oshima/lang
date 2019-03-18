@@ -16,8 +16,8 @@ func returnableStmt(stmt ast.Stmt) bool {
 }
 
 func returnableBlockStmt(stmt *ast.BlockStmt) bool {
-	for _, stmt_ := range stmt.Stmts {
-		if returnableStmt(stmt_) {
+	for _, stmt := range stmt.Stmts {
+		if returnableStmt(stmt) {
 			return true
 		}
 	}

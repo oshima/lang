@@ -6,10 +6,8 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-/*
- Explorer - explore program to collect objects necessary for emitting asm code
-*/
-
+// explorer explores the program to collect the objects
+// necessary for emitting target assembly code
 type explorer struct {
 	types map[ast.Expr]types.Type
 
@@ -39,41 +37,42 @@ type explorer struct {
 
 func (x *explorer) gvarLabel() string {
 	label := fmt.Sprintf("gvar%d", x.nGvarLabel)
-	x.nGvarLabel += 1
+	x.nGvarLabel++
 	return label
 }
 
 func (x *explorer) strLabel() string {
 	label := fmt.Sprintf("str%d", x.nStrLabel)
-	x.nStrLabel += 1
+	x.nStrLabel++
 	return label
 }
 
 func (x *explorer) grngLabel() string {
 	label := fmt.Sprintf("grng%d", x.nGrngLabel)
-	x.nGrngLabel += 1
+	x.nGrngLabel++
 	return label
 }
 
 func (x *explorer) garrLabel() string {
 	label := fmt.Sprintf("garr%d", x.nGarrLabel)
-	x.nGarrLabel += 1
+	x.nGarrLabel++
 	return label
 }
 
 func (x *explorer) fnLabel() string {
 	label := fmt.Sprintf("fn%d", x.nFnLabel)
-	x.nFnLabel += 1
+	x.nFnLabel++
 	return label
 }
 
 func (x *explorer) branchLabel() string {
 	label := fmt.Sprintf(".L%d", x.nBranchLabel)
-	x.nBranchLabel += 1
+	x.nBranchLabel++
 	return label
 }
 
-/* Program */
+// ----------------------------------------------------------------
+// Program
 
 func (x *explorer) exploreProgram(node *ast.Program) {
 	for _, stmt := range node.Stmts {
@@ -81,7 +80,8 @@ func (x *explorer) exploreProgram(node *ast.Program) {
 	}
 }
 
-/* Stmt */
+// ----------------------------------------------------------------
+// Stmt
 
 func (x *explorer) exploreStmt(stmt ast.Stmt) {
 	switch v := stmt.(type) {
@@ -107,14 +107,14 @@ func (x *explorer) exploreStmt(stmt ast.Stmt) {
 }
 
 func (x *explorer) exploreBlockStmt(stmt *ast.BlockStmt) {
-	for _, stmt_ := range stmt.Stmts {
-		x.exploreStmt(stmt_)
+	for _, stmt := range stmt.Stmts {
+		x.exploreStmt(stmt)
 	}
 }
 
 func (x *explorer) exploreVarStmt(stmt *ast.VarStmt) {
-	for _, var_ := range stmt.Vars {
-		x.exploreVarDecl(var_)
+	for _, v := range stmt.Vars {
+		x.exploreVarDecl(v)
 	}
 }
 
@@ -171,7 +171,8 @@ func (x *explorer) exploreExprStmt(stmt *ast.ExprStmt) {
 	x.exploreExpr(stmt.Expr)
 }
 
-/* Expr */
+// ----------------------------------------------------------------
+// Expr
 
 func (x *explorer) exploreExpr(expr ast.Expr) {
 	switch v := expr.(type) {
@@ -315,7 +316,8 @@ func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
 	x.branches[expr] = &branch{labels: []string{endLabel}}
 }
 
-/* Decl */
+// ----------------------------------------------------------------
+// Decl
 
 func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
 	if decl.Value != nil {
