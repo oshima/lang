@@ -1,13 +1,13 @@
 # lang
 
-lang is a toy language compiled to assembly code for x86_64-linux.
+lang is a toy language compiled into assembly code targetting x86_64-linux.
 
 ## Syntax
 
 ### Literals
 
 lang has six types of values: `int`, `bool`, `string`, `range`, `array` and `function`.\
-Each type has a literal to represent its value.
+Each type has the literal to represent its value.
 
 ```go
 // int (signed 64-bit)
