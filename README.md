@@ -113,7 +113,7 @@ func mul(a: int, b: int) -> int {
 printf("%d\n", mul(3, 5)); // => 15
 ```
 
-Function literal generates anonymous function.
+Function literal generates an anonymous function.
 
 ```go
 (name: string) -> {
@@ -121,7 +121,7 @@ Function literal generates anonymous function.
 }("baz"); // => Hello, baz
 ```
 
-Anonymous function can be stored in a variable and called by the variable name.
+Anonymous function can be stored in a variable and called by its name.
 
 ```go
 var fib = (n: int) -> int {
