@@ -7,7 +7,7 @@ lang is a toy language compiled to assembly code for x86_64-linux.
 ### Literals
 
 lang has six types of values: `int`, `bool`, `string`, `range`, `array` and `function`.\
-There are literals for representing values of each types.
+Each type has a literal to represent its value.
 
 ```go
 // int (signed 64-bit)
@@ -22,7 +22,7 @@ false
 "foo"
 
 // range
-1..100
+0..100
 
 // array
 ["apple", "banana", "orange"] // [3]string
@@ -58,10 +58,10 @@ true || false
 !true
 
 // `in` operator
-3 in 1..5 // => true
-6 in 1..5 // => false
-3 in [1, 2, 3, 4, 5] // => true
-6 in [1, 2, 3, 4, 5] // => false
+2 in 0..5 // => true
+5 in 0..5 // => false
+2 in [0, 1, 2, 3, 4] // => true
+5 in [0, 1, 2, 3, 4] // => false
 ```
 
 Operator priority is similar to other languages.
@@ -144,46 +144,47 @@ if true {
 }
 // => foo
 
-if false {
-  puts("foo");
-} else {
-  puts("bar");
-}
-// => bar
+var n = 30;
 
-var n = 7;
-
-if n in 1..4 {
-  puts("foo");
-} else if n in 5..9 {
-  puts("bar");
+if n in 0..10 {
+  puts("small");
+} else if n in 10..20 {
+  puts("medium");
 } else {
-  puts("baz");
+  puts("large");
 }
-// => bar
+// => large
 ```
 
 ```js
-var n = 1;
+var n = 0;
 
-while true {
+while n < 10 {
   if n % 2 == 0 {
     continue;
   }
   printf("%d ", n);
+  n += 1
+}
+// => 1 3 5 7 9
+
+var n = 0;
+
+while true {
+  printf("%d ", n);
   n += 1;
-  if n >= 10 {
+  if n >= 5 {
     break;
   }
 }
-// => 1 3 5 7 9
+// => 0 1 2 3 4
 ```
 
 ``` js
-for n in 1..5 {
+for n in 0..5 {
   printf("%d ", n);
 }
-// => 1 2 3 4 5
+// => 0 1 2 3 4
 
 for s in ["a", "b", "c"] {
   printf("%s ", s);
