@@ -242,7 +242,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 		// cond
 		e.emitLabel(beginLabel)
 		e.emit("cmp rcx, qword ptr [rax+8]")
-		e.emit("jg %s", endLabel)
+		e.emit("jge %s", endLabel)
 
 		// body
 		e.emitBlockStmt(stmt.Body)
@@ -531,7 +531,7 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 			e.emit("cmp rax, qword ptr [rcx]")
 			e.emit("jl %s", falseLabel)
 			e.emit("cmp rax, qword ptr [rcx+8]")
-			e.emit("jg %s", falseLabel)
+			e.emit("jge %s", falseLabel)
 			e.emit("mov rax, 1")
 			e.emit("jmp %s", endLabel)
 			e.emitLabel(falseLabel)
