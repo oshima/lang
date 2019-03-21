@@ -12,23 +12,23 @@ type explorer struct {
 	types map[ast.Expr]types.Type
 
 	// objects
-	gvars    map[*ast.VarDecl]*gvar
-	lvars    map[*ast.VarDecl]*lvar
-	strs     map[*ast.StringLit]*str
-	grngs    map[*ast.RangeLit]*grng
-	lrngs    map[*ast.RangeLit]*lrng
-	garrs    map[ast.Expr]*garr
-	larrs    map[ast.Expr]*larr
-	fns      map[ast.Node]*fn
-	branches map[ast.Node]*branch
+	gvars map[ast.Decl]*gvar
+	grngs map[ast.Expr]*grng
+	garrs map[ast.Expr]*garr
+	lvars map[ast.Decl]*lvar
+	lrngs map[ast.Expr]*lrng
+	larrs map[ast.Expr]*larr
+	strs  map[ast.Expr]*str
+	fns   map[ast.Node]*fn
+	brs   map[ast.Node]*br
 
 	// counters of labels
-	nGvarLabel   int
-	nStrLabel    int
-	nGrngLabel   int
-	nGarrLabel   int
-	nFnLabel     int
-	nBranchLabel int
+	nGvarLabel int
+	nGrngLabel int
+	nGarrLabel int
+	nStrLabel  int
+	nFnLabel   int
+	nBrLabel   int
 
 	// used for collecting local objects
 	local  bool
@@ -38,12 +38,6 @@ type explorer struct {
 func (x *explorer) gvarLabel() string {
 	label := fmt.Sprintf("gvar%d", x.nGvarLabel)
 	x.nGvarLabel++
-	return label
-}
-
-func (x *explorer) strLabel() string {
-	label := fmt.Sprintf("str%d", x.nStrLabel)
-	x.nStrLabel++
 	return label
 }
 
@@ -59,15 +53,21 @@ func (x *explorer) garrLabel() string {
 	return label
 }
 
+func (x *explorer) strLabel() string {
+	label := fmt.Sprintf("str%d", x.nStrLabel)
+	x.nStrLabel++
+	return label
+}
+
 func (x *explorer) fnLabel() string {
 	label := fmt.Sprintf("fn%d", x.nFnLabel)
 	x.nFnLabel++
 	return label
 }
 
-func (x *explorer) branchLabel() string {
-	label := fmt.Sprintf(".L%d", x.nBranchLabel)
-	x.nBranchLabel++
+func (x *explorer) brLabel() string {
+	label := fmt.Sprintf(".L%d", x.nBrLabel)
+	x.nBrLabel++
 	return label
 }
 
@@ -127,33 +127,33 @@ func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 	x.exploreBlockStmt(stmt.Body)
 
 	if stmt.Else == nil {
-		endLabel := x.branchLabel()
-		x.branches[stmt] = &branch{labels: []string{endLabel}}
+		endLabel := x.brLabel()
+		x.brs[stmt] = &br{labels: []string{endLabel}}
 	} else {
-		elseLabel := x.branchLabel()
+		elseLabel := x.brLabel()
 		x.exploreStmt(stmt.Else)
-		endLabel := x.branchLabel()
-		x.branches[stmt] = &branch{labels: []string{elseLabel, endLabel}}
+		endLabel := x.brLabel()
+		x.brs[stmt] = &br{labels: []string{elseLabel, endLabel}}
 	}
 }
 
 func (x *explorer) exploreWhileStmt(stmt *ast.WhileStmt) {
-	beginLabel := x.branchLabel()
+	beginLabel := x.brLabel()
 	x.exploreExpr(stmt.Cond)
 	x.exploreBlockStmt(stmt.Body)
-	endLabel := x.branchLabel()
-	x.branches[stmt] = &branch{labels: []string{beginLabel, endLabel}}
+	endLabel := x.brLabel()
+	x.brs[stmt] = &br{labels: []string{beginLabel, endLabel}}
 }
 
 func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
 	x.exploreVarDecl(stmt.Elem)
 	x.exploreVarDecl(stmt.Index)
 	x.exploreVarDecl(stmt.Iter)
-	beginLabel := x.branchLabel()
+	beginLabel := x.brLabel()
 	x.exploreBlockStmt(stmt.Body)
-	continueLabel := x.branchLabel()
-	endLabel := x.branchLabel()
-	x.branches[stmt] = &branch{labels: []string{beginLabel, continueLabel, endLabel}}
+	continueLabel := x.brLabel()
+	endLabel := x.brLabel()
+	x.brs[stmt] = &br{labels: []string{beginLabel, continueLabel, endLabel}}
 }
 
 func (x *explorer) exploreReturnStmt(stmt *ast.ReturnStmt) {
@@ -215,21 +215,21 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 
 	switch expr.Op {
 	case "&&", "||":
-		endLabel := x.branchLabel()
-		x.branches[expr] = &branch{labels: []string{endLabel}}
+		endLabel := x.brLabel()
+		x.brs[expr] = &br{labels: []string{endLabel}}
 	case "in":
 		ty := x.types[expr.Right]
 
 		switch ty.(type) {
 		case *types.Range:
-			falseLabel := x.branchLabel()
-			endLabel := x.branchLabel()
-			x.branches[expr] = &branch{labels: []string{falseLabel, endLabel}}
+			falseLabel := x.brLabel()
+			endLabel := x.brLabel()
+			x.brs[expr] = &br{labels: []string{falseLabel, endLabel}}
 		case *types.Array:
-			beginLabel := x.branchLabel()
-			falseLabel := x.branchLabel()
-			endLabel := x.branchLabel()
-			x.branches[expr] = &branch{labels: []string{beginLabel, falseLabel, endLabel}}
+			beginLabel := x.brLabel()
+			falseLabel := x.brLabel()
+			endLabel := x.brLabel()
+			x.brs[expr] = &br{labels: []string{beginLabel, falseLabel, endLabel}}
 		}
 	}
 }
@@ -309,11 +309,11 @@ func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
 		x.exploreVarDecl(param)
 	}
 	x.exploreBlockStmt(expr.Body)
-	endLabel := x.branchLabel()
+	endLabel := x.brLabel()
 
 	x.local = false
 	x.fns[expr] = &fn{label: x.fnLabel(), localArea: align(x.offset, 16)}
-	x.branches[expr] = &branch{labels: []string{endLabel}}
+	x.brs[expr] = &br{labels: []string{endLabel}}
 }
 
 // ----------------------------------------------------------------
@@ -329,7 +329,10 @@ func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
 		x.offset = align(x.offset+size, size)
 		x.lvars[decl] = &lvar{offset: x.offset, size: size}
 	} else {
-		label := x.gvarLabel() + "_" + decl.Name
+		label := x.gvarLabel()
+		if decl.Name != "" {
+			label += "_" + decl.Name
+		}
 		x.gvars[decl] = &gvar{label: label, size: size}
 	}
 }
@@ -342,12 +345,12 @@ func (x *explorer) exploreFuncDecl(decl *ast.FuncDecl) {
 		x.exploreVarDecl(param)
 	}
 	x.exploreBlockStmt(decl.Body)
-	endLabel := x.branchLabel()
+	endLabel := x.brLabel()
 
 	x.local = false
 	x.fns[decl] = &fn{
 		label:     x.fnLabel() + "_" + decl.Name,
 		localArea: align(x.offset, 16),
 	}
-	x.branches[decl] = &branch{labels: []string{endLabel}}
+	x.brs[decl] = &br{labels: []string{endLabel}}
 }

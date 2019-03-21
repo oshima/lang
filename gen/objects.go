@@ -49,6 +49,6 @@ type fn struct {
 }
 
 // branch labels
-type branch struct {
+type br struct {
 	labels []string
 }
