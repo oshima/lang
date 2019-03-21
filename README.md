@@ -1,6 +1,6 @@
 # lang
 
-lang is a toy language compiled into assembly code targetting x86_64-linux.
+lang is a toy language compiled into assembly code targeting x86_64-linux.
 
 ## Syntax
 
@@ -101,7 +101,7 @@ printf("%d\n", num) // => 10
 
 ### Functions
 
-Using `func` statement, we can declare named function.\
+Using `func` statement, we can declare a named function.\
 It is required to annotate the types of parameters and return value.
 
 ```go
