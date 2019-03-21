@@ -85,9 +85,9 @@ Variable type annotation can be omitted.\
 In which case, it is inferred by the type of initial value.
 
 ```go
-var name = "bar", age = 20;   // name: string, age: int
+var name = "foo", age = 20;    // name: string, age: int
 
-var primes = [2, 3, 5, 7, 9]; // primes: [5]int
+var primes = [2, 3, 5, 7, 11]; // primes: [5]int
 ```
 
 A value of variable can be reassigned.
@@ -105,7 +105,6 @@ Using `func` statement, we can declare named function.\
 It is required to annotate the types of parameters and return value.
 
 ```go
-// mul: (int, int) -> int
 func mul(a: int, b: int) -> int {
   return a * b;
 }
@@ -118,7 +117,8 @@ Function literal generates an anonymous function.
 ```go
 (name: string) -> {
   printf("Hello, %s\n", name);
-}("baz"); // => Hello, baz
+}("foo");
+// => Hello, foo
 ```
 
 Anonymous function can be stored in a variable and called by its name.
