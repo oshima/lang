@@ -35,7 +35,14 @@ func (s *scanner) skipWs() {
 }
 
 func (s *scanner) consume(ch rune) {
-	if s.ch != ch {
+	switch s.ch {
+	case ch:
+		// ok
+	case '\n':
+		util.Error("Expected %c but got newline", ch)
+	case 0:
+		util.Error("Expected %c but got EOF", ch)
+	default:
 		util.Error("Expected %c but got %c", ch, s.ch)
 	}
 	s.next()

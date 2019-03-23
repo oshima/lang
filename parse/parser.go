@@ -388,8 +388,8 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	var escaped bool
 	for _, ch := range p.tk.Literal {
 		if escaped {
-			if ch, ok := unescape[ch]; ok {
-				value += string(ch)
+			if raw, ok := unescape[ch]; ok {
+				value += string(raw)
 				escaped = false
 			} else {
 				util.Error("Unknown escape sequence \\%c", ch)
