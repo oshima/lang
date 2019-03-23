@@ -11,6 +11,9 @@ type Type string
 
 // The list of token types
 const (
+	COMMENT Type = "COMMENT"
+	EOF     Type = "EOF"
+
 	LPAREN    Type = "LPAREN"
 	RPAREN    Type = "RPAREN"
 	LBRACK    Type = "LBRACK"
@@ -67,12 +70,13 @@ const (
 	TRUE   Type = "TRUE"
 	FALSE  Type = "FALSE"
 	QUOTED Type = "QUOTED"
-
-	EOF Type = "EOF"
 )
 
 // for error messages
 var strings = map[Type]string{
+	COMMENT: "comment",
+	EOF:     "EOF",
+
 	LPAREN:    "(",
 	RPAREN:    ")",
 	LBRACK:    "[",
@@ -129,8 +133,6 @@ var strings = map[Type]string{
 	TRUE:   "true",
 	FALSE:  "false",
 	QUOTED: "quoted characters",
-
-	EOF: "EOF",
 }
 
 func (t Type) String() string {

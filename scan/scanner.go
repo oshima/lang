@@ -45,7 +45,10 @@ func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
 	s.skipWs()
 	for s.ch != 0 {
-		tokens = append(tokens, s.readToken())
+		tk := s.readToken()
+		if tk.Type != token.COMMENT {
+			tokens = append(tokens, tk)
+		}
 		s.skipWs()
 	}
 	return append(tokens, &token.Token{Type: token.EOF})
@@ -54,6 +57,8 @@ func (s *scanner) readTokens() []*token.Token {
 func (s *scanner) readToken() *token.Token {
 	var tk *token.Token
 	switch s.ch {
+	case '#':
+		tk = s.readComment()
 	case '(', ')', '[', ']', '{', '}', ',', ':', ';':
 		tk = s.readPunct()
 	case '=':
@@ -94,6 +99,19 @@ func (s *scanner) readToken() *token.Token {
 	}
 	s.lastTk = tk
 	return tk
+}
+
+func (s *scanner) readComment() *token.Token {
+	pos := s.pos
+	s.next()
+	for s.ch != '\n' && s.ch != 0 {
+		s.next()
+	}
+	literal := string(s.runes[pos:s.pos])
+	if s.ch == '\n' {
+		s.next()
+	}
+	return &token.Token{Type: token.COMMENT, Literal: literal}
 }
 
 func (s *scanner) readPunct() *token.Token {
