@@ -703,38 +703,33 @@ func (e *emitter) emitArrayLit(expr *ast.ArrayLit) {
 }
 
 func (e *emitter) emitArrayShortLit(expr *ast.ArrayShortLit) {
-	if expr.Value == nil {
+	if expr.Value != nil {
+		e.emitExpr(expr.Value)
+
 		if larr, ok := e.larrs[expr]; ok {
-			e.emit("lea rax, [rbp-%d]", larr.offset)
-		} else if garr, ok := e.garrs[expr]; ok {
-			e.emit("mov rax, offset flat:%s", garr.label)
-		}
-		return
-	}
-
-	e.emitExpr(expr.Value)
-
-	if larr, ok := e.larrs[expr]; ok {
-		for i := 0; i < larr.len; i++ {
-			offset := larr.offset - i*larr.elemSize
+			e.emit("lea rdi, [rbp-%d]", larr.offset)
+			e.emit("mov rcx, %d", larr.len)
 			switch larr.elemSize {
 			case 1:
-				e.emit("mov byte ptr [rbp-%d], al", offset)
+				e.emit("rep stosb")
 			case 8:
-				e.emit("mov qword ptr [rbp-%d], rax", offset)
+				e.emit("rep stosq")
 			}
-		}
-		e.emit("lea rax, [rbp-%d]", larr.offset)
-	} else if garr, ok := e.garrs[expr]; ok {
-		for i := 0; i < garr.len; i++ {
-			offset := i * garr.elemSize
+		} else if garr, ok := e.garrs[expr]; ok {
+			e.emit("mov rdi, offset flat:%s", garr.label)
+			e.emit("mov rcx, %d", garr.len)
 			switch garr.elemSize {
 			case 1:
-				e.emit("mov byte ptr %s[rip+%d], al", garr.label, offset)
+				e.emit("rep stosb")
 			case 8:
-				e.emit("mov qword ptr %s[rip+%d], rax", garr.label, offset)
+				e.emit("rep stosq")
 			}
 		}
+	}
+
+	if larr, ok := e.larrs[expr]; ok {
+		e.emit("lea rax, [rbp-%d]", larr.offset)
+	} else if garr, ok := e.garrs[expr]; ok {
 		e.emit("mov rax, offset flat:%s", garr.label)
 	}
 }
