@@ -5,7 +5,7 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-// Analyze travarses the input AST and check if the program is correct
+// Analyze travarses the input AST and check if the program is correct.
 func Analyze(prog *ast.Program) *ast.Metadata {
 	r := &resolver{
 		refs: make(map[ast.Node]ast.Node),

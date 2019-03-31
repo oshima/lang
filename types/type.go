@@ -8,7 +8,7 @@ import (
 // ----------------------------------------------------------------
 // Interface
 
-// Type is the interface for all types in this language
+// Type is the interface for all types in this language.
 type Type interface {
 	String() string
 }
@@ -16,25 +16,25 @@ type Type interface {
 // ----------------------------------------------------------------
 // Types
 
-// Int represents the integer type
+// Int represents the integer type.
 type Int struct{}
 
-// Bool represents the boolean type
+// Bool represents the boolean type.
 type Bool struct{}
 
-// String represents the string type
+// String represents the string type.
 type String struct{}
 
-// Range represents the range type
+// Range represents the range type.
 type Range struct{}
 
-// Array represents the array type
+// Array represents the array type.
 type Array struct {
 	Len      int
 	ElemType Type
 }
 
-// Func represents the function type
+// Func represents the function type.
 type Func struct {
 	ParamTypes []Type
 	ReturnType Type

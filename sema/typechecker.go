@@ -6,7 +6,7 @@ import (
 	"github.com/oshima/lang/util"
 )
 
-// typechecker performs type checking
+// typechecker performs type checking.
 type typechecker struct {
 	refs  map[ast.Node]ast.Node
 	types map[ast.Expr]types.Type

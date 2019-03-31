@@ -5,7 +5,7 @@ import (
 	"github.com/oshima/lang/util"
 )
 
-// resolver resolves the references between AST nodes
+// resolver resolves the references between the AST nodes.
 type resolver struct {
 	refs map[ast.Node]ast.Node
 }

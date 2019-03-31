@@ -1,6 +1,6 @@
 package ast
 
-// Returnable checks if the input statement can return a value in function
+// Returnable checks if the input statement can return a value in function.
 func Returnable(stmt Stmt) bool {
 	switch v := stmt.(type) {
 	case *BlockStmt:

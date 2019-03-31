@@ -1,15 +1,15 @@
 package token
 
-// Token represents the lexical token
+// Token represents the lexical token.
 type Token struct {
 	Type    Type
 	Literal string
 }
 
-// Type represents the type of token
+// Type represents the type of token.
 type Type string
 
-// The list of token types
+// The list of token types.
 const (
 	COMMENT Type = "COMMENT"
 	EOF     Type = "EOF"
@@ -72,7 +72,6 @@ const (
 	QUOTED Type = "QUOTED"
 )
 
-// for error messages
 var strings = map[Type]string{
 	COMMENT: "comment",
 	EOF:     "EOF",

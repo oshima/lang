@@ -5,24 +5,24 @@ import "github.com/oshima/lang/types"
 // ----------------------------------------------------------------
 // Interfaces
 
-// Node is the interface for all AST nodes
+// Node is the interface for all AST nodes.
 type Node interface {
 	astNode()
 }
 
-// Stmt is the interface for all statement nodes
+// Stmt is the interface for all statement nodes.
 type Stmt interface {
 	Node
 	stmtNode()
 }
 
-// Expr is the interface for all expression nodes
+// Expr is the interface for all expression nodes.
 type Expr interface {
 	Node
 	exprNode()
 }
 
-// Decl is the interface for all declaration nodes
+// Decl is the interface for all declaration nodes.
 type Decl interface {
 	Node
 	declNode()
@@ -31,7 +31,7 @@ type Decl interface {
 // ----------------------------------------------------------------
 // Program
 
-// Program is the root node of AST
+// Program is the root node of AST.
 type Program struct {
 	Stmts []Stmt
 }
@@ -41,35 +41,35 @@ func (prog *Program) astNode() {}
 // ----------------------------------------------------------------
 // Statement nodes
 
-// BlockStmt represents a block of statements
+// BlockStmt represents a block of statements.
 type BlockStmt struct {
 	Stmts []Stmt
 }
 
-// VarStmt represents a statement containing a couple of variable declarations
+// VarStmt represents a statement containing a couple of variable declarations.
 type VarStmt struct {
 	Vars []*VarDecl
 }
 
-// FuncStmt represents a statement containing a function declaration
+// FuncStmt represents a statement containing a function declaration.
 type FuncStmt struct {
 	Func *FuncDecl
 }
 
-// IfStmt represents an if statement
+// IfStmt represents an if statement.
 type IfStmt struct {
 	Cond Expr
 	Body *BlockStmt
 	Else Stmt // *BlockStmt or *IfStmt
 }
 
-// WhileStmt represents a while statement
+// WhileStmt represents a while statement.
 type WhileStmt struct {
 	Cond Expr
 	Body *BlockStmt
 }
 
-// ForStmt represents a for statement
+// ForStmt represents a for statement.
 type ForStmt struct {
 	Elem  *VarDecl
 	Index *VarDecl
@@ -77,29 +77,29 @@ type ForStmt struct {
 	Body  *BlockStmt
 }
 
-// ContinueStmt represents a continue statement
+// ContinueStmt represents a continue statement.
 type ContinueStmt struct {
 	_ byte
 }
 
-// BreakStmt represents a break statement
+// BreakStmt represents a break statement.
 type BreakStmt struct {
 	_ byte
 }
 
-// ReturnStmt represents a return statement
+// ReturnStmt represents a return statement.
 type ReturnStmt struct {
 	Value Expr
 }
 
-// AssignStmt represents an assignment
+// AssignStmt represents an assignment.
 type AssignStmt struct {
 	Op     string
 	Target Expr
 	Value  Expr
 }
 
-// ExprStmt represents a statement of stand-alone expression
+// ExprStmt represents a statement of stand-alone expression.
 type ExprStmt struct {
 	Expr Expr
 }
@@ -130,76 +130,76 @@ func (stmt *ExprStmt) stmtNode()     {}
 // ----------------------------------------------------------------
 // Expression nodes
 
-// PrefixExpr represents an expression of prefix operator
+// PrefixExpr represents an expression of prefix operator.
 type PrefixExpr struct {
 	Op    string
 	Right Expr
 }
 
-// InfixExpr represents an expression of infix operator
+// InfixExpr represents an expression of infix operator.
 type InfixExpr struct {
 	Op    string
 	Left  Expr
 	Right Expr
 }
 
-// IndexExpr represents an expression to access an array element
+// IndexExpr represents an expression to access an array element.
 type IndexExpr struct {
 	Left  Expr
 	Index Expr
 }
 
-// CallExpr represents an expression to call a function
+// CallExpr represents an expression to call a function.
 type CallExpr struct {
 	Left   Expr
 	Params []Expr
 }
 
-// LibCallExpr represents an expression to call a library function
+// LibCallExpr represents an expression to call a library function.
 type LibCallExpr struct {
 	Name   string
 	Params []Expr
 }
 
-// Ident represents an identifier
+// Ident represents an identifier.
 type Ident struct {
 	Name string
 }
 
-// IntLit represents a literal of integer type
+// IntLit represents a literal of integer type.
 type IntLit struct {
 	Value int
 }
 
-// BoolLit represents a literal of boolean type
+// BoolLit represents a literal of boolean type.
 type BoolLit struct {
 	Value bool
 }
 
-// StringLit represents a literal of string type
+// StringLit represents a literal of string type.
 type StringLit struct {
 	Value string
 }
 
-// RangeLit represents a literal of range type
+// RangeLit represents a literal of range type.
 type RangeLit struct {
 	Lower Expr
 	Upper Expr
 }
 
-// ArrayLit represents a literal of array type
+// ArrayLit represents a literal of array type.
 type ArrayLit struct {
 	Elems []Expr
 }
 
-// ArrayShortLit represents a short form literal of array type
+// ArrayShortLit represents a short form literal of array type.
 type ArrayShortLit struct {
 	Len      int
 	ElemType types.Type
 	Value    Expr // initial value for all elements
 }
 
-// FuncLit represents a literal of function type
+// FuncLit represents a literal of function type.
 type FuncLit struct {
 	Params     []*VarDecl
 	ReturnType types.Type
@@ -236,14 +236,14 @@ func (expr *FuncLit) exprNode()       {}
 // ----------------------------------------------------------------
 // Declaration nodes
 
-// VarDecl represents a variable declaration
+// VarDecl represents a variable declaration.
 type VarDecl struct {
 	Name    string
 	VarType types.Type
 	Value   Expr
 }
 
-// FuncDecl represents a function declaration
+// FuncDecl represents a function declaration.
 type FuncDecl struct {
 	Name       string
 	Params     []*VarDecl

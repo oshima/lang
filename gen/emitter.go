@@ -6,7 +6,7 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-// emitter emits the target assembly code
+// emitter emits the target assembly code.
 type emitter struct {
 	refs  map[ast.Node]ast.Node
 	types map[ast.Expr]types.Type

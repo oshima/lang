@@ -6,8 +6,7 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-// explorer explores the program to collect the objects
-// necessary for emitting target assembly code
+// explorer gathers the objects necessary for emitting target assembly code.
 type explorer struct {
 	types map[ast.Expr]types.Type
 
