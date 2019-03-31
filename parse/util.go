@@ -17,7 +17,7 @@ const (
 	SUFFIX
 )
 
-var precMap = map[token.Type]int{
+var precOf = map[token.Type]int{
 	token.OR:       OR,
 	token.AND:      AND,
 	token.EQ:       EQUAL,

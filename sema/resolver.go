@@ -239,7 +239,7 @@ func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {
 	if _, ok := e.get("return"); ok {
 		util.Error("Functions cannot be nested")
 	}
-	if expr.ReturnType != nil && !returnableBlockStmt(expr.Body) {
+	if expr.ReturnType != nil && !ast.Returnable(expr.Body) {
 		util.Error("Missing return at end of function")
 	}
 
@@ -276,7 +276,7 @@ func (r *resolver) resolveFuncDecl(decl *ast.FuncDecl, e *env) {
 	if _, ok := e.get("return"); ok {
 		util.Error("Functions cannot be nested")
 	}
-	if decl.ReturnType != nil && !returnableBlockStmt(decl.Body) {
+	if decl.ReturnType != nil && !ast.Returnable(decl.Body) {
 		util.Error("Missing return at end of function")
 	}
 

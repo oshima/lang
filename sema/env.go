@@ -5,10 +5,7 @@ import (
 	"github.com/oshima/lang/ast"
 )
 
-/*
- Environment - create the scope of name bindings
-*/
-
+// env represents a scope of names
 type env struct {
 	store map[string]ast.Node
 	outer *env

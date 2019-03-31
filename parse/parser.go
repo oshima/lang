@@ -27,7 +27,7 @@ func (p *parser) peekTk() *token.Token {
 }
 
 func (p *parser) lookPrec() int {
-	if prec, ok := precMap[p.tk.Type]; ok {
+	if prec, ok := precOf[p.tk.Type]; ok {
 		return prec
 	}
 	return LOWEST
