@@ -437,7 +437,7 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 		}
 	}
 	// ArrayLit
-	elems := []ast.Expr{expr}
+	elems := append(make([]ast.Expr, 0, 8), expr)
 	p.consumeComma(token.RBRACK)
 	for p.tk.Type != token.RBRACK {
 		elems = append(elems, p.parseExpr(LOWEST))
