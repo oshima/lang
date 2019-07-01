@@ -1,13 +1,18 @@
 package sema
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/oshima/lang/ast"
-	"github.com/oshima/lang/util"
 )
 
 // resolver resolves the references between the AST nodes.
-type resolver struct {
-	refs map[ast.Node]ast.Node
+type resolver struct{}
+
+func (r *resolver) error(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	os.Exit(1)
 }
 
 // ----------------------------------------------------------------
@@ -18,7 +23,7 @@ func (r *resolver) resolveProgram(prog *ast.Program, e *env) {
 	for _, stmt := range prog.Stmts {
 		if v, ok := stmt.(*ast.FuncStmt); ok {
 			if err := e.set(v.Func.Name, v.Func); err != nil {
-				util.Error("%s has already been declared", v.Func.Name)
+				r.error("%s: %s has already been declared", v.Func.Pos(), v.Func.Name)
 			}
 		}
 	}
@@ -62,7 +67,7 @@ func (r *resolver) resolveBlockStmt(stmt *ast.BlockStmt, e *env) {
 	for _, stmt := range stmt.Stmts {
 		if v, ok := stmt.(*ast.FuncStmt); ok {
 			if err := e.set(v.Func.Name, v.Func); err != nil {
-				util.Error("%s has already been declared", v.Func.Name)
+				r.error("%s: %s has already been declared", v.Func.Pos(), v.Func.Name)
 			}
 		}
 	}
@@ -118,17 +123,17 @@ func (r *resolver) resolveForStmt(stmt *ast.ForStmt, e *env) {
 func (r *resolver) resolveContinueStmt(stmt *ast.ContinueStmt, e *env) {
 	ref, ok := e.get("continue")
 	if !ok {
-		util.Error("Illegal use of continue")
+		r.error("%s: illegal use of continue", stmt.Pos())
 	}
-	r.refs[stmt] = ref
+	stmt.Ref = ref
 }
 
 func (r *resolver) resolveBreakStmt(stmt *ast.BreakStmt, e *env) {
 	ref, ok := e.get("break")
 	if !ok {
-		util.Error("Illegal use of break")
+		r.error("%s: illegal use of break", stmt.Pos())
 	}
-	r.refs[stmt] = ref
+	stmt.Ref = ref
 }
 
 func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
@@ -138,16 +143,16 @@ func (r *resolver) resolveReturnStmt(stmt *ast.ReturnStmt, e *env) {
 
 	ref, ok := e.get("return")
 	if !ok {
-		util.Error("Illegal use of return")
+		r.error("%s: illegal use of return", stmt.Pos())
 	}
-	r.refs[stmt] = ref
+	stmt.Ref = ref
 }
 
 func (r *resolver) resolveAssignStmt(stmt *ast.AssignStmt, e *env) {
 	r.resolveExpr(stmt.Target, e)
 	if v, ok := stmt.Target.(*ast.Ident); ok {
-		if _, ok := r.refs[v].(*ast.FuncDecl); ok {
-			util.Error("%s is not a variable", v.Name)
+		if _, ok := v.Ref.(*ast.FuncDecl); ok {
+			r.error("%s: %s is not a variable", v.Pos(), v.Name)
 		}
 	}
 	r.resolveExpr(stmt.Value, e)
@@ -215,9 +220,9 @@ func (r *resolver) resolveLibCallExpr(expr *ast.LibCallExpr, e *env) {
 func (r *resolver) resolveIdent(expr *ast.Ident, e *env) {
 	ref, ok := e.get(expr.Name)
 	if !ok {
-		util.Error("%s is not declared", expr.Name)
+		r.error("%s: %s is not declared", expr.Pos(), expr.Name)
 	}
-	r.refs[expr] = ref
+	expr.Ref = ref
 }
 
 func (r *resolver) resolveRangeLit(expr *ast.RangeLit, e *env) {
@@ -237,10 +242,10 @@ func (r *resolver) resolveArrayShortLit(expr *ast.ArrayShortLit, e *env) {
 
 func (r *resolver) resolveFuncLit(expr *ast.FuncLit, e *env) {
 	if _, ok := e.get("return"); ok {
-		util.Error("Functions cannot be nested")
+		r.error("%s: functions cannot be nested", expr.Pos())
 	}
 	if expr.ReturnType != nil && !ast.Returnable(expr.Body) {
-		util.Error("Missing return at end of function")
+		r.error("%s: missing return at end of function", expr.Body.Pos())
 	}
 
 	ne := newEnv(e)
@@ -268,16 +273,16 @@ func (r *resolver) resolveVarDecl(decl *ast.VarDecl, e *env) {
 	}
 
 	if err := e.set(decl.Name, decl); err != nil {
-		util.Error("%s has already been declared", decl.Name)
+		r.error("%s: %s has already been declared", decl.Pos(), decl.Name)
 	}
 }
 
 func (r *resolver) resolveFuncDecl(decl *ast.FuncDecl, e *env) {
 	if _, ok := e.get("return"); ok {
-		util.Error("Functions cannot be nested")
+		r.error("%s: functions cannot be nested", decl.Pos())
 	}
 	if decl.ReturnType != nil && !ast.Returnable(decl.Body) {
-		util.Error("Missing return at end of function")
+		r.error("%s: missing return at end of function", decl.Body.Pos())
 	}
 
 	ne := newEnv(e)

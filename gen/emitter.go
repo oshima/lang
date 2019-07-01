@@ -8,9 +8,6 @@ import (
 
 // emitter emits the target assembly code.
 type emitter struct {
-	refs  map[ast.Node]ast.Node
-	types map[ast.Expr]types.Type
-
 	gvars map[ast.Decl]*gvar
 	grngs map[ast.Expr]*grng
 	garrs map[ast.Expr]*garr
@@ -332,10 +329,9 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 }
 
 func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
-	ref := e.refs[stmt]
-	br := e.brs[ref]
+	br := e.brs[stmt.Ref]
 
-	switch ref.(type) {
+	switch stmt.Ref.(type) {
 	case *ast.WhileStmt:
 		beginLabel := br.labels[0]
 		e.emit("jmp %s", beginLabel)
@@ -346,10 +342,9 @@ func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 }
 
 func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
-	ref := e.refs[stmt]
-	br := e.brs[ref]
+	br := e.brs[stmt.Ref]
 
-	switch ref.(type) {
+	switch stmt.Ref.(type) {
 	case *ast.WhileStmt:
 		endLabel := br.labels[1]
 		e.emit("jmp %s", endLabel)
@@ -360,8 +355,7 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 }
 
 func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
-	ref := e.refs[stmt]
-	br := e.brs[ref]
+	br := e.brs[stmt.Ref]
 	endLabel := br.labels[0]
 
 	if stmt.Value != nil {
@@ -388,16 +382,14 @@ func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
 
 	switch v := stmt.Target.(type) {
 	case *ast.Ident:
-		ref := e.refs[v].(*ast.VarDecl)
-
-		if lvar, ok := e.lvars[ref]; ok {
+		if lvar, ok := e.lvars[v.Ref.(*ast.VarDecl)]; ok {
 			switch lvar.size {
 			case 1:
 				e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
 			case 8:
 				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
 			}
-		} else if gvar, ok := e.gvars[ref]; ok {
+		} else if gvar, ok := e.gvars[v.Ref.(*ast.VarDecl)]; ok {
 			switch gvar.size {
 			case 1:
 				e.emit("mov byte ptr %s[rip], al", gvar.label)
@@ -413,7 +405,7 @@ func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
 		e.emit("pop rcx")  // rcx: index
 		e.emit("pop rdx")  // rdx: value
 
-		switch sizeOf(e.types[stmt.Value]) {
+		switch sizeOf(stmt.Value.Type()) {
 		case 1:
 			e.emit("mov byte ptr [rax+rcx], dl")
 		case 8:
@@ -520,9 +512,7 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emitExpr(expr.Right)
 		e.emitLabel(endLabel)
 	case "in":
-		ty := e.types[expr.Right]
-
-		switch v := ty.(type) {
+		switch v := expr.Right.Type().(type) {
 		case *types.Range:
 			br := e.brs[expr]
 			falseLabel := br.labels[0]
@@ -574,7 +564,7 @@ func (e *emitter) emitIndexExpr(expr *ast.IndexExpr) {
 	e.emitExpr(expr.Left)
 	e.emit("pop rcx")
 
-	switch sizeOf(e.types[expr]) {
+	switch sizeOf(expr.Type()) {
 	case 1:
 		e.emit("movzx rax, byte ptr [rax+rcx]")
 	case 8:
@@ -592,8 +582,7 @@ func (e *emitter) emitCallExpr(expr *ast.CallExpr) {
 		e.emit("pop %s", paramRegs[8][j])
 	}
 	if v, ok := expr.Left.(*ast.Ident); ok {
-		ref := e.refs[v]
-		if v, ok := ref.(*ast.FuncDecl); ok {
+		if v, ok := v.Ref.(*ast.FuncDecl); ok {
 			fn := e.fns[v]
 			e.emit("call %s", fn.label)
 			return
@@ -616,9 +605,7 @@ func (e *emitter) emitLibCallExpr(expr *ast.LibCallExpr) {
 }
 
 func (e *emitter) emitIdent(expr *ast.Ident) {
-	ref := e.refs[expr]
-
-	switch v := ref.(type) {
+	switch v := expr.Ref.(type) {
 	case *ast.VarDecl:
 		if lvar, ok := e.lvars[v]; ok {
 			switch lvar.size {

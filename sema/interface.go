@@ -1,22 +1,12 @@
 package sema
 
-import (
-	"github.com/oshima/lang/ast"
-	"github.com/oshima/lang/types"
-)
+import "github.com/oshima/lang/ast"
 
 // Analyze travarses the input AST and check if the program is correct.
-func Analyze(prog *ast.Program) *ast.Metadata {
-	r := &resolver{
-		refs: make(map[ast.Node]ast.Node),
-	}
+func Analyze(prog *ast.Program) {
+	r := &resolver{}
 	r.resolveProgram(prog, newEnv(nil))
 
-	t := &typechecker{
-		refs:  r.refs,
-		types: make(map[ast.Expr]types.Type),
-	}
+	t := &typechecker{}
 	t.typecheckProgram(prog)
-
-	return &ast.Metadata{Refs: r.refs, Types: t.types}
 }

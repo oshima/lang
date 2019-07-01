@@ -1,13 +1,22 @@
 package token
 
-// Token represents the lexical token.
+import "fmt"
+
+// Token represents a lexical token.
 type Token struct {
 	Type    Type
 	Literal string
+	Pos     *Pos
 }
 
 // Type represents the type of token.
 type Type string
+
+// Pos represents the position of token.
+type Pos struct {
+	Line int
+	Col  int
+}
 
 // The list of token types.
 const (
@@ -74,7 +83,7 @@ const (
 
 var strings = map[Type]string{
 	COMMENT: "comment",
-	EOF:     "EOF",
+	EOF:     "eof",
 
 	LPAREN:    "(",
 	RPAREN:    ")",
@@ -136,4 +145,8 @@ var strings = map[Type]string{
 
 func (t Type) String() string {
 	return strings[t]
+}
+
+func (p *Pos) String() string {
+	return fmt.Sprintf("%d,%d", p.Line, p.Col)
 }

@@ -2,14 +2,13 @@ package gen
 
 import (
 	"fmt"
+
 	"github.com/oshima/lang/ast"
 	"github.com/oshima/lang/types"
 )
 
 // explorer gathers the objects necessary for emitting target assembly code.
 type explorer struct {
-	types map[ast.Expr]types.Type
-
 	// objects
 	gvars map[ast.Decl]*gvar
 	grngs map[ast.Expr]*grng
@@ -73,8 +72,8 @@ func (x *explorer) brLabel() string {
 // ----------------------------------------------------------------
 // Program
 
-func (x *explorer) exploreProgram(node *ast.Program) {
-	for _, stmt := range node.Stmts {
+func (x *explorer) exploreProgram(prog *ast.Program) {
+	for _, stmt := range prog.Stmts {
 		x.exploreStmt(stmt)
 	}
 }
@@ -217,9 +216,7 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 		endLabel := x.brLabel()
 		x.brs[expr] = &br{labels: []string{endLabel}}
 	case "in":
-		ty := x.types[expr.Right]
-
-		switch ty.(type) {
+		switch expr.Right.Type().(type) {
 		case *types.Range:
 			falseLabel := x.brLabel()
 			endLabel := x.brLabel()
@@ -272,9 +269,9 @@ func (x *explorer) exploreArrayLit(expr *ast.ArrayLit) {
 		x.exploreExpr(elem)
 	}
 
-	ty := x.types[expr].(*types.Array)
-	len := ty.Len
-	elemSize := sizeOf(ty.ElemType)
+	arr := expr.Type().(*types.Array)
+	len := arr.Len
+	elemSize := sizeOf(arr.ElemType)
 
 	if x.local {
 		x.offset = align(x.offset+len*elemSize, elemSize)

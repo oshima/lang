@@ -7,7 +7,7 @@ import (
 
 // Parse parses the input tokens and constructs the AST.
 func Parse(tokens []*token.Token) *ast.Program {
-	p := &parser{tokens: tokens, pos: -1}
+	p := &parser{tokens: tokens, idx: -1}
 	p.next()
 	return p.parseProgram()
 }

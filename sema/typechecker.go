@@ -1,15 +1,19 @@
 package sema
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/oshima/lang/ast"
 	"github.com/oshima/lang/types"
-	"github.com/oshima/lang/util"
 )
 
 // typechecker performs type checking.
-type typechecker struct {
-	refs  map[ast.Node]ast.Node
-	types map[ast.Expr]types.Type
+type typechecker struct{}
+
+func (t *typechecker) error(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	os.Exit(1)
 }
 
 // ----------------------------------------------------------------
@@ -65,10 +69,9 @@ func (t *typechecker) typecheckFuncStmt(stmt *ast.FuncStmt) {
 
 func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 	t.typecheckExpr(stmt.Cond)
-	ty := t.types[stmt.Cond]
 
-	if _, ok := ty.(*types.Bool); !ok {
-		util.Error("Expected bool if-condition, but got %s", ty)
+	if _, ok := stmt.Cond.Type().(*types.Bool); !ok {
+		t.error("%s: expected bool condition, but got %s", stmt.Cond.Pos(), stmt.Cond.Type())
 	}
 
 	t.typecheckBlockStmt(stmt.Body)
@@ -80,10 +83,9 @@ func (t *typechecker) typecheckIfStmt(stmt *ast.IfStmt) {
 
 func (t *typechecker) typecheckWhileStmt(stmt *ast.WhileStmt) {
 	t.typecheckExpr(stmt.Cond)
-	ty := t.types[stmt.Cond]
 
-	if _, ok := ty.(*types.Bool); !ok {
-		util.Error("Expected bool while-condition, but got %s", ty)
+	if _, ok := stmt.Cond.Type().(*types.Bool); !ok {
+		t.error("%s: expected bool condition, but got %s", stmt.Cond.Pos(), stmt.Cond.Type())
 	}
 
 	t.typecheckBlockStmt(stmt.Body)
@@ -91,27 +93,23 @@ func (t *typechecker) typecheckWhileStmt(stmt *ast.WhileStmt) {
 
 func (t *typechecker) typecheckForStmt(stmt *ast.ForStmt) {
 	t.typecheckVarDecl(stmt.Iter)
-	ty := stmt.Iter.VarType
 
-	switch v := ty.(type) {
+	switch v := stmt.Iter.VarType.(type) {
 	case *types.Range:
-		stmt.Elem.VarType = &types.Int{}
+		stmt.Elem.VarType = new(types.Int)
 	case *types.Array:
 		stmt.Elem.VarType = v.ElemType
 	default:
-		util.Error("Expected range or array as a iterator, but got %s", ty)
+		t.error("%s: expected range or array, but got %s", stmt.Iter.Value.Pos(), stmt.Iter.VarType)
 	}
-	stmt.Index.VarType = &types.Int{}
+	stmt.Index.VarType = new(types.Int)
 
 	t.typecheckBlockStmt(stmt.Body)
 }
 
 func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
-	ref := t.refs[stmt]
-
 	var returnType types.Type
-
-	switch v := ref.(type) {
+	switch v := stmt.Ref.(type) {
 	case *ast.FuncDecl:
 		returnType = v.ReturnType
 	case *ast.FuncLit:
@@ -120,20 +118,16 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 
 	if stmt.Value == nil {
 		if returnType != nil {
-			f := "Expected %s return in function, but got nothing"
-			util.Error(f, returnType)
+			t.error("%s: expected %s return, but got nothing", stmt.Value.Pos(), returnType)
 		}
 	} else {
 		t.typecheckExpr(stmt.Value)
-		ty := t.types[stmt.Value]
 
 		if returnType == nil {
-			f := "Expected no return in function, but got %s"
-			util.Error(f, ty)
+			t.error("%s: expected no return, but got %s", stmt.Value.Pos(), stmt.Value.Type())
 		}
-		if !types.Same(ty, returnType) {
-			f := "Expected %s return in function, but got %s"
-			util.Error(f, returnType, ty)
+		if !types.Same(stmt.Value.Type(), returnType) {
+			t.error("%s: expected %s return, but got %s", stmt.Value.Pos(), returnType, stmt.Value.Type())
 		}
 	}
 }
@@ -141,22 +135,18 @@ func (t *typechecker) typecheckReturnStmt(stmt *ast.ReturnStmt) {
 func (t *typechecker) typecheckAssignStmt(stmt *ast.AssignStmt) {
 	t.typecheckExpr(stmt.Target)
 	t.typecheckExpr(stmt.Value)
-	tty := t.types[stmt.Target]
-	vty := t.types[stmt.Value]
 
 	switch stmt.Op {
 	case "=":
-		if !types.Same(tty, vty) {
-			util.Error("Expected %s value in assignment, but got %s", tty, vty)
+		if !types.Same(stmt.Target.Type(), stmt.Value.Type()) {
+			t.error("%s: expected %s value, but got %s", stmt.Value.Pos(), stmt.Target.Type(), stmt.Value.Type())
 		}
 	case "+=", "-=", "*=", "/=", "%=":
-		_, tok := tty.(*types.Int)
-		_, vok := vty.(*types.Int)
-		if !tok {
-			util.Error("Expected int target in assignment, but got %s", tty)
+		if _, ok := stmt.Target.Type().(*types.Int); !ok {
+			t.error("%s: expected int target, but got %s", stmt.Target.Pos(), stmt.Target.Type())
 		}
-		if !vok {
-			util.Error("Expected int value in assignment, but got %s", vty)
+		if _, ok := stmt.Value.Type().(*types.Int); !ok {
+			t.error("%s: expected int value, but got %s", stmt.Value.Pos(), stmt.Value.Type())
 		}
 	}
 }
@@ -183,11 +173,11 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 	case *ast.Ident:
 		t.typecheckIdent(v)
 	case *ast.IntLit:
-		t.types[v] = &types.Int{}
+		v.SetType(new(types.Int))
 	case *ast.BoolLit:
-		t.types[v] = &types.Bool{}
+		v.SetType(new(types.Bool))
 	case *ast.StringLit:
-		t.types[v] = &types.String{}
+		v.SetType(new(types.String))
 	case *ast.RangeLit:
 		t.typecheckRangeLit(v)
 	case *ast.ArrayLit:
@@ -201,203 +191,188 @@ func (t *typechecker) typecheckExpr(expr ast.Expr) {
 
 func (t *typechecker) typecheckPrefixExpr(expr *ast.PrefixExpr) {
 	t.typecheckExpr(expr.Right)
-	ty := t.types[expr.Right]
 
 	switch expr.Op {
 	case "!":
-		if _, ok := ty.(*types.Bool); !ok {
-			util.Error("Expected bool operand for !, but got %s", ty)
+		if _, ok := expr.Right.Type().(*types.Bool); !ok {
+			t.error("%s: expected bool operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
-		t.types[expr] = &types.Bool{}
+		expr.SetType(new(types.Bool))
 	case "-":
-		if _, ok := ty.(*types.Int); !ok {
-			util.Error("Expected int operand for -, but got %s", ty)
+		if _, ok := expr.Right.Type().(*types.Int); !ok {
+			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
-		t.types[expr] = &types.Int{}
+		expr.SetType(new(types.Int))
 	}
 }
 
 func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 	t.typecheckExpr(expr.Left)
 	t.typecheckExpr(expr.Right)
-	lty := t.types[expr.Left]
-	rty := t.types[expr.Right]
 
-	if lty == nil || rty == nil {
-		util.Error("Unexpected void operand for %s", expr.Op)
+	if expr.Left.Type() == nil {
+		t.error("%s: unexpected void value", expr.Left.Pos())
+	}
+	if expr.Right.Type() == nil {
+		t.error("%s: unexpected void value", expr.Right.Pos())
 	}
 
 	switch expr.Op {
 	case "+", "-", "*", "/", "%":
-		_, lok := lty.(*types.Int)
-		_, rok := rty.(*types.Int)
-		if !lok || !rok {
-			f := "Expected int operands for %s, but got %s, %s"
-			util.Error(f, expr.Op, lty, rty)
+		if _, ok := expr.Left.Type().(*types.Int); !ok {
+			t.error("%s: expected int operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
-		t.types[expr] = &types.Int{}
+		if _, ok := expr.Right.Type().(*types.Int); !ok {
+			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
+		}
+		expr.SetType(new(types.Int))
 	case "==", "!=":
-		if !types.Same(lty, rty) {
-			f := "Expected same type operands for %s, but got %s, %s"
-			util.Error(f, expr.Op, lty, rty)
+		if !types.Same(expr.Left.Type(), expr.Right.Type()) {
+			t.error("%s: expected %s operand, but got %s", expr.Right.Pos(), expr.Left.Type(), expr.Right.Type())
 		}
-		t.types[expr] = &types.Bool{}
+		expr.SetType(new(types.Bool))
 	case "<", "<=", ">", ">=":
-		_, lok := lty.(*types.Int)
-		_, rok := rty.(*types.Int)
-		if !lok || !rok {
-			f := "Expected int operands for %s, but got %s, %s"
-			util.Error(f, expr.Op, lty, rty)
+		if _, ok := expr.Left.Type().(*types.Int); !ok {
+			t.error("%s: expected int operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
-		t.types[expr] = &types.Bool{}
+		if _, ok := expr.Right.Type().(*types.Int); !ok {
+			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
+		}
+		expr.SetType(new(types.Bool))
 	case "&&", "||":
-		_, lok := lty.(*types.Bool)
-		_, rok := rty.(*types.Bool)
-		if !lok || !rok {
-			f := "Expected bool operands for %s, but got %s, %s"
-			util.Error(f, expr.Op, lty, rty)
+		if _, ok := expr.Left.Type().(*types.Bool); !ok {
+			t.error("%s: expected bool operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
-		t.types[expr] = &types.Bool{}
+		if _, ok := expr.Right.Type().(*types.Bool); !ok {
+			t.error("%s: expected bool operand, but got %s", expr.Right.Pos(), expr.Right.Type())
+		}
+		expr.SetType(new(types.Bool))
 	case "in":
-		switch v := rty.(type) {
+		switch v := expr.Right.Type().(type) {
 		case *types.Range:
-			if _, ok := lty.(*types.Int); !ok {
-				f := "Expected int candidate for range, but got %s"
-				util.Error(f, lty)
+			if _, ok := expr.Left.Type().(*types.Int); !ok {
+				t.error("%s: expected int operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 			}
 		case *types.Array:
-			if !types.Same(lty, v.ElemType) {
-				f := "Expected %s candidate for array, but got %s"
-				util.Error(f, v.ElemType, lty)
+			if !types.Same(expr.Left.Type(), v.ElemType) {
+				t.error("%s: expected %s operand, but got %s", expr.Left.Pos(), v.ElemType, expr.Left.Type())
 			}
 		default:
-			f := "Expected range or array as a group, but got %s"
-			util.Error(f, rty)
+			t.error("%s: expected range or array, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
-		t.types[expr] = &types.Bool{}
+		expr.SetType(new(types.Bool))
 	}
 }
 
 func (t *typechecker) typecheckIndexExpr(expr *ast.IndexExpr) {
 	t.typecheckExpr(expr.Left)
-	lty := t.types[expr.Left]
 
-	arr, ok := lty.(*types.Array)
+	arr, ok := expr.Left.Type().(*types.Array)
 	if !ok {
-		util.Error("Expected array to index, but got %s", lty)
+		t.error("%s: expected array, but got %s", expr.Left.Pos(), expr.Left.Type())
 	}
 
 	t.typecheckExpr(expr.Index)
-	ity := t.types[expr.Index]
 
-	if _, ok := ity.(*types.Int); !ok {
-		util.Error("Expected int index, but got %s", ity)
+	if _, ok := expr.Index.Type().(*types.Int); !ok {
+		t.error("%s: expected int index, but got %s", expr.Index.Pos(), expr.Index.Type())
 	}
 
-	t.types[expr] = arr.ElemType
+	expr.SetType(arr.ElemType)
 }
 
 func (t *typechecker) typecheckCallExpr(expr *ast.CallExpr) {
 	t.typecheckExpr(expr.Left)
-	ty := t.types[expr.Left]
 
-	fn, ok := ty.(*types.Func)
+	fn, ok := expr.Left.Type().(*types.Func)
 	if !ok {
-		util.Error("Expected function to call, but got %s", ty)
+		t.error("%s: expected function, but got %s", expr.Left.Pos(), expr.Left.Type())
 	}
 
 	if len(expr.Params) != len(fn.ParamTypes) {
-		f := "Wrong number of parameters (expected %d, given %d)"
-		util.Error(f, len(fn.ParamTypes), len(expr.Params))
+		t.error("%s: wrong number of parameters (expected %d, got %d)", expr.Pos(), len(fn.ParamTypes), len(expr.Params))
 	}
 	for i, param := range expr.Params {
-		paramType := fn.ParamTypes[i]
-
 		t.typecheckExpr(param)
-		ty := t.types[param]
 
-		if !types.Same(ty, paramType) {
-			f := "Expected %s value for #%d parameter, but got %s"
-			util.Error(f, paramType, i+1, ty)
+		if !types.Same(param.Type(), fn.ParamTypes[i]) {
+			t.error("%s: expected %s parameter, but got %s", param.Pos(), fn.ParamTypes[i], param.Type())
 		}
 	}
 
-	t.types[expr] = fn.ReturnType
+	expr.SetType(fn.ReturnType)
 }
 
 func (t *typechecker) typecheckLibCallExpr(expr *ast.LibCallExpr) {
 	for _, param := range expr.Params {
 		t.typecheckExpr(param)
 	}
-	t.types[expr] = nil // FIXME
+	expr.SetType(nil) // both printf and puts return void
 }
 
 func (t *typechecker) typecheckIdent(expr *ast.Ident) {
-	ref := t.refs[expr]
-
-	switch v := ref.(type) {
+	switch v := expr.Ref.(type) {
 	case *ast.VarDecl:
-		t.types[expr] = v.VarType
+		expr.SetType(v.VarType)
 	case *ast.FuncDecl:
-		paramTypes := make([]types.Type, 0, 4)
+		fn := new(types.Func)
 		for _, param := range v.Params {
-			paramTypes = append(paramTypes, param.VarType)
+			fn.ParamTypes = append(fn.ParamTypes, param.VarType)
 		}
-		t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: v.ReturnType}
+		fn.ReturnType = v.ReturnType
+		expr.SetType(fn)
 	}
 }
 
 func (t *typechecker) typecheckRangeLit(expr *ast.RangeLit) {
 	t.typecheckExpr(expr.Lower)
 	t.typecheckExpr(expr.Upper)
-	lty := t.types[expr.Lower]
-	uty := t.types[expr.Upper]
 
-	_, lok := lty.(*types.Int)
-	_, uok := uty.(*types.Int)
-	if !lok || !uok {
-		f := "Expected int boundaries of range, but got %s, %s"
-		util.Error(f, lty, uty)
+	if _, ok := expr.Lower.Type().(*types.Int); !ok {
+		t.error("%s: expected int boundary, but got %s", expr.Lower.Pos(), expr.Lower.Type())
 	}
-	t.types[expr] = &types.Range{}
+	if _, ok := expr.Upper.Type().(*types.Int); !ok {
+		t.error("%s: expected int boundary, but got %s", expr.Upper.Pos(), expr.Upper.Type())
+	}
+
+	expr.SetType(new(types.Range))
 }
 
 func (t *typechecker) typecheckArrayLit(expr *ast.ArrayLit) {
 	t.typecheckExpr(expr.Elems[0])
-	elemType := t.types[expr.Elems[0]]
+	elemType := expr.Elems[0].Type()
 
 	for _, elem := range expr.Elems[1:] {
 		t.typecheckExpr(elem)
-		ty := t.types[elem]
 
-		if !types.Same(ty, elemType) {
-			util.Error("Array elements have different types")
+		if !types.Same(elem.Type(), elemType) {
+			t.error("%s: array elements have different types", expr.Pos())
 		}
 	}
-	t.types[expr] = &types.Array{Len: len(expr.Elems), ElemType: elemType}
+
+	expr.SetType(&types.Array{Len: len(expr.Elems), ElemType: elemType})
 }
 
 func (t *typechecker) typecheckArrayShortLit(expr *ast.ArrayShortLit) {
 	if expr.Value != nil {
 		t.typecheckExpr(expr.Value)
-		ty := t.types[expr.Value]
 
-		if !types.Same(ty, expr.ElemType) {
-			f := "Expected %s element in array, but got %s"
-			util.Error(f, expr.ElemType, ty)
+		if !types.Same(expr.Value.Type(), expr.ElemType) {
+			t.error("%s: expected %s element, but got %s", expr.Value.Pos(), expr.ElemType, expr.Value.Type())
 		}
 	}
-	t.types[expr] = &types.Array{Len: expr.Len, ElemType: expr.ElemType}
+	expr.SetType(&types.Array{Len: expr.Len, ElemType: expr.ElemType})
 }
 
 func (t *typechecker) typecheckFuncLit(expr *ast.FuncLit) {
 	t.typecheckBlockStmt(expr.Body)
 
-	paramTypes := make([]types.Type, 0, 4)
+	fn := new(types.Func)
 	for _, param := range expr.Params {
-		paramTypes = append(paramTypes, param.VarType)
+		fn.ParamTypes = append(fn.ParamTypes, param.VarType)
 	}
-	t.types[expr] = &types.Func{ParamTypes: paramTypes, ReturnType: expr.ReturnType}
+	fn.ReturnType = expr.ReturnType
+	expr.SetType(fn)
 }
 
 // ----------------------------------------------------------------
@@ -406,39 +381,35 @@ func (t *typechecker) typecheckFuncLit(expr *ast.FuncLit) {
 func (t *typechecker) typecheckVarDecl(decl *ast.VarDecl) {
 	switch v := decl.Value.(type) {
 	case *ast.FuncLit:
-		paramTypes := make([]types.Type, 0, 4)
+		fn := new(types.Func)
 		for _, param := range v.Params {
-			paramTypes = append(paramTypes, param.VarType)
+			fn.ParamTypes = append(fn.ParamTypes, param.VarType)
 		}
-		ty := &types.Func{ParamTypes: paramTypes, ReturnType: v.ReturnType}
-		t.types[v] = ty
+		fn.ReturnType = v.ReturnType
+		v.SetType(fn)
 
 		if decl.VarType == nil {
-			decl.VarType = ty // type inference (write on AST node)
+			decl.VarType = fn // type inference
 		} else {
-			if !types.Same(ty, decl.VarType) {
-				f := "Expected %s value for %s, but got %s"
-				util.Error(f, decl.VarType, decl.Name, ty)
+			if !types.Same(fn, decl.VarType) {
+				t.error("%s: expected %s value for %s, but got %s", decl.Value.Pos(), decl.VarType, decl.Name, fn)
 			}
 		}
 		t.typecheckBlockStmt(v.Body)
 	default:
 		t.typecheckExpr(v)
-		ty := t.types[v]
 
 		if decl.VarType == nil {
-			if ty == nil {
-				util.Error("%s has no initial value", decl.Name)
+			if v.Type() == nil {
+				t.error("%s: %s has no initial value", decl.Pos(), decl.Name)
 			}
-			decl.VarType = ty // type inference (write on AST node)
+			decl.VarType = v.Type() // type inference
 		} else {
-			if ty == nil {
-				f := "Expected %s value for %s, but got nothing"
-				util.Error(f, decl.VarType, decl.Name)
+			if v.Type() == nil {
+				t.error("%s: expected %s value for %s, but got nothing", decl.Value.Pos(), decl.VarType, decl.Name)
 			}
-			if !types.Same(ty, decl.VarType) {
-				f := "Expected %s value for %s, but got %s"
-				util.Error(f, decl.VarType, decl.Name, ty)
+			if !types.Same(v.Type(), decl.VarType) {
+				t.error("%s: expected %s value for %s, but got %s", decl.Value.Pos(), decl.VarType, decl.Name, v.Type())
 			}
 		}
 	}

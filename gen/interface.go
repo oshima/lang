@@ -3,9 +3,8 @@ package gen
 import "github.com/oshima/lang/ast"
 
 // Generate traverses the input AST and emits the target assembly code.
-func Generate(prog *ast.Program, meta *ast.Metadata) {
+func Generate(prog *ast.Program) {
 	x := &explorer{
-		types: meta.Types,
 		gvars: make(map[ast.Decl]*gvar),
 		grngs: make(map[ast.Expr]*grng),
 		garrs: make(map[ast.Expr]*garr),
@@ -19,8 +18,6 @@ func Generate(prog *ast.Program, meta *ast.Metadata) {
 	x.exploreProgram(prog)
 
 	e := &emitter{
-		refs:  meta.Refs,
-		types: meta.Types,
 		gvars: x.gvars,
 		grngs: x.grngs,
 		garrs: x.garrs,

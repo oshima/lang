@@ -1,29 +1,39 @@
 package scan
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/oshima/lang/token"
-	"github.com/oshima/lang/util"
 )
 
 type scanner struct {
 	runes  []rune       // source code
-	pos    int          // current position
-	ch     rune         // current character
+	idx    int          // current index
+	ch     rune         // current character (runes[idx])
+	line   int          // current line
+	col    int          // current column
 	lastTk *token.Token // last token scanner has read
 }
 
 func (s *scanner) next() {
-	s.pos++
-	if s.pos < len(s.runes) {
-		s.ch = s.runes[s.pos]
+	if s.ch == '\n' {
+		s.line++
+		s.col = 1
+	} else {
+		s.col++
+	}
+	s.idx++
+	if s.idx < len(s.runes) {
+		s.ch = s.runes[s.idx]
 	} else {
 		s.ch = 0
 	}
 }
 
 func (s *scanner) peekCh() rune {
-	if s.pos+1 < len(s.runes) {
-		return s.runes[s.pos+1]
+	if s.idx+1 < len(s.runes) {
+		return s.runes[s.idx+1]
 	}
 	return 0
 }
@@ -39,82 +49,90 @@ func (s *scanner) consume(ch rune) {
 	case ch:
 		// ok
 	case '\n':
-		util.Error("Expected %c but got newline", ch)
+		s.error("unexpected newline")
 	case 0:
-		util.Error("Expected %c but got EOF", ch)
+		s.error("unexpected eof")
 	default:
-		util.Error("Expected %c but got %c", ch, s.ch)
+		s.error("unexpected %c", s.ch)
 	}
 	s.next()
+}
+
+func (s *scanner) error(format string, a ...interface{}) {
+	pos := fmt.Sprintf("%d,%d: ", s.line, s.col)
+	fmt.Fprintf(os.Stderr, pos+format+"\n", a...)
+	os.Exit(1)
 }
 
 func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
 	s.skipWs()
 	for s.ch != 0 {
+		line, col := s.line, s.col
 		tk := s.readToken()
+		tk.Pos = &token.Pos{Line: line, Col: col}
 		if tk.Type != token.COMMENT {
 			tokens = append(tokens, tk)
 		}
+		s.lastTk = tk
 		s.skipWs()
 	}
-	return append(tokens, &token.Token{Type: token.EOF})
+	eof := &token.Token{Type: token.EOF, Pos: &token.Pos{Line: s.line, Col: s.col}}
+	return append(tokens, eof)
 }
 
 func (s *scanner) readToken() *token.Token {
-	var tk *token.Token
 	switch s.ch {
 	case '#':
-		tk = s.readComment()
+		return s.readComment()
 	case '(', ')', '[', ']', '{', '}', ',', ':', ';':
-		tk = s.readPunct()
+		return s.readPunct()
 	case '=':
-		tk = s.readAssignOrEqual()
+		return s.readAssignOrEqual()
 	case '!':
-		tk = s.readBangOrNotEqual()
+		return s.readBangOrNotEqual()
 	case '+':
-		tk = s.readPlusOrAddAssign()
+		return s.readPlusOrAddAssign()
 	case '-':
-		tk = s.readMinusOrSubAssignOrArrowOrNumber()
+		return s.readMinusOrSubAssignOrArrowOrNumber()
 	case '*':
-		tk = s.readAsteriskOrMulAssign()
+		return s.readAsteriskOrMulAssign()
 	case '/':
-		tk = s.readSlashOrDivAssign()
+		return s.readSlashOrDivAssign()
 	case '%':
-		tk = s.readPercentOrModAssign()
+		return s.readPercentOrModAssign()
 	case '<':
-		tk = s.readLessOrLessEqual()
+		return s.readLessOrLessEqual()
 	case '>':
-		tk = s.readGreaterOrGreaterEqual()
+		return s.readGreaterOrGreaterEqual()
 	case '&':
-		tk = s.readAnd()
+		return s.readAnd()
 	case '|':
-		tk = s.readOr()
+		return s.readOr()
 	case '.':
-		tk = s.readBetween()
+		return s.readBetween()
 	case '"':
-		tk = s.readQuoted()
+		return s.readQuoted()
 	default:
 		switch {
 		case isDigit(s.ch):
-			tk = s.readNumber()
+			return s.readNumber()
 		case isAlpha(s.ch):
-			tk = s.readKeywordOrIdentifier()
+			return s.readKeywordOrIdentifier()
 		default:
-			util.Error("Invalid character %c", s.ch)
+			s.error("invalid character %c", s.ch)
+			return nil // unreachable
 		}
 	}
-	s.lastTk = tk
-	return tk
 }
 
 func (s *scanner) readComment() *token.Token {
-	pos := s.pos
+	pos := s.idx
 	s.next()
 	for s.ch != '\n' && s.ch != 0 {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.pos])
+	literal := string(s.runes[pos:s.idx])
 	if s.ch == '\n' {
 		s.next()
 	}
@@ -245,24 +263,24 @@ func (s *scanner) readBetween() *token.Token {
 }
 
 func (s *scanner) readQuoted() *token.Token {
-	pos := s.pos
+	pos := s.idx
 	s.next()
 	for s.ch != '"' {
 		if s.ch == '\\' {
 			s.next()
 		}
 		if s.ch == 0 {
-			util.Error("Unexpected EOF")
+			s.error("unexpected eof")
 		}
 		s.next()
 	}
 	s.next()
-	literal := string(s.runes[pos:s.pos])
+	literal := string(s.runes[pos:s.idx])
 	return &token.Token{Type: token.QUOTED, Literal: literal}
 }
 
 func (s *scanner) readNumber() *token.Token {
-	pos := s.pos
+	pos := s.idx
 	if s.ch == '-' {
 		s.next()
 	}
@@ -270,17 +288,17 @@ func (s *scanner) readNumber() *token.Token {
 	for isDigit(s.ch) {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.pos])
+	literal := string(s.runes[pos:s.idx])
 	return &token.Token{Type: token.NUMBER, Literal: literal}
 }
 
 func (s *scanner) readKeywordOrIdentifier() *token.Token {
-	pos := s.pos
+	pos := s.idx
 	s.next()
 	for isAlpha(s.ch) || isDigit(s.ch) {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.pos])
+	literal := string(s.runes[pos:s.idx])
 	if ty, ok := keywords[literal]; ok {
 		return &token.Token{Type: ty, Literal: literal}
 	}

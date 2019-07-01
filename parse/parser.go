@@ -1,29 +1,31 @@
 package parse
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/oshima/lang/ast"
 	"github.com/oshima/lang/token"
 	"github.com/oshima/lang/types"
-	"github.com/oshima/lang/util"
-	"strconv"
 )
 
 type parser struct {
 	tokens []*token.Token // input tokens
-	pos    int            // current position
-	tk     *token.Token   // current token
+	idx    int            // current index
+	tk     *token.Token   // current token (tokens[idx])
 }
 
 func (p *parser) next() {
-	p.pos++
-	p.tk = p.tokens[p.pos]
+	p.idx++
+	p.tk = p.tokens[p.idx]
 }
 
 func (p *parser) peekTk() *token.Token {
 	if p.tk.Type == token.EOF {
-		util.Error("Unexpected EOF")
+		p.error("%s: unexpected eof", p.tk.Pos)
 	}
-	return p.tokens[p.pos+1]
+	return p.tokens[p.idx+1]
 }
 
 func (p *parser) lookPrec() int {
@@ -35,13 +37,13 @@ func (p *parser) lookPrec() int {
 
 func (p *parser) expect(ty token.Type) {
 	if p.tk.Type != ty {
-		util.Error("Expected %s but got %s", ty, p.tk.Type)
+		p.error("%s: expected %s, but got %s", p.tk.Pos, ty, p.tk.Type)
 	}
 }
 
 func (p *parser) consume(ty token.Type) {
 	if p.tk.Type != ty {
-		util.Error("Expected %s but got %s", ty, p.tk.Type)
+		p.error("%s: expected %s, but got %s", p.tk.Pos, ty, p.tk.Type)
 	}
 	p.next()
 }
@@ -53,81 +55,24 @@ func (p *parser) consumeComma(terminator token.Type) {
 	case terminator:
 		// ok
 	default:
-		util.Error("Expected , or %s but got %s", terminator, p.tk.Type)
+		p.error("%s: expected , or %s, but got %s", p.tk.Pos, terminator, p.tk.Type)
 	}
 }
 
-// ----------------------------------------------------------------
-// Type
-
-func (p *parser) parseType() types.Type {
-	switch p.tk.Type {
-	case token.INT:
-		p.next()
-		return &types.Int{}
-	case token.BOOL:
-		p.next()
-		return &types.Bool{}
-	case token.STRING:
-		p.next()
-		return &types.String{}
-	case token.RANGE:
-		p.next()
-		return &types.Range{}
-	case token.LBRACK:
-		return p.parseArray()
-	case token.LPAREN:
-		return p.parseFunc()
-	default:
-		util.Error("Unexpected %s", p.tk.Type)
-		return nil // unreachable
-	}
-}
-
-func (p *parser) parseArray() *types.Array {
-	p.next()
-	p.expect(token.NUMBER)
-	len, err := strconv.Atoi(p.tk.Literal)
-	if err != nil {
-		util.Error("Could not parse %s as integer", p.tk.Literal)
-	}
-	if len < 0 {
-		util.Error("Array length must be non-negative number")
-	}
-	p.next()
-	p.consume(token.RBRACK)
-	elemType := p.parseType()
-	return &types.Array{Len: len, ElemType: elemType}
-}
-
-func (p *parser) parseFunc() *types.Func {
-	p.next()
-	paramTypes := make([]types.Type, 0, 4)
-	for p.tk.Type != token.RPAREN {
-		paramTypes = append(paramTypes, p.parseType())
-		p.consumeComma(token.RPAREN)
-	}
-	p.next()
-	p.consume(token.ARROW)
-	var returnType types.Type
-	if p.tk.Type == token.LBRACE {
-		p.next()
-		p.consume(token.RBRACE)
-	} else {
-		returnType = p.parseType()
-	}
-	return &types.Func{ParamTypes: paramTypes, ReturnType: returnType}
+func (p *parser) error(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	os.Exit(1)
 }
 
 // ----------------------------------------------------------------
 // Program
 
 func (p *parser) parseProgram() *ast.Program {
-	stmts := make([]ast.Stmt, 0, 8)
+	prog := new(ast.Program)
 	for p.tk.Type != token.EOF {
-		stmts = append(stmts, p.parseStmt())
+		prog.Stmts = append(prog.Stmts, p.parseStmt())
 	}
-	return &ast.Program{Stmts: stmts}
+	return prog
 }
 
 // ----------------------------------------------------------------
@@ -159,128 +104,148 @@ func (p *parser) parseStmt() ast.Stmt {
 }
 
 func (p *parser) parseBlockStmt() *ast.BlockStmt {
+	stmt := new(ast.BlockStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	stmts := make([]ast.Stmt, 0, 8)
 	for p.tk.Type != token.RBRACE {
-		stmts = append(stmts, p.parseStmt())
+		stmt.Stmts = append(stmt.Stmts, p.parseStmt())
 	}
 	p.next()
-	return &ast.BlockStmt{Stmts: stmts}
+	return stmt
 }
 
 func (p *parser) parseVarStmt() *ast.VarStmt {
+	stmt := new(ast.VarStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	vars := make([]*ast.VarDecl, 0, 2)
 	for p.tk.Type != token.SEMICOLON {
 		v := p.parseVarDecl()
 		if v.Value == nil {
-			util.Error("%s has no initial value", v.Name)
+			p.error("%s: %s has no initial value", v.Pos(), v.Name)
 		}
-		vars = append(vars, v)
+		stmt.Vars = append(stmt.Vars, v)
 		p.consumeComma(token.SEMICOLON)
 	}
 	p.next()
-	return &ast.VarStmt{Vars: vars}
+	return stmt
 }
 
 func (p *parser) parseFuncStmt() *ast.FuncStmt {
+	stmt := new(ast.FuncStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	fn := p.parseFuncDecl()
-	return &ast.FuncStmt{Func: fn}
+	stmt.Func = p.parseFuncDecl()
+	return stmt
 }
 
 func (p *parser) parseIfStmt() *ast.IfStmt {
+	stmt := new(ast.IfStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	cond := p.parseExpr(LOWEST)
+	stmt.Cond = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
-	body := p.parseBlockStmt()
+	stmt.Body = p.parseBlockStmt()
 	if p.tk.Type != token.ELSE {
-		return &ast.IfStmt{Cond: cond, Body: body}
+		return stmt
 	}
 	p.next()
-	var els ast.Stmt
 	switch p.tk.Type {
 	case token.LBRACE:
-		els = p.parseBlockStmt()
+		stmt.Else = p.parseBlockStmt()
 	case token.IF:
-		els = p.parseIfStmt()
+		stmt.Else = p.parseIfStmt()
 	default:
-		util.Error("Expected { or if but got %s", p.tk.Type)
+		p.error("%s: expected { or if, but got %s", p.tk.Pos, p.tk.Type)
 	}
-	return &ast.IfStmt{Cond: cond, Body: body, Else: els}
+	return stmt
 }
 
 func (p *parser) parseWhileStmt() *ast.WhileStmt {
+	stmt := new(ast.WhileStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	cond := p.parseExpr(LOWEST)
+	stmt.Cond = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
-	body := p.parseBlockStmt()
-	return &ast.WhileStmt{Cond: cond, Body: body}
+	stmt.Body = p.parseBlockStmt()
+	return stmt
 }
 
 func (p *parser) parseForStmt() *ast.ForStmt {
+	stmt := new(ast.ForStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
-	elem := &ast.VarDecl{}
-	index := &ast.VarDecl{}
-	iter := &ast.VarDecl{}
 	p.expect(token.IDENT)
-	elem.Name = p.tk.Literal
+	stmt.Elem = &ast.VarDecl{Name: p.tk.Literal}
 	p.next()
 	if p.tk.Type == token.COMMA {
 		p.next()
 		p.expect(token.IDENT)
-		index.Name = p.tk.Literal
+		stmt.Index = &ast.VarDecl{Name: p.tk.Literal}
 		p.next()
+	} else {
+		stmt.Index = &ast.VarDecl{}
 	}
 	p.consume(token.IN)
-	iter.Value = p.parseExpr(LOWEST)
+	stmt.Iter = &ast.VarDecl{Value: p.parseExpr(LOWEST)}
 	p.expect(token.LBRACE)
-	body := p.parseBlockStmt()
-	return &ast.ForStmt{Elem: elem, Index: index, Iter: iter, Body: body}
+	stmt.Body = p.parseBlockStmt()
+	return stmt
 }
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
+	stmt := new(ast.ContinueStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
 	p.consume(token.SEMICOLON)
-	return &ast.ContinueStmt{}
+	return stmt
 }
 
 func (p *parser) parseBreakStmt() *ast.BreakStmt {
+	stmt := new(ast.BreakStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
 	p.consume(token.SEMICOLON)
-	return &ast.BreakStmt{}
+	return stmt
 }
 
 func (p *parser) parseReturnStmt() *ast.ReturnStmt {
+	stmt := new(ast.ReturnStmt)
+	stmt.SetPos(p.tk.Pos)
 	p.next()
 	if p.tk.Type == token.SEMICOLON {
 		p.next()
-		return &ast.ReturnStmt{}
+		return stmt
 	}
-	value := p.parseExpr(LOWEST)
+	stmt.Value = p.parseExpr(LOWEST)
 	p.consume(token.SEMICOLON)
-	return &ast.ReturnStmt{Value: value}
+	return stmt
 }
 
 func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
+	pos := p.tk.Pos
 	expr := p.parseExpr(LOWEST)
 	// AssignStmt
 	if _, ok := assignOps[p.tk.Type]; ok {
+		stmt := new(ast.AssignStmt)
 		switch expr.(type) {
 		case *ast.Ident, *ast.IndexExpr:
-			// ok
+			stmt.Target = expr
 		default:
-			util.Error("Invalid target in assignment")
+			p.error("%s: invalid target in assignment", expr.Pos())
 		}
-		op := p.tk.Literal
+		stmt.SetPos(p.tk.Pos)
+		stmt.Op = p.tk.Literal
 		p.next()
-		value := p.parseExpr(LOWEST)
+		stmt.Value = p.parseExpr(LOWEST)
 		p.consume(token.SEMICOLON)
-		return &ast.AssignStmt{Op: op, Target: expr, Value: value}
+		return stmt
 	}
 	// ExprStmt
+	stmt := new(ast.ExprStmt)
+	stmt.SetPos(pos)
+	stmt.Expr = expr
 	p.consume(token.SEMICOLON)
-	return &ast.ExprStmt{Expr: expr}
+	return stmt
 }
 
 // ----------------------------------------------------------------
@@ -305,7 +270,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 	case token.LPAREN:
 		expr = p.parseFuncLitOrGroupedExpr()
 	default:
-		util.Error("Unexpected %s", p.tk.Type)
+		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
 	}
 
 	for p.lookPrec() > prec {
@@ -325,28 +290,37 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 }
 
 func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
-	op := p.tk.Literal
+	expr := new(ast.PrefixExpr)
+	expr.SetPos(p.tk.Pos)
+	expr.Op = p.tk.Literal
 	p.next()
-	right := p.parseExpr(PREFIX)
-	return &ast.PrefixExpr{Op: op, Right: right}
+	expr.Right = p.parseExpr(PREFIX)
+	return expr
 }
 
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
-	op := p.tk.Literal
+	expr := new(ast.InfixExpr)
+	expr.Left = left
+	expr.SetPos(p.tk.Pos)
+	expr.Op = p.tk.Literal
 	prec := p.lookPrec()
 	p.next()
-	right := p.parseExpr(prec)
-	return &ast.InfixExpr{Op: op, Left: left, Right: right}
+	expr.Right = p.parseExpr(prec)
+	return expr
 }
 
 func (p *parser) parseIndexExpr(left ast.Expr) *ast.IndexExpr {
+	expr := new(ast.IndexExpr)
+	expr.Left = left
+	expr.SetPos(p.tk.Pos)
 	p.next()
-	index := p.parseExpr(LOWEST)
+	expr.Index = p.parseExpr(LOWEST)
 	p.consume(token.RBRACK)
-	return &ast.IndexExpr{Left: left, Index: index}
+	return expr
 }
 
 func (p *parser) parseCallExprOrLibCallExpr(left ast.Expr) ast.Expr {
+	pos := p.tk.Pos
 	p.next()
 	params := make([]ast.Expr, 0, 4)
 	for p.tk.Type != token.RPAREN {
@@ -354,45 +328,63 @@ func (p *parser) parseCallExprOrLibCallExpr(left ast.Expr) ast.Expr {
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
+	// LibCallExpr
 	if v, ok := left.(*ast.Ident); ok {
 		if _, ok := libFuncs[v.Name]; ok {
-			return &ast.LibCallExpr{Name: v.Name, Params: params}
+			expr := new(ast.LibCallExpr)
+			expr.Name = v.Name
+			expr.SetPos(pos)
+			expr.Params = params
+			return expr
 		}
 	}
-	return &ast.CallExpr{Left: left, Params: params}
+	// CallExpr
+	expr := new(ast.CallExpr)
+	expr.Left = left
+	expr.SetPos(pos)
+	expr.Params = params
+	return expr
 }
 
 func (p *parser) parseIdent() *ast.Ident {
-	name := p.tk.Literal
+	expr := new(ast.Ident)
+	expr.SetPos(p.tk.Pos)
+	expr.Name = p.tk.Literal
 	p.next()
-	return &ast.Ident{Name: name}
+	return expr
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
+	expr := new(ast.IntLit)
+	expr.SetPos(p.tk.Pos)
 	value, err := strconv.Atoi(p.tk.Literal)
 	if err != nil {
-		util.Error("Could not parse %s as integer", p.tk.Literal)
+		p.error("%s: cannot parse %s as integer", p.tk.Pos, p.tk.Literal)
 	}
+	expr.Value = value
 	p.next()
-	return &ast.IntLit{Value: value}
+	return expr
 }
 
 func (p *parser) parseBoolLit() *ast.BoolLit {
-	value := p.tk.Type == token.TRUE
+	expr := new(ast.BoolLit)
+	expr.SetPos(p.tk.Pos)
+	expr.Value = p.tk.Type == token.TRUE
 	p.next()
-	return &ast.BoolLit{Value: value}
+	return expr
 }
 
 func (p *parser) parseStringLit() *ast.StringLit {
-	var value string
-	var escaped bool
+	expr := new(ast.StringLit)
+	expr.SetPos(p.tk.Pos)
+	escaped := false
 	for _, ch := range p.tk.Literal {
 		if escaped {
 			if raw, ok := unescape[ch]; ok {
-				value += string(raw)
+				expr.Value += string(raw)
 				escaped = false
 			} else {
-				util.Error("Unknown escape sequence \\%c", ch)
+				p.error("%s: unknown escape sequence \\%c", p.tk.Pos, ch)
 			}
 		} else {
 			if ch == '"' {
@@ -400,54 +392,63 @@ func (p *parser) parseStringLit() *ast.StringLit {
 			} else if ch == '\\' {
 				escaped = true
 			} else {
-				value += string(ch)
+				expr.Value += string(ch)
 			}
 		}
 	}
 	p.next()
-	return &ast.StringLit{Value: value}
+	return expr
 }
 
 func (p *parser) parseRangeLit(lower ast.Expr) *ast.RangeLit {
+	expr := new(ast.RangeLit)
+	expr.Lower = lower
+	expr.SetPos(p.tk.Pos)
 	p.next()
-	upper := p.parseExpr(BETWEEN)
-	return &ast.RangeLit{Lower: lower, Upper: upper}
+	expr.Upper = p.parseExpr(BETWEEN)
+	return expr
 }
 
 func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
+	pos := p.tk.Pos
 	p.next()
-	expr := p.parseExpr(LOWEST)
+	pick := p.parseExpr(LOWEST)
 	// ArrayShortLit
 	if p.tk.Type == token.RBRACK {
 		if _, ok := typeStart[p.peekTk().Type]; ok {
-			i, ok := expr.(*ast.IntLit)
+			expr := new(ast.ArrayShortLit)
+			expr.SetPos(pos)
+			i, ok := pick.(*ast.IntLit)
 			if !ok || i.Value < 0 {
-				util.Error("Array length must be non-negative number")
+				p.error("%s: array length must be non-negative number", i.Pos())
 			}
+			expr.Len = i.Value
 			p.next()
-			elemType := p.parseType()
+			expr.ElemType = p.parseType()
 			p.consume(token.LPAREN)
-			var value ast.Expr
 			if p.tk.Type != token.RPAREN {
-				value = p.parseExpr(LOWEST)
+				expr.Value = p.parseExpr(LOWEST)
 				p.expect(token.RPAREN)
 			}
 			p.next()
-			return &ast.ArrayShortLit{Len: i.Value, ElemType: elemType, Value: value}
+			return expr
 		}
 	}
 	// ArrayLit
-	elems := append(make([]ast.Expr, 0, 8), expr)
+	expr := new(ast.ArrayLit)
+	expr.SetPos(pos)
+	expr.Elems = append(expr.Elems, pick)
 	p.consumeComma(token.RBRACK)
 	for p.tk.Type != token.RBRACK {
-		elems = append(elems, p.parseExpr(LOWEST))
+		expr.Elems = append(expr.Elems, p.parseExpr(LOWEST))
 		p.consumeComma(token.RBRACK)
 	}
 	p.next()
-	return &ast.ArrayLit{Elems: elems}
+	return expr
 }
 
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
+	pos := p.tk.Pos
 	p.next()
 	// grouped expression
 	if p.tk.Type != token.RPAREN && p.peekTk().Type != token.COLON {
@@ -456,27 +457,27 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 		return expr
 	}
 	// FuncLit
-	params := make([]*ast.VarDecl, 0, 4)
+	expr := new(ast.FuncLit)
+	expr.SetPos(pos)
 	for p.tk.Type != token.RPAREN {
 		param := p.parseVarDecl()
 		if param.VarType == nil {
-			util.Error("Type of parameter must be annotated")
+			p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
 		}
 		if param.Value != nil {
-			util.Error("Parameter cannot have initial value")
+			p.error("%s: %s cannot have initial value", param.Pos(), param.Name)
 		}
-		params = append(params, param)
+		expr.Params = append(expr.Params, param)
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
 	p.consume(token.ARROW)
-	var returnType types.Type
 	if p.tk.Type != token.LBRACE {
-		returnType = p.parseType()
+		expr.ReturnType = p.parseType()
 		p.expect(token.LBRACE)
 	}
-	body := p.parseBlockStmt()
-	return &ast.FuncLit{Params: params, ReturnType: returnType, Body: body}
+	expr.Body = p.parseBlockStmt()
+	return expr
 }
 
 // ----------------------------------------------------------------
@@ -484,45 +485,111 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.expect(token.IDENT)
-	name := p.tk.Literal
+	decl := new(ast.VarDecl)
+	decl.SetPos(p.tk.Pos)
+	decl.Name = p.tk.Literal
 	p.next()
-	var varType types.Type
+	if p.tk.Type != token.COLON && p.tk.Type != token.ASSIGN {
+		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
+	}
 	if p.tk.Type == token.COLON {
 		p.next()
-		varType = p.parseType()
+		decl.VarType = p.parseType()
 	}
-	var value ast.Expr
 	if p.tk.Type == token.ASSIGN {
 		p.next()
-		value = p.parseExpr(LOWEST)
+		decl.Value = p.parseExpr(LOWEST)
 	}
-	return &ast.VarDecl{Name: name, VarType: varType, Value: value}
+	return decl
 }
 
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.expect(token.IDENT)
-	name := p.tk.Literal
+	decl := new(ast.FuncDecl)
+	decl.SetPos(p.tk.Pos)
+	decl.Name = p.tk.Literal
 	p.next()
 	p.consume(token.LPAREN)
-	params := make([]*ast.VarDecl, 0, 4)
 	for p.tk.Type != token.RPAREN {
 		param := p.parseVarDecl()
 		if param.VarType == nil {
-			util.Error("Type of parameter must be annotated")
+			p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
 		}
 		if param.Value != nil {
-			util.Error("Parameter cannot have initial value")
+			p.error("%s: %s cannot have initial value", param.Pos(), param.Name)
 		}
-		params = append(params, param)
+		decl.Params = append(decl.Params, param)
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
 	p.consume(token.ARROW)
-	var returnType types.Type
 	if p.tk.Type != token.LBRACE {
-		returnType = p.parseType()
+		decl.ReturnType = p.parseType()
 		p.expect(token.LBRACE)
 	}
-	body := p.parseBlockStmt()
-	return &ast.FuncDecl{Name: name, Params: params, ReturnType: returnType, Body: body}
+	decl.Body = p.parseBlockStmt()
+	return decl
+}
+
+// ----------------------------------------------------------------
+// Type
+
+func (p *parser) parseType() types.Type {
+	switch p.tk.Type {
+	case token.INT:
+		p.next()
+		return new(types.Int)
+	case token.BOOL:
+		p.next()
+		return new(types.Bool)
+	case token.STRING:
+		p.next()
+		return new(types.String)
+	case token.RANGE:
+		p.next()
+		return new(types.Range)
+	case token.LBRACK:
+		return p.parseArray()
+	case token.LPAREN:
+		return p.parseFunc()
+	default:
+		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
+		return nil // unreachable
+	}
+}
+
+func (p *parser) parseArray() *types.Array {
+	typ := new(types.Array)
+	p.next()
+	p.expect(token.NUMBER)
+	len, err := strconv.Atoi(p.tk.Literal)
+	if err != nil {
+		p.error("%s: cannot parse %s as integer", p.tk.Pos, p.tk.Literal)
+	}
+	if len < 0 {
+		p.error("%s: array length must be non-negative number", p.tk.Pos)
+	}
+	typ.Len = len
+	p.next()
+	p.consume(token.RBRACK)
+	typ.ElemType = p.parseType()
+	return typ
+}
+
+func (p *parser) parseFunc() *types.Func {
+	typ := new(types.Func)
+	p.next()
+	for p.tk.Type != token.RPAREN {
+		typ.ParamTypes = append(typ.ParamTypes, p.parseType())
+		p.consumeComma(token.RPAREN)
+	}
+	p.next()
+	p.consume(token.ARROW)
+	if p.tk.Type == token.LBRACE {
+		p.next()
+		p.consume(token.RBRACE)
+	} else {
+		typ.ReturnType = p.parseType()
+	}
+	return typ
 }
