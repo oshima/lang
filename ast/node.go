@@ -135,7 +135,7 @@ type ReturnStmt struct {
 
 // AssignStmt represents an assignment.
 type AssignStmt struct {
-	Op     string
+	Op     token.Type
 	Target Expr
 	Value  Expr
 	stmt
@@ -152,14 +152,14 @@ type ExprStmt struct {
 
 // PrefixExpr represents an expression of prefix operator.
 type PrefixExpr struct {
-	Op    string
+	Op    token.Type
 	Right Expr
 	expr
 }
 
 // InfixExpr represents an expression of infix operator.
 type InfixExpr struct {
-	Op    string
+	Op    token.Type
 	Left  Expr
 	Right Expr
 	expr

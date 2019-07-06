@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/token"
 	"github.com/oshima/lang/types"
 )
 
@@ -366,18 +367,23 @@ func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
 
 func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
 	switch stmt.Op {
-	case "=":
+	case token.ASSIGN:
 		e.emitExpr(stmt.Value)
-	case "+=":
-		e.emitExpr(&ast.InfixExpr{Op: "+", Left: stmt.Target, Right: stmt.Value})
-	case "-=":
-		e.emitExpr(&ast.InfixExpr{Op: "-", Left: stmt.Target, Right: stmt.Value})
-	case "*=":
-		e.emitExpr(&ast.InfixExpr{Op: "*", Left: stmt.Target, Right: stmt.Value})
-	case "/=":
-		e.emitExpr(&ast.InfixExpr{Op: "/", Left: stmt.Target, Right: stmt.Value})
-	case "%=":
-		e.emitExpr(&ast.InfixExpr{Op: "%", Left: stmt.Target, Right: stmt.Value})
+	default:
+		value := &ast.InfixExpr{Left: stmt.Target, Right: stmt.Value}
+		switch stmt.Op {
+		case token.ADDASSIGN:
+			value.Op = token.PLUS
+		case token.SUBASSIGN:
+			value.Op = token.MINUS
+		case token.MULASSIGN:
+			value.Op = token.ASTERISK
+		case token.DIVASSIGN:
+			value.Op = token.SLASH
+		case token.MODASSIGN:
+			value.Op = token.PERCENT
+		}
+		e.emitExpr(value)
 	}
 
 	switch v := stmt.Target.(type) {
@@ -456,16 +462,16 @@ func (e *emitter) emitPrefixExpr(expr *ast.PrefixExpr) {
 	e.emitExpr(expr.Right)
 
 	switch expr.Op {
-	case "!":
+	case token.BANG:
 		e.emit("xor rax, 1")
-	case "-":
+	case token.MINUS:
 		e.emit("neg rax")
 	}
 }
 
 func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 	switch expr.Op {
-	case "&&", "||":
+	case token.AND, token.OR:
 		// do nothing
 	default:
 		// emit both operands in advance
@@ -476,24 +482,24 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 	}
 
 	switch expr.Op {
-	case "+":
+	case token.PLUS:
 		e.emit("add rax, rcx")
-	case "-":
+	case token.MINUS:
 		e.emit("sub rax, rcx")
-	case "*":
+	case token.ASTERISK:
 		e.emit("imul rax, rcx")
-	case "/":
+	case token.SLASH:
 		e.emit("cqo")
 		e.emit("idiv rcx")
-	case "%":
+	case token.PERCENT:
 		e.emit("cqo")
 		e.emit("idiv rcx")
 		e.emit("mov rax, rdx")
-	case "==", "!=", "<", "<=", ">", ">=":
+	case token.EQ, token.NE, token.LT, token.LE, token.GT, token.GE:
 		e.emit("cmp rax, rcx")
 		e.emit("%s al", setcc[expr.Op])
 		e.emit("movzx rax, al")
-	case "&&":
+	case token.AND:
 		br := e.brs[expr]
 		endLabel := br.labels[0]
 
@@ -502,7 +508,7 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("je %s", endLabel)
 		e.emitExpr(expr.Right)
 		e.emitLabel(endLabel)
-	case "||":
+	case token.OR:
 		br := e.brs[expr]
 		endLabel := br.labels[0]
 
@@ -511,7 +517,7 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("je %s", endLabel)
 		e.emitExpr(expr.Right)
 		e.emitLabel(endLabel)
-	case "in":
+	case token.IN:
 		switch v := expr.Right.Type().(type) {
 		case *types.Range:
 			br := e.brs[expr]

@@ -1,14 +1,17 @@
 package gen
 
-import "github.com/oshima/lang/types"
+import (
+	"github.com/oshima/lang/token"
+	"github.com/oshima/lang/types"
+)
 
-var setcc = map[string]string{
-	"==": "sete",
-	"!=": "setne",
-	"<":  "setl",
-	"<=": "setle",
-	">":  "setg",
-	">=": "setge",
+var setcc = map[token.Type]string{
+	token.EQ: "sete",
+	token.NE: "setne",
+	token.LT: "setl",
+	token.LE: "setle",
+	token.GT: "setg",
+	token.GE: "setge",
 }
 
 var paramRegs = map[int][6]string{

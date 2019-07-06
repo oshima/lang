@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/token"
 	"github.com/oshima/lang/types"
 )
 
@@ -203,7 +204,7 @@ func (x *explorer) explorePrefixExpr(expr *ast.PrefixExpr) {
 
 func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 	switch expr.Op {
-	case "&&", "||":
+	case token.AND, token.OR:
 		x.exploreExpr(expr.Left)
 		x.exploreExpr(expr.Right)
 	default:
@@ -212,10 +213,10 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 	}
 
 	switch expr.Op {
-	case "&&", "||":
+	case token.AND, token.OR:
 		endLabel := x.brLabel()
 		x.brs[expr] = &br{labels: []string{endLabel}}
-	case "in":
+	case token.IN:
 		switch expr.Right.Type().(type) {
 		case *types.Range:
 			falseLabel := x.brLabel()

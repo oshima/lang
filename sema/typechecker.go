@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/oshima/lang/ast"
+	"github.com/oshima/lang/token"
 	"github.com/oshima/lang/types"
 )
 
@@ -137,11 +138,11 @@ func (t *typechecker) typecheckAssignStmt(stmt *ast.AssignStmt) {
 	t.typecheckExpr(stmt.Value)
 
 	switch stmt.Op {
-	case "=":
+	case token.ASSIGN:
 		if !types.Same(stmt.Target.Type(), stmt.Value.Type()) {
 			t.error("%s: expected %s value, but got %s", stmt.Value.Pos(), stmt.Target.Type(), stmt.Value.Type())
 		}
-	case "+=", "-=", "*=", "/=", "%=":
+	default: // +=, -=, *=, /=, %=
 		if _, ok := stmt.Target.Type().(*types.Int); !ok {
 			t.error("%s: expected int target, but got %s", stmt.Target.Pos(), stmt.Target.Type())
 		}
@@ -193,12 +194,12 @@ func (t *typechecker) typecheckPrefixExpr(expr *ast.PrefixExpr) {
 	t.typecheckExpr(expr.Right)
 
 	switch expr.Op {
-	case "!":
+	case token.BANG:
 		if _, ok := expr.Right.Type().(*types.Bool); !ok {
 			t.error("%s: expected bool operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
 		expr.SetType(new(types.Bool))
-	case "-":
+	case token.MINUS:
 		if _, ok := expr.Right.Type().(*types.Int); !ok {
 			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
@@ -218,7 +219,7 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 	}
 
 	switch expr.Op {
-	case "+", "-", "*", "/", "%":
+	case token.PLUS, token.MINUS, token.ASTERISK, token.SLASH, token.PERCENT:
 		if _, ok := expr.Left.Type().(*types.Int); !ok {
 			t.error("%s: expected int operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
@@ -226,12 +227,12 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
 		expr.SetType(new(types.Int))
-	case "==", "!=":
+	case token.EQ, token.NE:
 		if !types.Same(expr.Left.Type(), expr.Right.Type()) {
 			t.error("%s: expected %s operand, but got %s", expr.Right.Pos(), expr.Left.Type(), expr.Right.Type())
 		}
 		expr.SetType(new(types.Bool))
-	case "<", "<=", ">", ">=":
+	case token.LT, token.LE, token.GT, token.GE:
 		if _, ok := expr.Left.Type().(*types.Int); !ok {
 			t.error("%s: expected int operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
@@ -239,7 +240,7 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 			t.error("%s: expected int operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
 		expr.SetType(new(types.Bool))
-	case "&&", "||":
+	case token.AND, token.OR:
 		if _, ok := expr.Left.Type().(*types.Bool); !ok {
 			t.error("%s: expected bool operand, but got %s", expr.Left.Pos(), expr.Left.Type())
 		}
@@ -247,7 +248,7 @@ func (t *typechecker) typecheckInfixExpr(expr *ast.InfixExpr) {
 			t.error("%s: expected bool operand, but got %s", expr.Right.Pos(), expr.Right.Type())
 		}
 		expr.SetType(new(types.Bool))
-	case "in":
+	case token.IN:
 		switch v := expr.Right.Type().(type) {
 		case *types.Range:
 			if _, ok := expr.Left.Type().(*types.Int); !ok {

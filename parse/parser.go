@@ -234,7 +234,7 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 			p.error("%s: invalid target in assignment", expr.Pos())
 		}
 		stmt.SetPos(p.tk.Pos)
-		stmt.Op = p.tk.Literal
+		stmt.Op = p.tk.Type
 		p.next()
 		stmt.Value = p.parseExpr(LOWEST)
 		p.consume(token.SEMICOLON)
@@ -292,7 +292,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
 	expr := new(ast.PrefixExpr)
 	expr.SetPos(p.tk.Pos)
-	expr.Op = p.tk.Literal
+	expr.Op = p.tk.Type
 	p.next()
 	expr.Right = p.parseExpr(PREFIX)
 	return expr
@@ -302,7 +302,7 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	expr := new(ast.InfixExpr)
 	expr.Left = left
 	expr.SetPos(p.tk.Pos)
-	expr.Op = p.tk.Literal
+	expr.Op = p.tk.Type
 	prec := p.lookPrec()
 	p.next()
 	expr.Right = p.parseExpr(prec)
