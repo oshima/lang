@@ -8,12 +8,12 @@ import (
 )
 
 type scanner struct {
-	runes  []rune       // source code
-	idx    int          // current index
-	ch     rune         // current character (runes[idx])
-	line   int          // current line
-	col    int          // current column
-	lastTk *token.Token // last token scanner has read
+	runes   []rune       // source code
+	idx     int          // current index
+	ch      rune         // current character (runes[idx])
+	line    int          // current line
+	col     int          // current column
+	lastTok *token.Token // last token scanner has read
 }
 
 func (s *scanner) next() {
@@ -31,23 +31,17 @@ func (s *scanner) next() {
 	}
 }
 
-func (s *scanner) peekCh() rune {
+func (s *scanner) peek() rune {
 	if s.idx+1 < len(s.runes) {
 		return s.runes[s.idx+1]
 	}
 	return 0
 }
 
-func (s *scanner) skipWs() {
-	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
-		s.next()
-	}
-}
-
 func (s *scanner) consume(ch rune) {
 	switch s.ch {
 	case ch:
-		// ok
+		s.next()
 	case '\n':
 		s.error("unexpected newline")
 	case 0:
@@ -55,7 +49,12 @@ func (s *scanner) consume(ch rune) {
 	default:
 		s.error("unexpected %c", s.ch)
 	}
-	s.next()
+}
+
+func (s *scanner) skipWs() {
+	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
+		s.next()
+	}
 }
 
 func (s *scanner) error(format string, a ...interface{}) {
@@ -68,13 +67,13 @@ func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
 	s.skipWs()
 	for s.ch != 0 {
-		line, col := s.line, s.col
-		tk := s.readToken()
-		tk.Pos = &token.Pos{Line: line, Col: col}
-		if tk.Type != token.COMMENT {
-			tokens = append(tokens, tk)
+		pos := &token.Pos{Line: s.line, Col: s.col}
+		tok := s.readToken()
+		tok.Pos = pos
+		if tok.Type != token.COMMENT {
+			tokens = append(tokens, tok)
 		}
-		s.lastTk = tk
+		s.lastTok = tok
 		s.skipWs()
 	}
 	eof := &token.Token{Type: token.EOF, Pos: &token.Pos{Line: s.line, Col: s.col}}
@@ -127,12 +126,12 @@ func (s *scanner) readToken() *token.Token {
 }
 
 func (s *scanner) readComment() *token.Token {
-	pos := s.idx
+	idx := s.idx
 	s.next()
 	for s.ch != '\n' && s.ch != 0 {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.idx])
+	literal := string(s.runes[idx:s.idx])
 	if s.ch == '\n' {
 		s.next()
 	}
@@ -140,10 +139,10 @@ func (s *scanner) readComment() *token.Token {
 }
 
 func (s *scanner) readPunct() *token.Token {
-	ty := punctuations[s.ch]
+	typ := punctuations[s.ch]
 	literal := string(s.ch)
 	s.next()
-	return &token.Token{Type: ty, Literal: literal}
+	return &token.Token{Type: typ, Literal: literal}
 }
 
 func (s *scanner) readAssignOrEqual() *token.Token {
@@ -174,7 +173,7 @@ func (s *scanner) readPlusOrAddAssign() *token.Token {
 }
 
 func (s *scanner) readMinusOrSubAssignOrArrowOrNumber() *token.Token {
-	nextCh := s.peekCh()
+	nextCh := s.peek()
 	if nextCh == '=' {
 		s.next()
 		s.next()
@@ -186,10 +185,10 @@ func (s *scanner) readMinusOrSubAssignOrArrowOrNumber() *token.Token {
 		return &token.Token{Type: token.ARROW, Literal: "->"}
 	}
 	if isDigit(nextCh) {
-		if s.lastTk == nil {
+		if s.lastTok == nil {
 			return s.readNumber()
 		}
-		if _, ok := exprEnd[s.lastTk.Type]; ok {
+		if _, ok := exprEnd[s.lastTok.Type]; ok {
 			s.next()
 			return &token.Token{Type: token.MINUS, Literal: "-"}
 		}
@@ -263,7 +262,7 @@ func (s *scanner) readBetween() *token.Token {
 }
 
 func (s *scanner) readQuoted() *token.Token {
-	pos := s.idx
+	idx := s.idx
 	s.next()
 	for s.ch != '"' {
 		if s.ch == '\\' {
@@ -275,12 +274,12 @@ func (s *scanner) readQuoted() *token.Token {
 		s.next()
 	}
 	s.next()
-	literal := string(s.runes[pos:s.idx])
+	literal := string(s.runes[idx:s.idx])
 	return &token.Token{Type: token.QUOTED, Literal: literal}
 }
 
 func (s *scanner) readNumber() *token.Token {
-	pos := s.idx
+	idx := s.idx
 	if s.ch == '-' {
 		s.next()
 	}
@@ -288,19 +287,19 @@ func (s *scanner) readNumber() *token.Token {
 	for isDigit(s.ch) {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.idx])
+	literal := string(s.runes[idx:s.idx])
 	return &token.Token{Type: token.NUMBER, Literal: literal}
 }
 
 func (s *scanner) readKeywordOrIdentifier() *token.Token {
-	pos := s.idx
+	idx := s.idx
 	s.next()
 	for isAlpha(s.ch) || isDigit(s.ch) {
 		s.next()
 	}
-	literal := string(s.runes[pos:s.idx])
-	if ty, ok := keywords[literal]; ok {
-		return &token.Token{Type: ty, Literal: literal}
+	literal := string(s.runes[idx:s.idx])
+	if typ, ok := keywords[literal]; ok {
+		return &token.Token{Type: typ, Literal: literal}
 	}
 	return &token.Token{Type: token.IDENT, Literal: literal}
 }

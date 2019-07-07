@@ -13,50 +13,50 @@ import (
 type parser struct {
 	tokens []*token.Token // input tokens
 	idx    int            // current index
-	tk     *token.Token   // current token (tokens[idx])
+	tok    *token.Token   // current token (tokens[idx])
 }
 
 func (p *parser) next() {
 	p.idx++
-	p.tk = p.tokens[p.idx]
+	p.tok = p.tokens[p.idx]
 }
 
-func (p *parser) peekTk() *token.Token {
-	if p.tk.Type == token.EOF {
-		p.error("%s: unexpected eof", p.tk.Pos)
+func (p *parser) peek() *token.Token {
+	if p.tok.Type == token.EOF {
+		p.error("%s: unexpected eof", p.tok.Pos)
 	}
 	return p.tokens[p.idx+1]
 }
 
-func (p *parser) lookPrec() int {
-	if prec, ok := precOf[p.tk.Type]; ok {
-		return prec
-	}
-	return LOWEST
-}
-
-func (p *parser) expect(ty token.Type) {
-	if p.tk.Type != ty {
-		p.error("%s: expected %s, but got %s", p.tk.Pos, ty, p.tk.Type)
+func (p *parser) expect(typ token.Type) {
+	if p.tok.Type != typ {
+		p.error("%s: expected %s, but got %s", p.tok.Pos, typ, p.tok.Type)
 	}
 }
 
-func (p *parser) consume(ty token.Type) {
-	if p.tk.Type != ty {
-		p.error("%s: expected %s, but got %s", p.tk.Pos, ty, p.tk.Type)
+func (p *parser) consume(typ token.Type) {
+	if p.tok.Type != typ {
+		p.error("%s: expected %s, but got %s", p.tok.Pos, typ, p.tok.Type)
 	}
 	p.next()
 }
 
 func (p *parser) consumeComma(terminator token.Type) {
-	switch p.tk.Type {
+	switch p.tok.Type {
 	case token.COMMA:
 		p.next()
 	case terminator:
 		// ok
 	default:
-		p.error("%s: expected , or %s, but got %s", p.tk.Pos, terminator, p.tk.Type)
+		p.error("%s: expected , or %s, but got %s", p.tok.Pos, terminator, p.tok.Type)
 	}
+}
+
+func (p *parser) lookPrec() int {
+	if prec, ok := precOf[p.tok.Type]; ok {
+		return prec
+	}
+	return LOWEST
 }
 
 func (p *parser) error(format string, a ...interface{}) {
@@ -69,7 +69,7 @@ func (p *parser) error(format string, a ...interface{}) {
 
 func (p *parser) parseProgram() *ast.Program {
 	prog := new(ast.Program)
-	for p.tk.Type != token.EOF {
+	for p.tok.Type != token.EOF {
 		prog.Stmts = append(prog.Stmts, p.parseStmt())
 	}
 	return prog
@@ -79,7 +79,7 @@ func (p *parser) parseProgram() *ast.Program {
 // Stmt
 
 func (p *parser) parseStmt() ast.Stmt {
-	switch p.tk.Type {
+	switch p.tok.Type {
 	case token.LBRACE:
 		return p.parseBlockStmt()
 	case token.VAR:
@@ -105,9 +105,9 @@ func (p *parser) parseStmt() ast.Stmt {
 
 func (p *parser) parseBlockStmt() *ast.BlockStmt {
 	stmt := new(ast.BlockStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
-	for p.tk.Type != token.RBRACE {
+	for p.tok.Type != token.RBRACE {
 		stmt.Stmts = append(stmt.Stmts, p.parseStmt())
 	}
 	p.next()
@@ -116,9 +116,9 @@ func (p *parser) parseBlockStmt() *ast.BlockStmt {
 
 func (p *parser) parseVarStmt() *ast.VarStmt {
 	stmt := new(ast.VarStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
-	for p.tk.Type != token.SEMICOLON {
+	for p.tok.Type != token.SEMICOLON {
 		v := p.parseVarDecl()
 		if v.Value == nil {
 			p.error("%s: %s has no initial value", v.Pos(), v.Name)
@@ -132,7 +132,7 @@ func (p *parser) parseVarStmt() *ast.VarStmt {
 
 func (p *parser) parseFuncStmt() *ast.FuncStmt {
 	stmt := new(ast.FuncStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	stmt.Func = p.parseFuncDecl()
 	return stmt
@@ -140,29 +140,29 @@ func (p *parser) parseFuncStmt() *ast.FuncStmt {
 
 func (p *parser) parseIfStmt() *ast.IfStmt {
 	stmt := new(ast.IfStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	stmt.Cond = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
 	stmt.Body = p.parseBlockStmt()
-	if p.tk.Type != token.ELSE {
+	if p.tok.Type != token.ELSE {
 		return stmt
 	}
 	p.next()
-	switch p.tk.Type {
+	switch p.tok.Type {
 	case token.LBRACE:
 		stmt.Else = p.parseBlockStmt()
 	case token.IF:
 		stmt.Else = p.parseIfStmt()
 	default:
-		p.error("%s: expected { or if, but got %s", p.tk.Pos, p.tk.Type)
+		p.error("%s: expected { or if, but got %s", p.tok.Pos, p.tok.Type)
 	}
 	return stmt
 }
 
 func (p *parser) parseWhileStmt() *ast.WhileStmt {
 	stmt := new(ast.WhileStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	stmt.Cond = p.parseExpr(LOWEST)
 	p.expect(token.LBRACE)
@@ -172,15 +172,15 @@ func (p *parser) parseWhileStmt() *ast.WhileStmt {
 
 func (p *parser) parseForStmt() *ast.ForStmt {
 	stmt := new(ast.ForStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	p.expect(token.IDENT)
-	stmt.Elem = &ast.VarDecl{Name: p.tk.Literal}
+	stmt.Elem = &ast.VarDecl{Name: p.tok.Literal}
 	p.next()
-	if p.tk.Type == token.COMMA {
+	if p.tok.Type == token.COMMA {
 		p.next()
 		p.expect(token.IDENT)
-		stmt.Index = &ast.VarDecl{Name: p.tk.Literal}
+		stmt.Index = &ast.VarDecl{Name: p.tok.Literal}
 		p.next()
 	} else {
 		stmt.Index = &ast.VarDecl{}
@@ -194,7 +194,7 @@ func (p *parser) parseForStmt() *ast.ForStmt {
 
 func (p *parser) parseContinueStmt() *ast.ContinueStmt {
 	stmt := new(ast.ContinueStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	p.consume(token.SEMICOLON)
 	return stmt
@@ -202,7 +202,7 @@ func (p *parser) parseContinueStmt() *ast.ContinueStmt {
 
 func (p *parser) parseBreakStmt() *ast.BreakStmt {
 	stmt := new(ast.BreakStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
 	p.consume(token.SEMICOLON)
 	return stmt
@@ -210,9 +210,9 @@ func (p *parser) parseBreakStmt() *ast.BreakStmt {
 
 func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 	stmt := new(ast.ReturnStmt)
-	stmt.SetPos(p.tk.Pos)
+	stmt.SetPos(p.tok.Pos)
 	p.next()
-	if p.tk.Type == token.SEMICOLON {
+	if p.tok.Type == token.SEMICOLON {
 		p.next()
 		return stmt
 	}
@@ -222,10 +222,10 @@ func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 }
 
 func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
-	pos := p.tk.Pos
+	pos := p.tok.Pos
 	expr := p.parseExpr(LOWEST)
 	// AssignStmt
-	if _, ok := assignOps[p.tk.Type]; ok {
+	if _, ok := assignOps[p.tok.Type]; ok {
 		stmt := new(ast.AssignStmt)
 		switch expr.(type) {
 		case *ast.Ident, *ast.IndexExpr:
@@ -233,8 +233,8 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 		default:
 			p.error("%s: invalid target in assignment", expr.Pos())
 		}
-		stmt.SetPos(p.tk.Pos)
-		stmt.Op = p.tk.Type
+		stmt.SetPos(p.tok.Pos)
+		stmt.Op = p.tok.Type
 		p.next()
 		stmt.Value = p.parseExpr(LOWEST)
 		p.consume(token.SEMICOLON)
@@ -254,7 +254,7 @@ func (p *parser) parseAssignStmtOrExprStmt() ast.Stmt {
 func (p *parser) parseExpr(prec int) ast.Expr {
 	var expr ast.Expr
 
-	switch p.tk.Type {
+	switch p.tok.Type {
 	case token.BANG, token.MINUS:
 		expr = p.parsePrefixExpr()
 	case token.IDENT:
@@ -270,11 +270,11 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 	case token.LPAREN:
 		expr = p.parseFuncLitOrGroupedExpr()
 	default:
-		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
+		p.error("%s: unexpected %s", p.tok.Pos, p.tok.Type)
 	}
 
 	for p.lookPrec() > prec {
-		switch p.tk.Type {
+		switch p.tok.Type {
 		case token.LBRACK:
 			expr = p.parseIndexExpr(expr)
 		case token.LPAREN:
@@ -291,8 +291,8 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 
 func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
 	expr := new(ast.PrefixExpr)
-	expr.SetPos(p.tk.Pos)
-	expr.Op = p.tk.Type
+	expr.SetPos(p.tok.Pos)
+	expr.Op = p.tok.Type
 	p.next()
 	expr.Right = p.parseExpr(PREFIX)
 	return expr
@@ -301,8 +301,8 @@ func (p *parser) parsePrefixExpr() *ast.PrefixExpr {
 func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	expr := new(ast.InfixExpr)
 	expr.Left = left
-	expr.SetPos(p.tk.Pos)
-	expr.Op = p.tk.Type
+	expr.SetPos(p.tok.Pos)
+	expr.Op = p.tok.Type
 	prec := p.lookPrec()
 	p.next()
 	expr.Right = p.parseExpr(prec)
@@ -312,7 +312,7 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 func (p *parser) parseIndexExpr(left ast.Expr) *ast.IndexExpr {
 	expr := new(ast.IndexExpr)
 	expr.Left = left
-	expr.SetPos(p.tk.Pos)
+	expr.SetPos(p.tok.Pos)
 	p.next()
 	expr.Index = p.parseExpr(LOWEST)
 	p.consume(token.RBRACK)
@@ -320,10 +320,10 @@ func (p *parser) parseIndexExpr(left ast.Expr) *ast.IndexExpr {
 }
 
 func (p *parser) parseCallExprOrLibCallExpr(left ast.Expr) ast.Expr {
-	pos := p.tk.Pos
+	pos := p.tok.Pos
 	p.next()
 	params := make([]ast.Expr, 0, 4)
-	for p.tk.Type != token.RPAREN {
+	for p.tok.Type != token.RPAREN {
 		params = append(params, p.parseExpr(LOWEST))
 		p.consumeComma(token.RPAREN)
 	}
@@ -348,18 +348,18 @@ func (p *parser) parseCallExprOrLibCallExpr(left ast.Expr) ast.Expr {
 
 func (p *parser) parseIdent() *ast.Ident {
 	expr := new(ast.Ident)
-	expr.SetPos(p.tk.Pos)
-	expr.Name = p.tk.Literal
+	expr.SetPos(p.tok.Pos)
+	expr.Name = p.tok.Literal
 	p.next()
 	return expr
 }
 
 func (p *parser) parseIntLit() *ast.IntLit {
 	expr := new(ast.IntLit)
-	expr.SetPos(p.tk.Pos)
-	value, err := strconv.Atoi(p.tk.Literal)
+	expr.SetPos(p.tok.Pos)
+	value, err := strconv.Atoi(p.tok.Literal)
 	if err != nil {
-		p.error("%s: cannot parse %s as integer", p.tk.Pos, p.tk.Literal)
+		p.error("%s: cannot parse %s as integer", p.tok.Pos, p.tok.Literal)
 	}
 	expr.Value = value
 	p.next()
@@ -368,23 +368,23 @@ func (p *parser) parseIntLit() *ast.IntLit {
 
 func (p *parser) parseBoolLit() *ast.BoolLit {
 	expr := new(ast.BoolLit)
-	expr.SetPos(p.tk.Pos)
-	expr.Value = p.tk.Type == token.TRUE
+	expr.SetPos(p.tok.Pos)
+	expr.Value = p.tok.Type == token.TRUE
 	p.next()
 	return expr
 }
 
 func (p *parser) parseStringLit() *ast.StringLit {
 	expr := new(ast.StringLit)
-	expr.SetPos(p.tk.Pos)
+	expr.SetPos(p.tok.Pos)
 	escaped := false
-	for _, ch := range p.tk.Literal {
+	for _, ch := range p.tok.Literal {
 		if escaped {
 			if raw, ok := unescape[ch]; ok {
 				expr.Value += string(raw)
 				escaped = false
 			} else {
-				p.error("%s: unknown escape sequence \\%c", p.tk.Pos, ch)
+				p.error("%s: unknown escape sequence \\%c", p.tok.Pos, ch)
 			}
 		} else {
 			if ch == '"' {
@@ -403,19 +403,19 @@ func (p *parser) parseStringLit() *ast.StringLit {
 func (p *parser) parseRangeLit(lower ast.Expr) *ast.RangeLit {
 	expr := new(ast.RangeLit)
 	expr.Lower = lower
-	expr.SetPos(p.tk.Pos)
+	expr.SetPos(p.tok.Pos)
 	p.next()
 	expr.Upper = p.parseExpr(BETWEEN)
 	return expr
 }
 
 func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
-	pos := p.tk.Pos
+	pos := p.tok.Pos
 	p.next()
 	pick := p.parseExpr(LOWEST)
 	// ArrayShortLit
-	if p.tk.Type == token.RBRACK {
-		if _, ok := typeStart[p.peekTk().Type]; ok {
+	if p.tok.Type == token.RBRACK {
+		if _, ok := typeStart[p.peek().Type]; ok {
 			expr := new(ast.ArrayShortLit)
 			expr.SetPos(pos)
 			i, ok := pick.(*ast.IntLit)
@@ -426,7 +426,7 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 			p.next()
 			expr.ElemType = p.parseType()
 			p.consume(token.LPAREN)
-			if p.tk.Type != token.RPAREN {
+			if p.tok.Type != token.RPAREN {
 				expr.Value = p.parseExpr(LOWEST)
 				p.expect(token.RPAREN)
 			}
@@ -439,7 +439,7 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 	expr.SetPos(pos)
 	expr.Elems = append(expr.Elems, pick)
 	p.consumeComma(token.RBRACK)
-	for p.tk.Type != token.RBRACK {
+	for p.tok.Type != token.RBRACK {
 		expr.Elems = append(expr.Elems, p.parseExpr(LOWEST))
 		p.consumeComma(token.RBRACK)
 	}
@@ -448,10 +448,10 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 }
 
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
-	pos := p.tk.Pos
+	pos := p.tok.Pos
 	p.next()
 	// grouped expression
-	if p.tk.Type != token.RPAREN && p.peekTk().Type != token.COLON {
+	if p.tok.Type != token.RPAREN && p.peek().Type != token.COLON {
 		expr := p.parseExpr(LOWEST)
 		p.consume(token.RPAREN)
 		return expr
@@ -459,7 +459,7 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	// FuncLit
 	expr := new(ast.FuncLit)
 	expr.SetPos(pos)
-	for p.tk.Type != token.RPAREN {
+	for p.tok.Type != token.RPAREN {
 		param := p.parseVarDecl()
 		if param.VarType == nil {
 			p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
@@ -472,7 +472,7 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	}
 	p.next()
 	p.consume(token.ARROW)
-	if p.tk.Type != token.LBRACE {
+	if p.tok.Type != token.LBRACE {
 		expr.ReturnType = p.parseType()
 		p.expect(token.LBRACE)
 	}
@@ -486,17 +486,17 @@ func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 func (p *parser) parseVarDecl() *ast.VarDecl {
 	p.expect(token.IDENT)
 	decl := new(ast.VarDecl)
-	decl.SetPos(p.tk.Pos)
-	decl.Name = p.tk.Literal
+	decl.SetPos(p.tok.Pos)
+	decl.Name = p.tok.Literal
 	p.next()
-	if p.tk.Type != token.COLON && p.tk.Type != token.ASSIGN {
-		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
+	if p.tok.Type != token.COLON && p.tok.Type != token.ASSIGN {
+		p.error("%s: unexpected %s", p.tok.Pos, p.tok.Type)
 	}
-	if p.tk.Type == token.COLON {
+	if p.tok.Type == token.COLON {
 		p.next()
 		decl.VarType = p.parseType()
 	}
-	if p.tk.Type == token.ASSIGN {
+	if p.tok.Type == token.ASSIGN {
 		p.next()
 		decl.Value = p.parseExpr(LOWEST)
 	}
@@ -506,11 +506,11 @@ func (p *parser) parseVarDecl() *ast.VarDecl {
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	p.expect(token.IDENT)
 	decl := new(ast.FuncDecl)
-	decl.SetPos(p.tk.Pos)
-	decl.Name = p.tk.Literal
+	decl.SetPos(p.tok.Pos)
+	decl.Name = p.tok.Literal
 	p.next()
 	p.consume(token.LPAREN)
-	for p.tk.Type != token.RPAREN {
+	for p.tok.Type != token.RPAREN {
 		param := p.parseVarDecl()
 		if param.VarType == nil {
 			p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
@@ -523,7 +523,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	}
 	p.next()
 	p.consume(token.ARROW)
-	if p.tk.Type != token.LBRACE {
+	if p.tok.Type != token.LBRACE {
 		decl.ReturnType = p.parseType()
 		p.expect(token.LBRACE)
 	}
@@ -535,7 +535,7 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 // Type
 
 func (p *parser) parseType() types.Type {
-	switch p.tk.Type {
+	switch p.tok.Type {
 	case token.INT:
 		p.next()
 		return new(types.Int)
@@ -553,7 +553,7 @@ func (p *parser) parseType() types.Type {
 	case token.LPAREN:
 		return p.parseFunc()
 	default:
-		p.error("%s: unexpected %s", p.tk.Pos, p.tk.Type)
+		p.error("%s: unexpected %s", p.tok.Pos, p.tok.Type)
 		return nil // unreachable
 	}
 }
@@ -562,12 +562,12 @@ func (p *parser) parseArray() *types.Array {
 	typ := new(types.Array)
 	p.next()
 	p.expect(token.NUMBER)
-	len, err := strconv.Atoi(p.tk.Literal)
+	len, err := strconv.Atoi(p.tok.Literal)
 	if err != nil {
-		p.error("%s: cannot parse %s as integer", p.tk.Pos, p.tk.Literal)
+		p.error("%s: cannot parse %s as integer", p.tok.Pos, p.tok.Literal)
 	}
 	if len < 0 {
-		p.error("%s: array length must be non-negative number", p.tk.Pos)
+		p.error("%s: array length must be non-negative number", p.tok.Pos)
 	}
 	typ.Len = len
 	p.next()
@@ -579,13 +579,13 @@ func (p *parser) parseArray() *types.Array {
 func (p *parser) parseFunc() *types.Func {
 	typ := new(types.Func)
 	p.next()
-	for p.tk.Type != token.RPAREN {
+	for p.tok.Type != token.RPAREN {
 		typ.ParamTypes = append(typ.ParamTypes, p.parseType())
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
 	p.consume(token.ARROW)
-	if p.tk.Type == token.LBRACE {
+	if p.tok.Type == token.LBRACE {
 		p.next()
 		p.consume(token.RBRACE)
 	} else {

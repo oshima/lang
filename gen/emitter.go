@@ -2,6 +2,7 @@ package gen
 
 import (
 	"fmt"
+
 	"github.com/oshima/lang/ast"
 	"github.com/oshima/lang/token"
 	"github.com/oshima/lang/types"
@@ -216,7 +217,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	continueLabel := br.labels[1]
 	endLabel := br.labels[2]
 
-	switch ty := stmt.Iter.VarType.(type) {
+	switch typ := stmt.Iter.VarType.(type) {
 	case *types.Range:
 		// init
 		e.emitExpr(stmt.Iter.Value) // rax: address of range
@@ -283,7 +284,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 
 		// cond
 		e.emitLabel(beginLabel)
-		e.emit("cmp rcx, %d", ty.Len)
+		e.emit("cmp rcx, %d", typ.Len)
 		e.emit("jge %s", endLabel)
 
 		// pre

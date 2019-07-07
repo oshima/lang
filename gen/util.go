@@ -19,8 +19,8 @@ var paramRegs = map[int][6]string{
 	8: [6]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
 }
 
-func sizeOf(ty types.Type) int {
-	switch ty.(type) {
+func sizeOf(typ types.Type) int {
+	switch typ.(type) {
 	case *types.Int:
 		return 8
 	case *types.Bool:

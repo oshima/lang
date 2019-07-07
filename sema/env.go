@@ -2,6 +2,7 @@ package sema
 
 import (
 	"errors"
+
 	"github.com/oshima/lang/ast"
 )
 
@@ -20,7 +21,7 @@ func newEnv(outer *env) *env {
 
 func (e *env) set(name string, node ast.Node) error {
 	if _, ok := e.store[name]; ok {
-		return errors.New("Duplicate entries")
+		return errors.New("duplicate entries")
 	}
 	e.store[name] = node
 	return nil

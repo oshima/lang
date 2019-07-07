@@ -120,21 +120,21 @@ try "!(-6 in -5..5) && !(5 in -5..5);" 1
 try "2 in [1, 2, 3];" 1
 try "4 in [1, 2, 3];" 0
 
-try-file ./test/while1.lg 55
-try-file ./test/while2.lg 55
-try-file ./test/while3.lg 225
+try-file .test/while1.lg 55
+try-file .test/while2.lg 55
+try-file .test/while3.lg 225
 
-try-file ./test/for1.lg 45
-try-file ./test/for2.lg 45
+try-file .test/for1.lg 45
+try-file .test/for2.lg 45
 
-try-file ./test/func1.lg 40
-try-file ./test/func2.lg true
-try-file ./test/func3.lg 15
-try-file ./test/func4.lg 91
-try-file ./test/func5.lg "-55, 385, 110"
-try-file ./test/func-fib.lg 102334155
+try-file .test/func1.lg 40
+try-file .test/func2.lg true
+try-file .test/func3.lg 15
+try-file .test/func4.lg 91
+try-file .test/func5.lg "-55, 385, 110"
+try-file .test/func-fib.lg 102334155
 
-try-file ./test/array1.lg ok
-try-file ./test/array2.lg ok
+try-file .test/array1.lg ok
+try-file .test/array2.lg ok
 
 echo OK

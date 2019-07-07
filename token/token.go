@@ -5,12 +5,16 @@ import "fmt"
 // Token represents a lexical token.
 type Token struct {
 	Type    Type
-	Literal string
 	Pos     *Pos
+	Literal string
 }
 
 // Type represents the type of token.
-type Type string
+type Type uint8
+
+func (t Type) String() string {
+	return strings[t]
+}
 
 // Pos represents the position of token.
 type Pos struct {
@@ -18,72 +22,76 @@ type Pos struct {
 	Col  int
 }
 
+func (p *Pos) String() string {
+	return fmt.Sprintf("%d,%d", p.Line, p.Col)
+}
+
 // The list of token types.
 const (
-	COMMENT Type = "COMMENT"
-	EOF     Type = "EOF"
+	EOF Type = iota
+	COMMENT
 
-	LPAREN    Type = "LPAREN"
-	RPAREN    Type = "RPAREN"
-	LBRACK    Type = "LBRACK"
-	RBRACK    Type = "RBRACK"
-	LBRACE    Type = "LBRACE"
-	RBRACE    Type = "RBRACE"
-	COMMA     Type = "COMMA"
-	COLON     Type = "COLON"
-	SEMICOLON Type = "SEMICOLON"
-	ASSIGN    Type = "ASSIGN"
-	BANG      Type = "BANG"
-	PLUS      Type = "PLUS"
-	MINUS     Type = "MINUS"
-	ASTERISK  Type = "ASTERISK"
-	SLASH     Type = "SLASH"
-	PERCENT   Type = "PERCENT"
+	LPAREN
+	RPAREN
+	LBRACK
+	RBRACK
+	LBRACE
+	RBRACE
+	COMMA
+	COLON
+	SEMICOLON
+	ASSIGN
+	BANG
+	PLUS
+	MINUS
+	ASTERISK
+	SLASH
+	PERCENT
 
-	EQ  Type = "EQ"
-	NE  Type = "NE"
-	LT  Type = "LT"
-	LE  Type = "LE"
-	GT  Type = "GT"
-	GE  Type = "GE"
-	AND Type = "AND"
-	OR  Type = "OR"
+	BETWEEN
+	ARROW
 
-	ADDASSIGN Type = "ADDASSIGN"
-	SUBASSIGN Type = "SUBASSIGN"
-	MULASSIGN Type = "MULASSIGN"
-	DIVASSIGN Type = "DIVASSIGN"
-	MODASSIGN Type = "MODASSIGN"
+	EQ
+	NE
+	LT
+	LE
+	GT
+	GE
+	AND
+	OR
 
-	BETWEEN Type = "BETWEEN"
-	ARROW   Type = "ARROW"
+	ADDASSIGN
+	SUBASSIGN
+	MULASSIGN
+	DIVASSIGN
+	MODASSIGN
 
-	VAR      Type = "VAR"
-	FUNC     Type = "FUNC"
-	IF       Type = "IF"
-	ELSE     Type = "ELSE"
-	WHILE    Type = "WHILE"
-	FOR      Type = "FOR"
-	IN       Type = "IN"
-	CONTINUE Type = "CONTINUE"
-	BREAK    Type = "BREAK"
-	RETURN   Type = "RETURN"
+	VAR
+	FUNC
+	IF
+	ELSE
+	WHILE
+	FOR
+	IN
+	CONTINUE
+	BREAK
+	RETURN
 
-	INT    Type = "INT"
-	BOOL   Type = "BOOL"
-	STRING Type = "STRING"
-	RANGE  Type = "RANGE"
+	INT
+	BOOL
+	STRING
+	RANGE
 
-	IDENT  Type = "IDENT"
-	NUMBER Type = "NUMBER"
-	TRUE   Type = "TRUE"
-	FALSE  Type = "FALSE"
-	QUOTED Type = "QUOTED"
+	IDENT
+	NUMBER
+	TRUE
+	FALSE
+	QUOTED
 )
 
 var strings = map[Type]string{
-	COMMENT: "comment",
 	EOF:     "eof",
+	COMMENT: "comment",
 
 	LPAREN:    "(",
 	RPAREN:    ")",
@@ -102,6 +110,9 @@ var strings = map[Type]string{
 	SLASH:     "/",
 	PERCENT:   "%",
 
+	BETWEEN: "..",
+	ARROW:   "->",
+
 	EQ:  "==",
 	NE:  "!=",
 	LT:  "<",
@@ -116,9 +127,6 @@ var strings = map[Type]string{
 	MULASSIGN: "*=",
 	DIVASSIGN: "/=",
 	MODASSIGN: "%=",
-
-	BETWEEN: "..",
-	ARROW:   "->",
 
 	VAR:      "var",
 	FUNC:     "func",
@@ -141,12 +149,4 @@ var strings = map[Type]string{
 	TRUE:   "true",
 	FALSE:  "false",
 	QUOTED: "quoted characters",
-}
-
-func (t Type) String() string {
-	return strings[t]
-}
-
-func (p *Pos) String() string {
-	return fmt.Sprintf("%d,%d", p.Line, p.Col)
 }

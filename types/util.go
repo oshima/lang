@@ -1,22 +1,22 @@
 package types
 
-// Same checks if two input types are same or not.
-func Same(ty1 Type, ty2 Type) bool {
-	switch v1 := ty1.(type) {
+// Same checks if the two input types are same or not.
+func Same(typ1 Type, typ2 Type) bool {
+	switch v1 := typ1.(type) {
 	case *Int:
-		_, ok := ty2.(*Int)
+		_, ok := typ2.(*Int)
 		return ok
 	case *Bool:
-		_, ok := ty2.(*Bool)
+		_, ok := typ2.(*Bool)
 		return ok
 	case *String:
-		_, ok := ty2.(*String)
+		_, ok := typ2.(*String)
 		return ok
 	case *Range:
-		_, ok := ty2.(*Range)
+		_, ok := typ2.(*Range)
 		return ok
 	case *Array:
-		v2, ok := ty2.(*Array)
+		v2, ok := typ2.(*Array)
 		if !ok {
 			return false
 		}
@@ -25,7 +25,7 @@ func Same(ty1 Type, ty2 Type) bool {
 		}
 		return Same(v1.ElemType, v2.ElemType)
 	case *Func:
-		v2, ok := ty2.(*Func)
+		v2, ok := typ2.(*Func)
 		if !ok {
 			return false
 		}
@@ -39,7 +39,7 @@ func Same(ty1 Type, ty2 Type) bool {
 		}
 		return Same(v1.ReturnType, v2.ReturnType)
 	default:
-		// ty1 is nil
-		return ty2 == nil
+		// typ1 is nil
+		return typ2 == nil
 	}
 }

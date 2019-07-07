@@ -21,13 +21,8 @@ type explorer struct {
 	fns   map[ast.Node]*fn
 	brs   map[ast.Node]*br
 
-	// counters of labels
-	nGvarLabel int
-	nGrngLabel int
-	nGarrLabel int
-	nStrLabel  int
-	nFnLabel   int
-	nBrLabel   int
+	// number of branch labels
+	nBrLabel int
 
 	// used for collecting local objects
 	local  bool
@@ -35,33 +30,23 @@ type explorer struct {
 }
 
 func (x *explorer) gvarLabel() string {
-	label := fmt.Sprintf("gvar%d", x.nGvarLabel)
-	x.nGvarLabel++
-	return label
+	return fmt.Sprintf("gvar%d", len(x.gvars))
 }
 
 func (x *explorer) grngLabel() string {
-	label := fmt.Sprintf("grng%d", x.nGrngLabel)
-	x.nGrngLabel++
-	return label
+	return fmt.Sprintf("grng%d", len(x.grngs))
 }
 
 func (x *explorer) garrLabel() string {
-	label := fmt.Sprintf("garr%d", x.nGarrLabel)
-	x.nGarrLabel++
-	return label
+	return fmt.Sprintf("grng%d", len(x.garrs))
 }
 
 func (x *explorer) strLabel() string {
-	label := fmt.Sprintf("str%d", x.nStrLabel)
-	x.nStrLabel++
-	return label
+	return fmt.Sprintf("str%d", len(x.strs))
 }
 
 func (x *explorer) fnLabel() string {
-	label := fmt.Sprintf("fn%d", x.nFnLabel)
-	x.nFnLabel++
-	return label
+	return fmt.Sprintf("fn%d", len(x.fns))
 }
 
 func (x *explorer) brLabel() string {
