@@ -38,7 +38,7 @@ func (x *explorer) grngLabel() string {
 }
 
 func (x *explorer) garrLabel() string {
-	return fmt.Sprintf("grng%d", len(x.garrs))
+	return fmt.Sprintf("garr%d", len(x.garrs))
 }
 
 func (x *explorer) strLabel() string {
