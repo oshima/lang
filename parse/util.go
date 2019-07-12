@@ -69,4 +69,5 @@ var unescape = map[rune]rune{
 var libFuncs = map[string]bool{
 	"puts":   true,
 	"printf": true,
+	"sleep":  true,
 }
