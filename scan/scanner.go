@@ -57,9 +57,12 @@ func (s *scanner) skipWs() {
 	}
 }
 
+func (s *scanner) pos() *token.Pos {
+	return &token.Pos{Line: s.line, Col: s.col}
+}
+
 func (s *scanner) error(format string, a ...interface{}) {
-	pos := fmt.Sprintf("%d,%d: ", s.line, s.col)
-	fmt.Fprintf(os.Stderr, pos+format+"\n", a...)
+	fmt.Fprintf(os.Stderr, s.pos().String()+": "+format+"\n", a...)
 	os.Exit(1)
 }
 
@@ -67,7 +70,7 @@ func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
 	s.skipWs()
 	for s.ch != 0 {
-		pos := &token.Pos{Line: s.line, Col: s.col}
+		pos := s.pos()
 		tok := s.readToken()
 		tok.Pos = pos
 		if tok.Type != token.COMMENT {
@@ -76,7 +79,7 @@ func (s *scanner) readTokens() []*token.Token {
 		s.lastTok = tok
 		s.skipWs()
 	}
-	eof := &token.Token{Type: token.EOF, Pos: &token.Pos{Line: s.line, Col: s.col}}
+	eof := &token.Token{Type: token.EOF, Pos: s.pos()}
 	return append(tokens, eof)
 }
 

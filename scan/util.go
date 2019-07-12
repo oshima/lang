@@ -25,6 +25,7 @@ var keywords = map[string]token.Type{
 	"continue": token.CONTINUE,
 	"break":    token.BREAK,
 	"return":   token.RETURN,
+	"void":     token.VOID,
 	"int":      token.INT,
 	"bool":     token.BOOL,
 	"string":   token.STRING,

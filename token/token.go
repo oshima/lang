@@ -77,6 +77,7 @@ const (
 	BREAK
 	RETURN
 
+	VOID
 	INT
 	BOOL
 	STRING
@@ -139,6 +140,7 @@ var strings = map[Type]string{
 	BREAK:    "break",
 	RETURN:   "return",
 
+	VOID:   "void",
 	INT:    "int",
 	BOOL:   "bool",
 	STRING: "string",

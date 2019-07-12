@@ -522,8 +522,8 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		p.consumeComma(token.RPAREN)
 	}
 	p.next()
-	p.consume(token.ARROW)
 	if p.tok.Type != token.LBRACE {
+		p.consume(token.ARROW)
 		decl.ReturnType = p.parseType()
 		p.expect(token.LBRACE)
 	}
@@ -585,9 +585,8 @@ func (p *parser) parseFunc() *types.Func {
 	}
 	p.next()
 	p.consume(token.ARROW)
-	if p.tok.Type == token.LBRACE {
+	if p.tok.Type == token.VOID {
 		p.next()
-		p.consume(token.RBRACE)
 	} else {
 		typ.ReturnType = p.parseType()
 	}

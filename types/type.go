@@ -66,7 +66,7 @@ func (f *Func) String() string {
 		params = append(params, typ.String())
 	}
 	if f.ReturnType == nil {
-		return fmt.Sprintf("(%s) -> {}", strings.Join(params, ", "))
+		return fmt.Sprintf("(%s) -> void", strings.Join(params, ", "))
 	}
 	return fmt.Sprintf("(%s) -> %s", strings.Join(params, ", "), f.ReturnType)
 }
