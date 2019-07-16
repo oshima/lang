@@ -2,14 +2,14 @@ package gen
 
 import "github.com/oshima/lang/ast"
 
-// Generate traverses the input AST and emits the target assembly code.
+// Generate emits the target assembly code.
 func Generate(prog *ast.Program) {
 	x := &explorer{
 		gvars: make(map[ast.Decl]*gvar),
-		grngs: make(map[ast.Expr]*grng),
+		grans: make(map[ast.Expr]*gran),
 		garrs: make(map[ast.Expr]*garr),
 		lvars: make(map[ast.Decl]*lvar),
-		lrngs: make(map[ast.Expr]*lrng),
+		lrans: make(map[ast.Expr]*lran),
 		larrs: make(map[ast.Expr]*larr),
 		strs:  make(map[ast.Expr]*str),
 		fns:   make(map[ast.Node]*fn),
@@ -19,10 +19,10 @@ func Generate(prog *ast.Program) {
 
 	e := &emitter{
 		gvars: x.gvars,
-		grngs: x.grngs,
+		grans: x.grans,
 		garrs: x.garrs,
 		lvars: x.lvars,
-		lrngs: x.lrngs,
+		lrans: x.lrans,
 		larrs: x.larrs,
 		strs:  x.strs,
 		fns:   x.fns,

@@ -37,14 +37,6 @@ var precOf = map[token.Type]int{
 	token.LPAREN:   SUFFIX,
 }
 
-var typeStart = map[token.Type]bool{
-	token.INT:    true,
-	token.BOOL:   true,
-	token.STRING: true,
-	token.LBRACK: true,
-	token.LPAREN: true,
-}
-
 var assignOps = map[token.Type]bool{
 	token.ASSIGN:    true,
 	token.ADDASSIGN: true,
@@ -52,6 +44,14 @@ var assignOps = map[token.Type]bool{
 	token.MULASSIGN: true,
 	token.DIVASSIGN: true,
 	token.MODASSIGN: true,
+}
+
+var typeBegin = map[token.Type]bool{
+	token.INT:    true,
+	token.BOOL:   true,
+	token.STRING: true,
+	token.LBRACK: true,
+	token.LPAREN: true,
 }
 
 var unescape = map[rune]rune{

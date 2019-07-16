@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 lang > tmp.s
 gcc -no-pie -o tmp tmp.s

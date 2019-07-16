@@ -43,11 +43,11 @@ func (s *scanner) consume(ch rune) {
 	case ch:
 		s.next()
 	case '\n':
-		s.error("unexpected newline")
+		s.error("%s: unexpected newline", s.pos())
 	case 0:
-		s.error("unexpected eof")
+		s.error("%s: unexpected eof", s.pos())
 	default:
-		s.error("unexpected %c", s.ch)
+		s.error("%s: unexpected %c", s.pos(), s.ch)
 	}
 }
 
@@ -62,9 +62,12 @@ func (s *scanner) pos() *token.Pos {
 }
 
 func (s *scanner) error(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, s.pos().String()+": "+format+"\n", a...)
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
 	os.Exit(1)
 }
+
+// ----------------------------------------------------------------
+// Tokens
 
 func (s *scanner) readTokens() []*token.Token {
 	tokens := make([]*token.Token, 0, 64)
@@ -122,7 +125,7 @@ func (s *scanner) readToken() *token.Token {
 		case isAlpha(s.ch):
 			return s.readKeywordOrIdentifier()
 		default:
-			s.error("invalid character %c", s.ch)
+			s.error("%s: invalid character %c", s.pos(), s.ch)
 			return nil // unreachable
 		}
 	}
@@ -135,9 +138,6 @@ func (s *scanner) readComment() *token.Token {
 		s.next()
 	}
 	literal := string(s.runes[idx:s.idx])
-	if s.ch == '\n' {
-		s.next()
-	}
 	return &token.Token{Type: token.COMMENT, Literal: literal}
 }
 
@@ -272,7 +272,7 @@ func (s *scanner) readQuoted() *token.Token {
 			s.next()
 		}
 		if s.ch == 0 {
-			s.error("unexpected eof")
+			s.error("%s: unexpected eof", s.pos())
 		}
 		s.next()
 	}

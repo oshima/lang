@@ -7,7 +7,7 @@ type gvar struct {
 }
 
 // global range
-type grng struct {
+type gran struct {
 	label string
 }
 
@@ -25,7 +25,7 @@ type lvar struct {
 }
 
 // local range
-type lrng struct {
+type lran struct {
 	offset int
 }
 

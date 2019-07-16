@@ -23,7 +23,7 @@ func (p *parser) next() {
 
 func (p *parser) peek() *token.Token {
 	if p.tok.Type == token.EOF {
-		p.error("%s: unexpected eof", p.tok.Pos)
+		return p.tok
 	}
 	return p.tokens[p.idx+1]
 }
@@ -41,18 +41,18 @@ func (p *parser) consume(typ token.Type) {
 	p.next()
 }
 
-func (p *parser) consumeComma(terminator token.Type) {
+func (p *parser) consumeComma(end token.Type) {
 	switch p.tok.Type {
 	case token.COMMA:
 		p.next()
-	case terminator:
+	case end:
 		// ok
 	default:
-		p.error("%s: expected , or %s, but got %s", p.tok.Pos, terminator, p.tok.Type)
+		p.error("%s: expected , or %s, but got %s", p.tok.Pos, end, p.tok.Type)
 	}
 }
 
-func (p *parser) lookPrec() int {
+func (p *parser) prec() int {
 	if prec, ok := precOf[p.tok.Type]; ok {
 		return prec
 	}
@@ -273,7 +273,7 @@ func (p *parser) parseExpr(prec int) ast.Expr {
 		p.error("%s: unexpected %s", p.tok.Pos, p.tok.Type)
 	}
 
-	for p.lookPrec() > prec {
+	for p.prec() > prec {
 		switch p.tok.Type {
 		case token.LBRACK:
 			expr = p.parseIndexExpr(expr)
@@ -303,7 +303,7 @@ func (p *parser) parseInfixExpr(left ast.Expr) *ast.InfixExpr {
 	expr.Left = left
 	expr.SetPos(p.tok.Pos)
 	expr.Op = p.tok.Type
-	prec := p.lookPrec()
+	prec := p.prec()
 	p.next()
 	expr.Right = p.parseExpr(prec)
 	return expr
@@ -380,8 +380,8 @@ func (p *parser) parseStringLit() *ast.StringLit {
 	escaped := false
 	for _, ch := range p.tok.Literal {
 		if escaped {
-			if raw, ok := unescape[ch]; ok {
-				expr.Value += string(raw)
+			if unescaped, ok := unescape[ch]; ok {
+				expr.Value += string(unescaped)
 				escaped = false
 			} else {
 				p.error("%s: unknown escape sequence \\%c", p.tok.Pos, ch)
@@ -415,7 +415,7 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 	pick := p.parseExpr(LOWEST)
 	// ArrayShortLit
 	if p.tok.Type == token.RBRACK {
-		if _, ok := typeStart[p.peek().Type]; ok {
+		if _, ok := typeBegin[p.peek().Type]; ok {
 			expr := new(ast.ArrayShortLit)
 			expr.SetPos(pos)
 			i, ok := pick.(*ast.IntLit)

@@ -11,10 +11,10 @@ import (
 // emitter emits the target assembly code.
 type emitter struct {
 	gvars map[ast.Decl]*gvar
-	grngs map[ast.Expr]*grng
+	grans map[ast.Expr]*gran
 	garrs map[ast.Expr]*garr
 	lvars map[ast.Decl]*lvar
-	lrngs map[ast.Expr]*lrng
+	lrans map[ast.Expr]*lran
 	larrs map[ast.Expr]*larr
 	strs  map[ast.Expr]*str
 	fns   map[ast.Node]*fn
@@ -49,8 +49,8 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 		e.emit(".comm %s,%d,%d", gvar.label, gvar.size, gvar.size)
 	}
 
-	for _, grng := range e.grngs {
-		e.emit(".comm %s,%d,%d", grng.label, 16, 8)
+	for _, gran := range e.grans {
+		e.emit(".comm %s,%d,%d", gran.label, 16, 8)
 	}
 
 	for _, garr := range e.garrs {
@@ -58,10 +58,10 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 	}
 
 	for node := range e.fns {
-		e.emitFuncCode(node)
+		e.emitFunc(node)
 	}
 
-	e.emit(".globl main")
+	e.emit(".global main")
 	e.emitLabel("main")
 	e.emit("push rbp")
 	e.emit("mov rbp, rsp")
@@ -74,7 +74,7 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 	e.emit("ret")
 }
 
-func (e *emitter) emitFuncCode(node ast.Node) {
+func (e *emitter) emitFunc(node ast.Node) {
 	fn := e.fns[node]
 	br := e.brs[node]
 	endLabel := br.labels[0]
@@ -653,18 +653,18 @@ func (e *emitter) emitStringLit(expr *ast.StringLit) {
 }
 
 func (e *emitter) emitRangeLit(expr *ast.RangeLit) {
-	if lrng, ok := e.lrngs[expr]; ok {
+	if lran, ok := e.lrans[expr]; ok {
 		e.emitExpr(expr.Lower)
-		e.emit("mov qword ptr [rbp-%d], rax", lrng.offset)
+		e.emit("mov qword ptr [rbp-%d], rax", lran.offset)
 		e.emitExpr(expr.Upper)
-		e.emit("mov qword ptr [rbp-%d], rax", lrng.offset-8)
-		e.emit("lea rax, [rbp-%d]", lrng.offset)
-	} else if grng, ok := e.grngs[expr]; ok {
+		e.emit("mov qword ptr [rbp-%d], rax", lran.offset-8)
+		e.emit("lea rax, [rbp-%d]", lran.offset)
+	} else if gran, ok := e.grans[expr]; ok {
 		e.emitExpr(expr.Lower)
-		e.emit("mov qword ptr %s[rip], rax", grng.label)
+		e.emit("mov qword ptr %s[rip], rax", gran.label)
 		e.emitExpr(expr.Upper)
-		e.emit("mov qword ptr %s[rip+8], rax", grng.label)
-		e.emit("mov rax, offset flat:%s", grng.label)
+		e.emit("mov qword ptr %s[rip+8], rax", gran.label)
+		e.emit("mov rax, offset flat:%s", gran.label)
 	}
 }
 

@@ -8,14 +8,14 @@ import (
 	"github.com/oshima/lang/types"
 )
 
-// explorer gathers the objects necessary for emitting target assembly code.
+// explorer collects the objects necessary for emitting target assembly code.
 type explorer struct {
 	// objects
 	gvars map[ast.Decl]*gvar
-	grngs map[ast.Expr]*grng
+	grans map[ast.Expr]*gran
 	garrs map[ast.Expr]*garr
 	lvars map[ast.Decl]*lvar
-	lrngs map[ast.Expr]*lrng
+	lrans map[ast.Expr]*lran
 	larrs map[ast.Expr]*larr
 	strs  map[ast.Expr]*str
 	fns   map[ast.Node]*fn
@@ -33,8 +33,8 @@ func (x *explorer) gvarLabel() string {
 	return fmt.Sprintf("gvar%d", len(x.gvars))
 }
 
-func (x *explorer) grngLabel() string {
-	return fmt.Sprintf("grng%d", len(x.grngs))
+func (x *explorer) granLabel() string {
+	return fmt.Sprintf("gran%d", len(x.grans))
 }
 
 func (x *explorer) garrLabel() string {
@@ -244,9 +244,9 @@ func (x *explorer) exploreRangeLit(expr *ast.RangeLit) {
 
 	if x.local {
 		x.offset = align(x.offset+16, 8)
-		x.lrngs[expr] = &lrng{offset: x.offset}
+		x.lrans[expr] = &lran{offset: x.offset}
 	} else {
-		x.grngs[expr] = &grng{label: x.grngLabel()}
+		x.grans[expr] = &gran{label: x.granLabel()}
 	}
 }
 
