@@ -450,33 +450,33 @@ func (p *parser) parseArrayLitOrArrayShortLit() ast.Expr {
 func (p *parser) parseFuncLitOrGroupedExpr() ast.Expr {
 	pos := p.tok.Pos
 	p.next()
-	// grouped expression
-	if p.tok.Type != token.RPAREN && p.peek().Type != token.COLON {
-		expr := p.parseExpr(LOWEST)
-		p.consume(token.RPAREN)
+	// FuncLit
+	if p.tok.Type == token.RPAREN || p.peek().Type == token.COLON {
+		expr := new(ast.FuncLit)
+		expr.SetPos(pos)
+		for p.tok.Type != token.RPAREN {
+			param := p.parseVarDecl()
+			if param.VarType == nil {
+				p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
+			}
+			if param.Value != nil {
+				p.error("%s: %s cannot have initial value", param.Pos(), param.Name)
+			}
+			expr.Params = append(expr.Params, param)
+			p.consumeComma(token.RPAREN)
+		}
+		p.next()
+		p.consume(token.ARROW)
+		if p.tok.Type != token.LBRACE {
+			expr.ReturnType = p.parseType()
+			p.expect(token.LBRACE)
+		}
+		expr.Body = p.parseBlockStmt()
 		return expr
 	}
-	// FuncLit
-	expr := new(ast.FuncLit)
-	expr.SetPos(pos)
-	for p.tok.Type != token.RPAREN {
-		param := p.parseVarDecl()
-		if param.VarType == nil {
-			p.error("%s: type of %s must be annotated", param.Pos(), param.Name)
-		}
-		if param.Value != nil {
-			p.error("%s: %s cannot have initial value", param.Pos(), param.Name)
-		}
-		expr.Params = append(expr.Params, param)
-		p.consumeComma(token.RPAREN)
-	}
-	p.next()
-	p.consume(token.ARROW)
-	if p.tok.Type != token.LBRACE {
-		expr.ReturnType = p.parseType()
-		p.expect(token.LBRACE)
-	}
-	expr.Body = p.parseBlockStmt()
+	// grouped expression
+	expr := p.parseExpr(LOWEST)
+	p.consume(token.RPAREN)
 	return expr
 }
 
