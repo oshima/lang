@@ -111,9 +111,6 @@ func (e *emitter) emitFunc(node ast.Node) {
 	e.emitBlockStmt(body)
 
 	e.emitLabel(endLabel)
-	if fn.localArea > 0 {
-		e.emit("add rsp, %d", fn.localArea)
-	}
 	e.emit("leave")
 	e.emit("ret")
 }
