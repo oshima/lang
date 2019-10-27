@@ -473,10 +473,11 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		// do nothing
 	default:
 		// emit both operands in advance
-		e.emitExpr(expr.Right)
+		e.emitExpr(expr.Left)
 		e.emit("push rax")
-		e.emitExpr(expr.Left) // rax: left
-		e.emit("pop rcx")     // rcx: right
+		e.emitExpr(expr.Right)
+		e.emit("mov rcx, rax") // rcx: right
+		e.emit("pop rax")      // rax: left
 	}
 
 	switch expr.Op {

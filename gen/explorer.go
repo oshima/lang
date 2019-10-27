@@ -188,14 +188,8 @@ func (x *explorer) explorePrefixExpr(expr *ast.PrefixExpr) {
 }
 
 func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
-	switch expr.Op {
-	case token.AND, token.OR:
-		x.exploreExpr(expr.Left)
-		x.exploreExpr(expr.Right)
-	default:
-		x.exploreExpr(expr.Right)
-		x.exploreExpr(expr.Left)
-	}
+	x.exploreExpr(expr.Left)
+	x.exploreExpr(expr.Right)
 
 	switch expr.Op {
 	case token.AND, token.OR:
