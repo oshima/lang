@@ -10,7 +10,6 @@ import (
 
 // explorer collects the objects necessary for emitting target assembly code.
 type explorer struct {
-	// objects
 	gvars map[ast.Decl]*gvar
 	grans map[ast.Expr]*gran
 	garrs map[ast.Expr]*garr
@@ -21,10 +20,7 @@ type explorer struct {
 	fns   map[ast.Node]*fn
 	brs   map[ast.Node]*br
 
-	// number of branch labels
-	nBrLabel int
-
-	// used for collecting local objects
+	nlabel int
 	local  bool
 	offset int
 }
@@ -50,8 +46,8 @@ func (x *explorer) fnLabel() string {
 }
 
 func (x *explorer) brLabel() string {
-	label := fmt.Sprintf(".L%d", x.nBrLabel)
-	x.nBrLabel++
+	label := fmt.Sprintf(".L%d", x.nlabel)
+	x.nlabel++
 	return label
 }
 
@@ -304,11 +300,10 @@ func (x *explorer) exploreVarDecl(decl *ast.VarDecl) {
 		x.offset = align(x.offset+size, size)
 		x.lvars[decl] = &lvar{offset: x.offset, size: size}
 	} else {
-		label := x.gvarLabel()
-		if decl.Name != "" {
-			label += "_" + decl.Name
+		x.gvars[decl] = &gvar{
+			label: x.gvarLabel() + "_" + decl.Name,
+			size:  size,
 		}
-		x.gvars[decl] = &gvar{label: label, size: size}
 	}
 }
 
