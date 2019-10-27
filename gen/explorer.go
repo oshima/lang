@@ -111,13 +111,11 @@ func (x *explorer) exploreIfStmt(stmt *ast.IfStmt) {
 	x.exploreBlockStmt(stmt.Body)
 
 	if stmt.Else == nil {
-		endLabel := x.brLabel()
-		x.brs[stmt] = &br{labels: []string{endLabel}}
+		x.brs[stmt] = &br{endLabel: x.brLabel()}
 	} else {
 		elseLabel := x.brLabel()
 		x.exploreStmt(stmt.Else)
-		endLabel := x.brLabel()
-		x.brs[stmt] = &br{labels: []string{elseLabel, endLabel}}
+		x.brs[stmt] = &br{elseLabel: elseLabel, endLabel: x.brLabel()}
 	}
 }
 
@@ -125,8 +123,7 @@ func (x *explorer) exploreWhileStmt(stmt *ast.WhileStmt) {
 	beginLabel := x.brLabel()
 	x.exploreExpr(stmt.Cond)
 	x.exploreBlockStmt(stmt.Body)
-	endLabel := x.brLabel()
-	x.brs[stmt] = &br{labels: []string{beginLabel, endLabel}}
+	x.brs[stmt] = &br{beginLabel: beginLabel, endLabel: x.brLabel()}
 }
 
 func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
@@ -135,9 +132,11 @@ func (x *explorer) exploreForStmt(stmt *ast.ForStmt) {
 	x.exploreVarDecl(stmt.Iter)
 	beginLabel := x.brLabel()
 	x.exploreBlockStmt(stmt.Body)
-	continueLabel := x.brLabel()
-	endLabel := x.brLabel()
-	x.brs[stmt] = &br{labels: []string{beginLabel, continueLabel, endLabel}}
+	x.brs[stmt] = &br{
+		beginLabel:    beginLabel,
+		continueLabel: x.brLabel(),
+		endLabel:      x.brLabel(),
+	}
 }
 
 func (x *explorer) exploreReturnStmt(stmt *ast.ReturnStmt) {
@@ -193,19 +192,20 @@ func (x *explorer) exploreInfixExpr(expr *ast.InfixExpr) {
 
 	switch expr.Op {
 	case token.AND, token.OR:
-		endLabel := x.brLabel()
-		x.brs[expr] = &br{labels: []string{endLabel}}
+		x.brs[expr] = &br{endLabel: x.brLabel()}
 	case token.IN:
 		switch expr.Right.Type().(type) {
 		case *types.Range:
-			falseLabel := x.brLabel()
-			endLabel := x.brLabel()
-			x.brs[expr] = &br{labels: []string{falseLabel, endLabel}}
+			x.brs[expr] = &br{
+				falseLabel: x.brLabel(),
+				endLabel:   x.brLabel(),
+			}
 		case *types.Array:
-			beginLabel := x.brLabel()
-			falseLabel := x.brLabel()
-			endLabel := x.brLabel()
-			x.brs[expr] = &br{labels: []string{beginLabel, falseLabel, endLabel}}
+			x.brs[expr] = &br{
+				beginLabel: x.brLabel(),
+				falseLabel: x.brLabel(),
+				endLabel:   x.brLabel(),
+			}
 		}
 	}
 }
@@ -285,11 +285,10 @@ func (x *explorer) exploreFuncLit(expr *ast.FuncLit) {
 		x.exploreVarDecl(param)
 	}
 	x.exploreBlockStmt(expr.Body)
-	endLabel := x.brLabel()
 
 	x.local = false
 	x.fns[expr] = &fn{label: x.fnLabel(), localArea: align(x.offset, 16)}
-	x.brs[expr] = &br{labels: []string{endLabel}}
+	x.brs[expr] = &br{endLabel: x.brLabel()}
 }
 
 // ----------------------------------------------------------------
@@ -321,12 +320,11 @@ func (x *explorer) exploreFuncDecl(decl *ast.FuncDecl) {
 		x.exploreVarDecl(param)
 	}
 	x.exploreBlockStmt(decl.Body)
-	endLabel := x.brLabel()
 
 	x.local = false
 	x.fns[decl] = &fn{
 		label:     x.fnLabel() + "_" + decl.Name,
 		localArea: align(x.offset, 16),
 	}
-	x.brs[decl] = &br{labels: []string{endLabel}}
+	x.brs[decl] = &br{endLabel: x.brLabel()}
 }

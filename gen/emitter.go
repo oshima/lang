@@ -77,7 +77,6 @@ func (e *emitter) emitProgram(prog *ast.Program) {
 func (e *emitter) emitFunc(node ast.Node) {
 	fn := e.fns[node]
 	br := e.brs[node]
-	endLabel := br.labels[0]
 
 	var params []*ast.VarDecl
 	var body *ast.BlockStmt
@@ -110,7 +109,7 @@ func (e *emitter) emitFunc(node ast.Node) {
 
 	e.emitBlockStmt(body)
 
-	e.emitLabel(endLabel)
+	e.emitLabel(br.endLabel)
 	e.emit("leave")
 	e.emit("ret")
 }
@@ -178,41 +177,33 @@ func (e *emitter) emitIfStmt(stmt *ast.IfStmt) {
 	e.emit("cmp rax, 0")
 
 	if stmt.Else == nil {
-		endLabel := br.labels[0]
-		e.emit("je %s", endLabel)
+		e.emit("je %s", br.endLabel)
 		e.emitBlockStmt(stmt.Body)
-		e.emitLabel(endLabel)
+		e.emitLabel(br.endLabel)
 	} else {
-		elseLabel := br.labels[0]
-		endLabel := br.labels[1]
-		e.emit("je %s", elseLabel)
+		e.emit("je %s", br.elseLabel)
 		e.emitBlockStmt(stmt.Body)
-		e.emit("jmp %s", endLabel)
-		e.emitLabel(elseLabel)
+		e.emit("jmp %s", br.endLabel)
+		e.emitLabel(br.elseLabel)
 		e.emitStmt(stmt.Else)
-		e.emitLabel(endLabel)
+		e.emitLabel(br.endLabel)
 	}
 }
 
 func (e *emitter) emitWhileStmt(stmt *ast.WhileStmt) {
 	br := e.brs[stmt]
-	beginLabel := br.labels[0]
-	endLabel := br.labels[1]
 
-	e.emitLabel(beginLabel)
+	e.emitLabel(br.beginLabel)
 	e.emitExpr(stmt.Cond)
 	e.emit("cmp rax, 0")
-	e.emit("je %s", endLabel)
+	e.emit("je %s", br.endLabel)
 	e.emitBlockStmt(stmt.Body)
-	e.emit("jmp %s", beginLabel)
-	e.emitLabel(endLabel)
+	e.emit("jmp %s", br.beginLabel)
+	e.emitLabel(br.endLabel)
 }
 
 func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 	br := e.brs[stmt]
-	beginLabel := br.labels[0]
-	continueLabel := br.labels[1]
-	endLabel := br.labels[2]
 
 	switch typ := stmt.Iter.VarType.(type) {
 	case *types.Range:
@@ -236,15 +227,15 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 		}
 
 		// cond
-		e.emitLabel(beginLabel)
+		e.emitLabel(br.beginLabel)
 		e.emit("cmp rcx, qword ptr [rax+8]")
-		e.emit("jge %s", endLabel)
+		e.emit("jge %s", br.endLabel)
 
 		// body
 		e.emitBlockStmt(stmt.Body)
 
 		// post
-		e.emitLabel(continueLabel)
+		e.emitLabel(br.continueLabel)
 		if lvar, ok := e.lvars[stmt.Iter]; ok {
 			e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
 		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
@@ -262,8 +253,8 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 		} else if gvar, ok := e.gvars[stmt.Index]; ok {
 			e.emit("inc qword ptr %s[rip]", gvar.label)
 		}
-		e.emit("jmp %s", beginLabel)
-		e.emitLabel(endLabel)
+		e.emit("jmp %s", br.beginLabel)
+		e.emitLabel(br.endLabel)
 	case *types.Array:
 		// init
 		e.emitExpr(stmt.Iter.Value)
@@ -280,9 +271,9 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 		}
 
 		// cond
-		e.emitLabel(beginLabel)
+		e.emitLabel(br.beginLabel)
 		e.emit("cmp rcx, %d", typ.Len)
-		e.emit("jge %s", endLabel)
+		e.emit("jge %s", br.endLabel)
 
 		// pre
 		if lvar, ok := e.lvars[stmt.Elem]; ok {
@@ -309,7 +300,7 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 		e.emitBlockStmt(stmt.Body)
 
 		// post
-		e.emitLabel(continueLabel)
+		e.emitLabel(br.continueLabel)
 		if lvar, ok := e.lvars[stmt.Iter]; ok {
 			e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
 		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
@@ -322,8 +313,8 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 			e.emit("inc qword ptr %s[rip]", gvar.label)
 			e.emit("mov rcx, qword ptr %s[rip]", gvar.label)
 		}
-		e.emit("jmp %s", beginLabel)
-		e.emitLabel(endLabel)
+		e.emit("jmp %s", br.beginLabel)
+		e.emitLabel(br.endLabel)
 	}
 }
 
@@ -332,11 +323,9 @@ func (e *emitter) emitContinueStmt(stmt *ast.ContinueStmt) {
 
 	switch stmt.Ref.(type) {
 	case *ast.WhileStmt:
-		beginLabel := br.labels[0]
-		e.emit("jmp %s", beginLabel)
+		e.emit("jmp %s", br.beginLabel)
 	case *ast.ForStmt:
-		continueLabel := br.labels[1]
-		e.emit("jmp %s", continueLabel)
+		e.emit("jmp %s", br.continueLabel)
 	}
 }
 
@@ -345,22 +334,19 @@ func (e *emitter) emitBreakStmt(stmt *ast.BreakStmt) {
 
 	switch stmt.Ref.(type) {
 	case *ast.WhileStmt:
-		endLabel := br.labels[1]
-		e.emit("jmp %s", endLabel)
+		e.emit("jmp %s", br.endLabel)
 	case *ast.ForStmt:
-		endLabel := br.labels[2]
-		e.emit("jmp %s", endLabel)
+		e.emit("jmp %s", br.endLabel)
 	}
 }
 
 func (e *emitter) emitReturnStmt(stmt *ast.ReturnStmt) {
 	br := e.brs[stmt.Ref]
-	endLabel := br.labels[0]
 
 	if stmt.Value != nil {
 		e.emitExpr(stmt.Value)
 	}
-	e.emit("jmp %s", endLabel)
+	e.emit("jmp %s", br.endLabel)
 }
 
 func (e *emitter) emitAssignStmt(stmt *ast.AssignStmt) {
@@ -500,52 +486,45 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 		e.emit("movzx rax, al")
 	case token.AND:
 		br := e.brs[expr]
-		endLabel := br.labels[0]
 
 		e.emitExpr(expr.Left)
 		e.emit("cmp rax, 0")
-		e.emit("je %s", endLabel)
+		e.emit("je %s", br.endLabel)
 		e.emitExpr(expr.Right)
-		e.emitLabel(endLabel)
+		e.emitLabel(br.endLabel)
 	case token.OR:
 		br := e.brs[expr]
-		endLabel := br.labels[0]
 
 		e.emitExpr(expr.Left)
 		e.emit("cmp rax, 1")
-		e.emit("je %s", endLabel)
+		e.emit("je %s", br.endLabel)
 		e.emitExpr(expr.Right)
-		e.emitLabel(endLabel)
+		e.emitLabel(br.endLabel)
 	case token.IN:
 		switch v := expr.Right.Type().(type) {
 		case *types.Range:
 			br := e.brs[expr]
-			falseLabel := br.labels[0]
-			endLabel := br.labels[1]
 
 			e.emit("cmp rax, qword ptr [rcx]")
-			e.emit("jl %s", falseLabel)
+			e.emit("jl %s", br.falseLabel)
 			e.emit("cmp rax, qword ptr [rcx+8]")
-			e.emit("jge %s", falseLabel)
+			e.emit("jge %s", br.falseLabel)
 			e.emit("mov rax, 1")
-			e.emit("jmp %s", endLabel)
-			e.emitLabel(falseLabel)
+			e.emit("jmp %s", br.endLabel)
+			e.emitLabel(br.falseLabel)
 			e.emit("mov rax, 0")
-			e.emitLabel(endLabel)
+			e.emitLabel(br.endLabel)
 		case *types.Array:
 			br := e.brs[expr]
-			beginLabel := br.labels[0]
-			falseLabel := br.labels[1]
-			endLabel := br.labels[2]
 
 			len := v.Len
 			elemSize := sizeOf(v.ElemType)
 
 			e.emit("mov rdx, rcx")
 			e.emit("add rdx, %d", len*elemSize)
-			e.emitLabel(beginLabel)
+			e.emitLabel(br.beginLabel)
 			e.emit("cmp rcx, rdx")
-			e.emit("jge %s", falseLabel)
+			e.emit("jge %s", br.falseLabel)
 			switch elemSize {
 			case 1:
 				e.emit("cmp al, byte ptr [rcx]")
@@ -553,12 +532,12 @@ func (e *emitter) emitInfixExpr(expr *ast.InfixExpr) {
 				e.emit("cmp rax, qword ptr [rcx]")
 			}
 			e.emit("lea rcx, [rcx+%d]", elemSize)
-			e.emit("jne %s", beginLabel)
+			e.emit("jne %s", br.beginLabel)
 			e.emit("mov rax, 1")
-			e.emit("jmp %s", endLabel)
-			e.emitLabel(falseLabel)
+			e.emit("jmp %s", br.endLabel)
+			e.emitLabel(br.falseLabel)
 			e.emit("mov rax, 0")
-			e.emitLabel(endLabel)
+			e.emitLabel(br.endLabel)
 		}
 	}
 }

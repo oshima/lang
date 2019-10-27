@@ -50,5 +50,9 @@ type fn struct {
 
 // branch labels
 type br struct {
-	labels []string
+	beginLabel    string
+	elseLabel     string
+	continueLabel string
+	falseLabel    string
+	endLabel      string
 }
