@@ -50,6 +50,7 @@ var typeBegin = map[token.Type]bool{
 	token.INT:    true,
 	token.BOOL:   true,
 	token.STRING: true,
+	token.RANGE:  true,
 	token.LBRACK: true,
 	token.LPAREN: true,
 }
