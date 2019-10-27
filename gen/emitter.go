@@ -207,114 +207,133 @@ func (e *emitter) emitForStmt(stmt *ast.ForStmt) {
 
 	switch typ := stmt.Iter.VarType.(type) {
 	case *types.Range:
-		// init
-		e.emitExpr(stmt.Iter.Value) // rax: address of range
-		if lvar, ok := e.lvars[stmt.Iter]; ok {
-			e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
-			e.emit("mov qword ptr %s[rip], rax", gvar.label)
-		}
-		e.emit("mov rcx, qword ptr [rax]") // rcx: lower limit
-		if lvar, ok := e.lvars[stmt.Elem]; ok {
-			e.emit("mov qword ptr [rbp-%d], rcx", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Elem]; ok {
-			e.emit("mov qword ptr %s[rip], rcx", gvar.label)
-		}
-		if lvar, ok := e.lvars[stmt.Index]; ok {
-			e.emit("mov qword ptr [rbp-%d], 0", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Index]; ok {
-			e.emit("mov qword ptr %s[rip], 0", gvar.label)
-		}
+		if elem, ok := e.lvars[stmt.Elem]; ok {
+			index := e.lvars[stmt.Index]
+			iter := e.lvars[stmt.Iter]
 
-		// cond
-		e.emitLabel(br.beginLabel)
-		e.emit("cmp rcx, qword ptr [rax+8]")
-		e.emit("jge %s", br.endLabel)
+			// init
+			e.emitExpr(stmt.Iter.Value) // rax: address of range
+			e.emit("mov qword ptr [rbp-%d], rax", iter.offset)
+			e.emit("mov rcx, qword ptr [rax]") // rcx: lower limit
+			e.emit("mov qword ptr [rbp-%d], rcx", elem.offset)
+			e.emit("mov qword ptr [rbp-%d], 0", index.offset)
 
-		// body
-		e.emitBlockStmt(stmt.Body)
+			// cond
+			e.emitLabel(br.beginLabel)
+			e.emit("cmp rcx, qword ptr [rax+8]")
+			e.emit("jge %s", br.endLabel)
 
-		// post
-		e.emitLabel(br.continueLabel)
-		if lvar, ok := e.lvars[stmt.Iter]; ok {
-			e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
-			e.emit("mov rax, qword ptr %s[rip]", gvar.label)
+			// body
+			e.emitBlockStmt(stmt.Body)
+
+			// post
+			e.emitLabel(br.continueLabel)
+			e.emit("mov rax, qword ptr [rbp-%d]", iter.offset)
+			e.emit("inc qword ptr [rbp-%d]", elem.offset)
+			e.emit("mov rcx, qword ptr [rbp-%d]", elem.offset)
+			e.emit("inc qword ptr [rbp-%d]", index.offset)
+			e.emit("jmp %s", br.beginLabel)
+			e.emitLabel(br.endLabel)
+		} else if elem, ok := e.gvars[stmt.Elem]; ok {
+			index := e.gvars[stmt.Index]
+			iter := e.gvars[stmt.Iter]
+
+			// init
+			e.emitExpr(stmt.Iter.Value) // rax: address of range
+			e.emit("mov qword ptr %s[rip], rax", iter.label)
+			e.emit("mov rcx, qword ptr [rax]") // rcx: lower limit
+			e.emit("mov qword ptr %s[rip], rcx", elem.label)
+			e.emit("mov qword ptr %s[rip], 0", index.label)
+
+			// cond
+			e.emitLabel(br.beginLabel)
+			e.emit("cmp rcx, qword ptr [rax+8]")
+			e.emit("jge %s", br.endLabel)
+
+			// body
+			e.emitBlockStmt(stmt.Body)
+
+			// post
+			e.emitLabel(br.continueLabel)
+			e.emit("mov rax, qword ptr %s[rip]", iter.label)
+			e.emit("inc qword ptr %s[rip]", elem.label)
+			e.emit("mov rcx, qword ptr %s[rip]", elem.label)
+			e.emit("inc qword ptr %s[rip]", index.label)
+			e.emit("jmp %s", br.beginLabel)
+			e.emitLabel(br.endLabel)
 		}
-		if lvar, ok := e.lvars[stmt.Elem]; ok {
-			e.emit("inc qword ptr [rbp-%d]", lvar.offset)
-			e.emit("mov rcx, qword ptr [rbp-%d]", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Elem]; ok {
-			e.emit("inc qword ptr %s[rip]", gvar.label)
-			e.emit("mov rcx, qword ptr %s[rip]", gvar.label)
-		}
-		if lvar, ok := e.lvars[stmt.Index]; ok {
-			e.emit("inc qword ptr [rbp-%d]", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Index]; ok {
-			e.emit("inc qword ptr %s[rip]", gvar.label)
-		}
-		e.emit("jmp %s", br.beginLabel)
-		e.emitLabel(br.endLabel)
 	case *types.Array:
-		// init
-		e.emitExpr(stmt.Iter.Value)
-		if lvar, ok := e.lvars[stmt.Iter]; ok {
-			e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
-			e.emit("mov qword ptr %s[rip], rax", gvar.label)
-		}
-		e.emit("mov rcx, 0")
-		if lvar, ok := e.lvars[stmt.Index]; ok {
-			e.emit("mov qword ptr [rbp-%d], rcx", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Index]; ok {
-			e.emit("mov qword ptr %s[rip], rcx", gvar.label)
-		}
+		if elem, ok := e.lvars[stmt.Elem]; ok {
+			index := e.lvars[stmt.Index]
+			iter := e.lvars[stmt.Iter]
 
-		// cond
-		e.emitLabel(br.beginLabel)
-		e.emit("cmp rcx, %d", typ.Len)
-		e.emit("jge %s", br.endLabel)
+			// init
+			e.emitExpr(stmt.Iter.Value)
+			e.emit("mov qword ptr [rbp-%d], rax", iter.offset)
+			e.emit("mov rcx, 0")
+			e.emit("mov qword ptr [rbp-%d], rcx", index.offset)
 
-		// pre
-		if lvar, ok := e.lvars[stmt.Elem]; ok {
-			switch lvar.size {
+			// cond
+			e.emitLabel(br.beginLabel)
+			e.emit("cmp rcx, %d", typ.Len)
+			e.emit("jge %s", br.endLabel)
+
+			// pre
+			switch elem.size {
 			case 1:
 				e.emit("mov al, byte ptr [rax+rcx]")
-				e.emit("mov byte ptr [rbp-%d], al", lvar.offset)
+				e.emit("mov byte ptr [rbp-%d], al", elem.offset)
 			case 8:
 				e.emit("mov rax, qword ptr [rax+rcx*8]")
-				e.emit("mov qword ptr [rbp-%d], rax", lvar.offset)
+				e.emit("mov qword ptr [rbp-%d], rax", elem.offset)
 			}
-		} else if gvar, ok := e.gvars[stmt.Elem]; ok {
-			switch gvar.size {
+
+			// body
+			e.emitBlockStmt(stmt.Body)
+
+			// post
+			e.emitLabel(br.continueLabel)
+			e.emit("mov rax, qword ptr [rbp-%d]", iter.offset)
+			e.emit("inc qword ptr [rbp-%d]", index.offset)
+			e.emit("mov rcx, qword ptr [rbp-%d]", index.offset)
+			e.emit("jmp %s", br.beginLabel)
+			e.emitLabel(br.endLabel)
+		} else if elem, ok := e.gvars[stmt.Elem]; ok {
+			index := e.gvars[stmt.Index]
+			iter := e.gvars[stmt.Iter]
+
+			// init
+			e.emitExpr(stmt.Iter.Value)
+			e.emit("mov qword ptr %s[rip], rax", iter.label)
+			e.emit("mov rcx, 0")
+			e.emit("mov qword ptr %s[rip], rcx", index.label)
+
+			// cond
+			e.emitLabel(br.beginLabel)
+			e.emit("cmp rcx, %d", typ.Len)
+			e.emit("jge %s", br.endLabel)
+
+			// pre
+			switch elem.size {
 			case 1:
 				e.emit("mov al, byte ptr [rax+rcx]")
-				e.emit("mov byte ptr %s[rip], al", gvar.label)
+				e.emit("mov byte ptr %s[rip], al", elem.label)
 			case 8:
 				e.emit("mov rax, qword ptr [rax+rcx*8]")
-				e.emit("mov qword ptr %s[rip], rax", gvar.label)
+				e.emit("mov qword ptr %s[rip], rax", elem.label)
 			}
-		}
 
-		// body
-		e.emitBlockStmt(stmt.Body)
+			// body
+			e.emitBlockStmt(stmt.Body)
 
-		// post
-		e.emitLabel(br.continueLabel)
-		if lvar, ok := e.lvars[stmt.Iter]; ok {
-			e.emit("mov rax, qword ptr [rbp-%d]", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Iter]; ok {
-			e.emit("mov rax, qword ptr %s[rip]", gvar.label)
+			// post
+			e.emitLabel(br.continueLabel)
+			e.emit("mov rax, qword ptr %s[rip]", iter.label)
+			e.emit("inc qword ptr %s[rip]", index.label)
+			e.emit("mov rcx, qword ptr %s[rip]", index.label)
+			e.emit("jmp %s", br.beginLabel)
+			e.emitLabel(br.endLabel)
 		}
-		if lvar, ok := e.lvars[stmt.Index]; ok {
-			e.emit("inc qword ptr [rbp-%d]", lvar.offset)
-			e.emit("mov rcx, qword ptr [rbp-%d]", lvar.offset)
-		} else if gvar, ok := e.gvars[stmt.Index]; ok {
-			e.emit("inc qword ptr %s[rip]", gvar.label)
-			e.emit("mov rcx, qword ptr %s[rip]", gvar.label)
-		}
-		e.emit("jmp %s", br.beginLabel)
-		e.emitLabel(br.endLabel)
 	}
 }
 
